@@ -1,0 +1,12 @@
+
+import 'package:get_it/get_it.dart';
+import 'package:greyfundr/core/api/auth_api/auth_api.dart';
+import 'package:greyfundr/core/api/auth_api/auth_api_impl.dart';
+
+GetIt locator = GetIt.instance;
+void setupLocator() {
+  // locator.registerLazySingleton<API>(() => API());
+  // locator.registerLazySingleton<UserApi>(() => UserApiImpl());
+  locator.registerLazySingleton<AuthApi>(() => AuthApiImpl());
+
+}

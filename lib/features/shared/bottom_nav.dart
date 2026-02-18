@@ -19,6 +19,15 @@ class BottomNav extends StatefulWidget {
 class _BottomNavState extends State<BottomNav> {
   final List<Widget> _views = [HomeScreen(), BillScreen(), ProfileScreen()];
 
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero, () {
+      var userProvider = Provider.of<UserProvider>(context, listen: false);
+      userProvider.fetchUserProfileApi();
+    });
+  }
+
   // Maaynr
 
   @override

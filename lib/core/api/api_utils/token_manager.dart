@@ -17,7 +17,7 @@ class TokenManager {
   final Dio _dio = Dio();
 
   // Replace with your actual refresh token endpoint
-  static String _refreshTokenEndpoint = '${env.host}auth/refresh';
+  static String _refreshTokenEndpoint = '${env.host}/auth/refresh';
 
   Future<String>? _refreshing; // shared in-flight refresh
 

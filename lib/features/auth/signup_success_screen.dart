@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:get/get_core/get_core.dart';
 import 'package:get/get_utils/src/extensions/export.dart';
 import 'package:greyfundr/components/custom_button.dart';
+import 'package:greyfundr/features/auth/create_pin_screen.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
@@ -25,11 +26,10 @@ class SignupSuccessScreen extends StatelessWidget {
             Gap(20),
             Text("Hi!", style: txStyle32Bold.copyWith(color: appPrimaryColor)),
             Text(name, style: txStyle30SemiBold),
-           
 
             // Spacer(),
             Gap(SizeConfig.heightOf(15)),
-             Center(
+            Center(
               child: Lottie.asset(
                 "assets/lottie/Success.json",
                 height: 150,
@@ -56,9 +56,13 @@ class SignupSuccessScreen extends StatelessWidget {
 
             CustomButton(
               onTap: () {
-                Get.close(1);
+                // Get.close(1);
+                Get.offAll(
+                  CreatePinScreen(),
+                  transition: Transition.rightToLeft,
+                );
               },
-              label: "Let's Get Started",
+              label: "Set up PIN",
             ),
           ],
         ).paddingSymmetric(horizontal: SizeConfig.widthOf(5)),

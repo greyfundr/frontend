@@ -104,15 +104,19 @@ class TokenManager {
     }
 
     try {
-      final response = await _dio.get(
+      final response = await _dio.post(
         _refreshTokenEndpoint,
         options: Options(
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json',
-            'Authorization': "Bearer ${_prefs.getString(_refreshTokenKey)}",
+            // 'Authorization': "Bearer ${_prefs.getString(_refreshTokenKey)}",
           },
+          
         ),
+        data: jsonEncode({
+          'refreshToken': refreshToken,
+        }),
       );
 
       log(":::::::: TOKEN REFRESH RESPONSE$response");

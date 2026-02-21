@@ -2,6 +2,7 @@ import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/user_api/user_api.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
+import 'package:greyfundr/services/user_local_storage_service.dart';
 
 class UserApiImpl implements UserApi {
   final ApiClient _apiClient = ApiClient();
@@ -17,6 +18,7 @@ class UserApiImpl implements UserApi {
       ApiRoute.userProfileRoute,
       headers: header,
     );
+    UserLocalStorageService().setUser(response);
     return userProfileModelFromJson(response);
   }
 

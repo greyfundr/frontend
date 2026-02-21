@@ -5,6 +5,7 @@ import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_num_pad.dart';
 import 'package:greyfundr/components/custom_pin_input.dart';
 import 'package:greyfundr/features/auth/auth_provider.dart';
+import 'package:greyfundr/features/shared/bottom_nav.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/text_style.dart';
 
@@ -74,10 +75,9 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
                           ),
                         ),
                         Gap(64),
-                        PinCodeText(pin: authProvider.newPin, ),
+                        PinCodeText(pin: authProvider.newPin),
                         Spacer(),
                         NumPad(
-                          
                           onValue: (value) {
                             authProvider.addToPin(value);
                             // signInProvider.checkPinFiled();
@@ -90,7 +90,20 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
                         Spacer(),
                         Padding(
                           padding: const EdgeInsets.only(bottom: 20.0),
-                          child: CustomButton(onTap: () {}, label: ""),
+                          child: CustomButton(
+                            onTap: () async {
+                              bool res = await authProvider.createPin(
+                                pin: authProvider.newPin,
+                              );
+                              if (res) {
+                                Get.to(
+                                  BottomNav(),
+                                  transition: Transition.rightToLeft,
+                                );
+                              }
+                            },
+                            label: "Create Pin",
+                          ),
                         ),
                       ],
                     ),

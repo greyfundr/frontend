@@ -64,8 +64,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         fontFamily: "Montserrat",
         scaffoldBackgroundColor: Colors.white,
-        splashColor: Colors.transparent
-        
+        splashColor: Colors.transparent,
+        useMaterial3: false
         // 0xfff5f5f5
       ),
       home: const SplashScreen(),

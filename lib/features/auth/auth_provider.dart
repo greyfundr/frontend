@@ -11,6 +11,8 @@ import 'package:greyfundr/shared/validator.dart';
 class AuthProvider extends BaseNotifier with Validators {
   var authApi = locator<AuthApi>();
 
+  TextEditingController emailOrPhoneForgotPasswordController = TextEditingController();
+
   PageController authPageController = PageController();
   int currentPage = 0;
   int secondsRemaining = 120;
@@ -236,4 +238,80 @@ class AuthProvider extends BaseNotifier with Validators {
       EasyLoading.dismiss();
     }
   }
+
+
+  Future<bool> forgotPassword({
+    required String email,
+   }) async {
+    EasyLoading.show();
+    try {
+      var response = await authApi.forgotPasswordApi(emailOrPhone: email);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      log("ERROR ON FORGOT PASSWORD $e ");
+      showErrorToast("${e}");
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+
+    
+  }
+
+  Future<bool> createPassword({
+    required String password,
+   }) async {
+    EasyLoading.show();
+    try {
+      var response = await authApi.createPasswordApi(password: password);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      log("ERROR ON CREATE PASSWORD $e ");
+      showErrorToast("${e}");
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+   }
+
+
+ Future<bool> createPin({
+    required String pin,
+   }) async {
+    EasyLoading.show();
+    try {
+      var response = await authApi.setPinApi(pin: pin);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      log("ERROR ON CREATE PIN $e ");
+      showErrorToast("${e}");
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+   }
+
+ Future<bool> signInWithPin({
+    required String pin,
+    required String emailOrPhone,
+   }) async {
+    EasyLoading.show();
+    try {
+      var response = await authApi.loginPinApi(pin: pin, emailOrPhone: emailOrPhone);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      log("ERROR ON SIGN IN WITH PIN $e ");
+      showErrorToast("${e}");
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+      pin = "";
+      notifyListeners();
+    }
+   }
+
 }

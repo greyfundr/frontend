@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:greyfundr/core/models/login_response_model.dart';
+import 'package:greyfundr/core/models/user_profile_model.dart';
 import 'package:greyfundr/services/shared_preference_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -80,12 +81,11 @@ class UserLocalStorageService {
     bool res = await _prefs.clear();
   }
 
-  User? getUserData() {
+  UserProfileModel? getUserData() {
     var response = _prefs.getString("user");
     if (response?.isNotEmpty ?? false) {
       try {
-        var decodedResponse = jsonDecode("$response");
-        return User.fromJson(decodedResponse);
+        return userProfileModelFromJson(response!);
       } catch (e) {
         log("Error retrieving user data from local storage: $e");
         return null;

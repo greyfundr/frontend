@@ -33,7 +33,7 @@ class AuthApiImpl implements AuthApi {
     var loginResponse = loginResponseModelFromJson(response);
     localStorage.setString("access_token", decodedResponse["accessToken"]);
     localStorage.setString("refresh_token", decodedResponse["refreshToken"]);
-    UserLocalStorageService().setUser(jsonEncode(loginResponse.data));
+    // UserLocalStorageService().setUser(jsonEncode(loginResponse.data));
     return loginResponse;
   }
 
@@ -85,6 +85,7 @@ class AuthApiImpl implements AuthApi {
       ApiRoute.createPasswordRoute,
       headers: header,
       body: data,
+      requiresToken: true,
     );
     return response;
   }
@@ -117,6 +118,9 @@ class AuthApiImpl implements AuthApi {
       headers: header,
       body: data,
     );
+    var decodedResponse = jsonDecode(response);
+    localStorage.setString("access_token", decodedResponse["accessToken"]);
+    localStorage.setString("refresh_token", decodedResponse["refreshToken"]);
     return response;
   }
 

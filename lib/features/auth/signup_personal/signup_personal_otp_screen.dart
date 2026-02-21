@@ -45,6 +45,14 @@ class _SignupPersonalOtpScreenState extends State<SignupPersonalOtpScreen> {
                 text: authProvider.emailController.text,
                 style: txStyle13.copyWith(color: appPrimaryColor),
               ),
+              TextSpan(
+                text: " Or ",
+                style: txStyle13.copyWith(color: appPrimaryColor),
+              ),
+              TextSpan(
+                text: authProvider.phoneController.text,
+                style: txStyle13.copyWith(color: appPrimaryColor),
+              ),
             ],
           ),
         ),
@@ -55,7 +63,15 @@ class _SignupPersonalOtpScreenState extends State<SignupPersonalOtpScreen> {
         ),
         Gap(40),
 
-        Center(child: PINCodeInput2(controller: pinController, inputLenght: 6)),
+        Center(
+          child: PINCodeInput2(
+            controller: pinController,
+            inputLenght: 6,
+            onChanged: (value) {
+              setState(() {});
+            },
+          ),
+        ),
         Gap(10),
 
         Center(

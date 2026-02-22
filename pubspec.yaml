@@ -87,6 +87,24 @@ dev_dependencies:
   icons_launcher: ^3.0.3
   rename: ^3.1.0
 
+icons_launcher:
+  image_path: "assets/images/app_icon.png"
+  platforms:
+    android:
+      enable: true
+    ios:
+      enable: true
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/app_icon.png
+  color_dark: "#FFFFFF"
+  image_dark: assets/images/app_icon.png
+  android_12:
+    # image: assets/images/splashScreenIcon.png
+    icon_background_color: "#FFFFFF"
+    icon_background_color_dark: "#FFFFFF"
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 # The following section is specific to Flutter packages.

@@ -51,10 +51,13 @@ class UserProvider extends BaseNotifier {
     }
   }
 
-  Future<bool> editProfile({String? firstName, String? lastName, }) async {
+  Future<bool> editProfile({String? firstName, String? lastName}) async {
     EasyLoading.show();
     try {
-      await userApi.updateUserProfile(firstName: firstName ?? "", lastName: lastName ?? "");
+      await userApi.updateUserProfile(
+        firstName: firstName ?? "",
+        lastName: lastName ?? "",
+      );
       notifyListeners();
       return true;
     } catch (e) {
@@ -63,6 +66,20 @@ class UserProvider extends BaseNotifier {
       return false;
     } finally {
       EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> updateUserNotificationPreference(
+    Map<String, dynamic> payload,
+  ) async {
+    // Note: User said "do it behind the scene" so we might remove EasyLoading here, but we will leave it silent since it's just toggles.
+    try {
+      await userApi.updateUserNotificationPreference(payload: payload);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      log("ERROR ON UPDATE USER NOTIFICATION PREFERENCE $e ");
+      return false;
     }
   }
 }

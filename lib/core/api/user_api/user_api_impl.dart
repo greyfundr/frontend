@@ -24,12 +24,12 @@ class UserApiImpl implements UserApi {
   }
 
   @override
-  Future <UserSettingsModel> fetchUserSettings() async {
+  Future<UserSettingsModel> fetchUserSettings() async {
     final response = await _apiClient.get(
       ApiRoute.getSettingsRoute,
       headers: header,
     );
-     return userSettingsModelFromJson(response);
+    return userSettingsModelFromJson(response);
   }
 
   @override
@@ -37,7 +37,20 @@ class UserApiImpl implements UserApi {
     final response = await _apiClient.patch(
       ApiRoute.userProfileRoute,
       headers: header,
-      body: {"firstName": firstName, "lastName": lastName}..removeWhere((key, value) => value == null || value.isEmpty),
+      body: {"firstName": firstName, "lastName": lastName}
+        ..removeWhere((key, value) => value == null || value.isEmpty),
+    );
+    return response;
+  }
+
+  @override
+  Future updateUserNotificationPreference({
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _apiClient.patch(
+      ApiRoute.updateSettingsRoute,
+      headers: header,
+      body: payload,
     );
     return response;
   }

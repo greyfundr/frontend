@@ -6,6 +6,7 @@ import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/custom_app_bar.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/features/settings/edit_profile_screen.dart';
+import 'package:greyfundr/features/settings/notification_preference_screen.dart';
 import 'package:greyfundr/features/shared/bottom_sheets.dart';
 import 'package:greyfundr/shared/utils.dart';
 
@@ -82,6 +83,7 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.notifications_outlined,
             title: 'Notifications',
             onTap: () {
+              Get.to(NotificationPreferenceScreen());
               // TODO: Navigate to notification settings
               // ScaffoldMessenger.of(context).showSnackBar(
               //   const SnackBar(content: Text('Notification settings - Coming soon')),

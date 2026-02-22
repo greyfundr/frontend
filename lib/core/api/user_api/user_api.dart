@@ -7,4 +7,8 @@ abstract class UserApi {
   Future updateUserProfile({String? firstName, String? lastName});
 
   Future<UserSettingsModel> fetchUserSettings();
+
+  Future updateUserNotificationPreference({
+    required Map<String, dynamic> payload,
+  });
 }

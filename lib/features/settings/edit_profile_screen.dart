@@ -20,13 +20,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   var firstNameController = TextEditingController();
   var lastNameController = TextEditingController();
   UserProvider? userProvider;
+  bool isChanged = false;
+
   @override
   void initState() {
     super.initState();
+    firstNameController.addListener(_checkIfChanged);
+    lastNameController.addListener(_checkIfChanged);
     Future.delayed(Duration.zero, () {
       userProvider = Provider.of<UserProvider>(context, listen: false);
       initController();
     });
+  }
+
+  @override
+  void dispose() {
+    firstNameController.removeListener(_checkIfChanged);
+    lastNameController.removeListener(_checkIfChanged);
+    firstNameController.dispose();
+    lastNameController.dispose();
+    super.dispose();
+  }
+
+  void _checkIfChanged() {
+    var userProfile = userProvider?.userProfileModel;
+    if (userProfile != null) {
+      bool changed =
+          firstNameController.text != (userProfile.firstName ?? "") ||
+          lastNameController.text != (userProfile.lastName ?? "");
+      if (isChanged != changed) {
+        setState(() {
+          isChanged = changed;
+        });
+      }
+    }
   }
 
   initController() {
@@ -38,6 +65,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
     return Scaffold(
       appBar: CustomAppBar(title: "Edit Profile"),
       body: Column(
@@ -56,7 +84,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             controller: lastNameController,
           ),
           Gap(20),
-          CustomButton(onTap: () {}, label: "Save changes"),
+          CustomButton(
+            enabled: isChanged,
+            onTap: () async {
+              if (isChanged) {
+                bool success = await userProvider.editProfile(
+                  firstName: firstNameController.text,
+                  lastName: lastNameController.text,
+                );
+                if (success) {
+                  await userProvider.fetchUserProfileApi();
+                  initController();
+                }
+              }
+            },
+            label: "Save changes",
+          ),
         ],
       ).paddingSymmetric(horizontal: SizeConfig.widthOf(5), vertical: 20),
     );

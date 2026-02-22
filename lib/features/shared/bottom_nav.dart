@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
+import 'package:greyfundr/core/providers/wallet_provider.dart';
 import 'package:greyfundr/features/bill/bill_screen.dart';
 import 'package:greyfundr/features/home/home_screen.dart';
 import 'package:greyfundr/features/profile/profile_screen.dart';
@@ -24,7 +25,10 @@ class _BottomNavState extends State<BottomNav> {
     super.initState();
     Future.delayed(Duration.zero, () {
       var userProvider = Provider.of<UserProvider>(context, listen: false);
+      var walletProvider = Provider.of<WalletProvider>(context, listen: false);
+
       userProvider.fetchUserProfileApi();
+      walletProvider.fetchUserWallet();
     });
   }
 

@@ -107,7 +107,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             // height: 65,
             decoration: BoxDecoration(
               color: Colors.white,
-              // border: Border.all(color: borderColor),
+              border: Border.all(color: borderColor),
               // color: Colors.red,
               borderRadius: BorderRadius.circular(8),
             ),

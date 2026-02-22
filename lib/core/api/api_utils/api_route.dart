@@ -30,4 +30,14 @@ static final String updateSettingsRoute = "$baseUrl/settings/update";
 // User Routes
 static final String userProfileRoute = "$baseUrl/users/profile";
 
+// Wallet Routes
+static final String walletRoute = "$baseUrl/wallet";
+static final String walletBalanceRoute = "$baseUrl/wallet/balance";
+static final String provisionVirtualAccountRoute = "$baseUrl/wallet/provision-virtual-account";
+static final String fundingAccountRoute = "$baseUrl/wallet/funding-account";
+static final String fundInitiateRoute = "$baseUrl/wallet/fund/initiate";
+static final String fundVerifyRoute = "$baseUrl/wallet/fund/verify";
+static final String bankAccountsRoute = "$baseUrl/wallet/bank-accounts";
+static final String withdrawRoute = "$baseUrl/wallet/withdraw";
+
 }

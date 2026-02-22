@@ -282,7 +282,7 @@ String convertStringToCurrency(String amount) {
   final parsedAmount = double.tryParse(amount) ?? 0.0;
   final formattedAmount = NumberFormat.currency(
     locale: 'en_NG',
-    symbol: '£',
+    symbol: '₦',
   ).format(parsedAmount);
   return formattedAmount;
 }

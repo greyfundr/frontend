@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:get/state_manager.dart';
@@ -37,10 +38,14 @@ class _CustomAppBarState extends State<CustomAppBar> {
   @override
   AppBar build(BuildContext context) {
     return AppBar(
-      centerTitle: widget.centerTitle,
+    centerTitle: widget.centerTitle,
       actions: widget.actions,
       backgroundColor: Colors.transparent,
       automaticallyImplyLeading: widget.content != null ? true : false,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
       leadingWidth: 70,
       leading: widget.hasDrawer
           ? IconButton(

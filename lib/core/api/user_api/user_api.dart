@@ -1,8 +1,10 @@
 import 'package:greyfundr/core/models/user_profile_model.dart';
+import 'package:greyfundr/core/models/user_settings_model.dart';
 
 abstract class UserApi {
-  Future <UserProfileModel> fetchUserProfile();
+  Future<UserProfileModel> fetchUserProfile();
 
-  Future fetchUserSettings();
+  Future updateUserProfile({String? firstName, String? lastName});
 
+  Future<UserSettingsModel> fetchUserSettings();
 }

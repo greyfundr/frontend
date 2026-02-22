@@ -1,5 +1,11 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
+import 'package:get/route_manager.dart';
+import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/custom_app_bar.dart';
+import 'package:greyfundr/components/custom_ontap.dart';
+import 'package:greyfundr/features/settings/edit_profile_screen.dart';
 import 'package:greyfundr/features/shared/bottom_sheets.dart';
 import 'package:greyfundr/shared/utils.dart';
 
@@ -15,18 +21,12 @@ class SettingsScreen extends StatelessWidget {
         children: [
           const SizedBox(height: 10),
 
-          // Account Section
           _buildSectionHeader('Account'),
           _buildMenuItem(
             icon: Icons.person_outline,
             title: 'Edit Profile',
             onTap: () {
-              // Navigator.push(
-              //   context,
-              //   MaterialPageRoute(
-              //     builder: (_) => EditProfilePage(user: user),
-              //   ),
-              // );
+              Get.to(EditProfileScreen(), transition: Transition.rightToLeft);
             },
           ),
           _buildMenuItem(
@@ -135,7 +135,7 @@ class SettingsScreen extends StatelessWidget {
 
           // Logout Button
           Padding(
-            padding: const EdgeInsets.symmetric( vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: ListTile(
               leading: Container(
                 padding: const EdgeInsets.all(10),
@@ -203,43 +203,7 @@ class SettingsScreen extends StatelessWidget {
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: onTap,
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Log Out',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-          content: const Text('Are you sure you want to log out?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey[800])),
-            ),
-            TextButton(
-              onPressed: () {
-                // trigger logout
-              },
-              child: const Text(
-                'Log Out',
-                style: TextStyle(
-                  color: Colors.red,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+      onTap: () => onTap(),
     );
   }
 }

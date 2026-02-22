@@ -1,3 +1,6 @@
+import 'dart:math' as math;
+
+import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -8,9 +11,12 @@ import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
+import 'package:greyfundr/core/providers/wallet_provider.dart';
+import 'package:greyfundr/features/home/add_money_sheet.dart';
 import 'package:greyfundr/features/settings/settings_screen.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
+import 'package:greyfundr/shared/utils.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -19,7 +25,9 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+    final walletProvider = Provider.of<WalletProvider>(context);
     var userProfile = userProvider.userProfileModel;
+    var walletModel = walletProvider.walletModel;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -40,9 +48,11 @@ class HomeScreen extends StatelessWidget {
                       Gap(5),
                       Column(
                         children: [
-                          Text("${userProfile?.firstName} ${userProfile?.lastName}"),
+                          Text(
+                            "${userProfile?.firstName} ${userProfile?.lastName}",
+                          ),
                         ],
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -52,32 +62,72 @@ class HomeScreen extends StatelessWidget {
             Gap(5),
             Divider(),
             Gap(5),
-            
-            Row(
-              children: [
-                Image.asset("assets/images/lifestyle.png", height: 250, width: SizeConfig.widthOf(50),),
-                Image.asset("assets/images/invoice.png",height: 250,width: SizeConfig.widthOf(50)),
-              ],
+
+            Expanded(
+              child: RefreshIndicator.adaptive(
+                onRefresh: () async {
+                  await userProvider.fetchUserProfileApi();
+                  await walletProvider.fetchUserWallet();
+                },
+                child: ListView(
+                  children: [
+                    if (userProfile?.hasCompletedKyc == false)
+                      IncompleteKycBadge().paddingSymmetric(
+                        horizontal: SizeConfig.widthOf(5),
+                      ),
+                    Gap(10),
+
+                    Row(
+                      children: [
+                        Image.asset(
+                          "assets/images/lifestyle.png",
+                          height: 250,
+                          width: SizeConfig.widthOf(50),
+                        ),
+                        Image.asset(
+                          "assets/images/invoice.png",
+                          height: 250,
+                          width: SizeConfig.widthOf(50),
+                        ),
+                      ],
+                    ),
+                    Gap(20),
+                    Row(
+                      children: [
+                        Image.asset(
+                          "assets/images/create_new.png",
+                          height: 250,
+                          width: SizeConfig.widthOf(50),
+                        ),
+                        Image.asset(
+                          "assets/images/charity.png",
+                          height: 250,
+                          width: SizeConfig.widthOf(50),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-            Gap(20),
-             Row(
-              children: [
-                Image.asset("assets/images/create_new.png", height: 250, width: SizeConfig.widthOf(50),),
-                Image.asset("assets/images/charity.png",height: 250,width: SizeConfig.widthOf(50)),
-              ],
-            ),
-            Spacer(),
+
             Container(
               height: 20,
               decoration: BoxDecoration(
-                image: DecorationImage(image: AssetImage("assets/images/wallet_bg_arc.png"), fit: BoxFit.cover)
+                image: DecorationImage(
+                  image: AssetImage("assets/images/wallet_bg_arc.png"),
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             Container(
               padding: EdgeInsets.symmetric(horizontal: SizeConfig.widthOf(5)),
               height: 80,
               decoration: BoxDecoration(
-                image: DecorationImage(image: AssetImage("assets/images/wallet_bg.png"), fit: BoxFit.cover)
+                image: DecorationImage(
+                  image: AssetImage("assets/images/wallet_bg.png"),
+                  fit: BoxFit.cover,
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -86,25 +136,81 @@ class HomeScreen extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Total Balance", style: txStyle14wt,),
+                      Text("Total Balance", style: txStyle12wt),
                       Gap(5),
-                      Text("₦72,311.00", style: txStyle20SemiBold.copyWith(color: Colors.white),),
+                      Text(
+                        "${convertStringToCurrency(walletModel?.balance?.available ?? "0")}",
+                        style: txStyle18SemiBold.copyWith(color: Colors.white),
+                      ),
                       Gap(5),
-                      Text("You owe:  ₦23,200", style: txStyle14wt,)
+                      Text(
+                        "Ledger:  ${convertStringToCurrency("${walletModel?.balance?.ledger ?? "0"}")}",
+                        style: txStyle12wt,
+                      ),
                     ],
                   ),
-                  // Text("You are owed:  ₦45,200", style: txStyle14wt,),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      SvgPicture.asset("assets/svgs/add_money.svg", height: 30,),
-                      Text("Add Money", style: txStyle12wt,)
+                      SizedBox(height: 27),
+                      Text(
+                        "Escrow:  ${convertStringToCurrency("${walletModel?.balance?.escrow ?? "0"}")}",
+                        style: txStyle12wt,
+                      ),
                     ],
-                  )
+                  ),
+                  InkWell(
+                    onTap: () {
+                      showCustomBottomSheet(AddMoneySheet(), context);
+                    },
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SvgPicture.asset(
+                          "assets/svgs/add_money.svg",
+                          height: 30,
+                        ),
+                        Text("Add Money", style: txStyle12wt),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            )
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
+class IncompleteKycBadge extends StatelessWidget {
+  const IncompleteKycBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    return CustomOnTap(
+      onTap: () async {
+        bool res = await userProvider.completeKycTemp();
+        if (res) {
+          userProvider.fetchUserProfileApi();
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+        decoration: BoxDecoration(
+          color: Color(0xffff534f),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.info_outline, color: Colors.white, size: 16),
+            Gap(5),
+            Text(
+              "Kindly verify your account to access all features",
+              style: txStyle12wt,
+            ),
           ],
         ),
       ),

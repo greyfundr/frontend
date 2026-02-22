@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
@@ -78,8 +80,21 @@ class _SignInWithPinScreenState extends State<SignInWithPinScreen> {
                         PinCodeText(pin: authProvider.newPin),
                         Spacer(),
                         NumPad(
-                          onValue: (value) {
+                          onValue: (value) async {
                             authProvider.addToPin(value);
+                            // log("Value: $value");
+                            if (authProvider.newPin.length == 6) {
+                              bool res = await authProvider.signInWithPin(
+                                emailOrPhone: user?.email ?? "",
+                                pin: authProvider.newPin,
+                              );
+                              if (res) {
+                                Get.offAll(
+                                  BottomNav(),
+                                  transition: Transition.rightToLeft,
+                                );
+                              }
+                            }
                             // signInProvider.checkPinFiled();
                           },
                           onDelete: () {
@@ -88,21 +103,21 @@ class _SignInWithPinScreenState extends State<SignInWithPinScreen> {
                           },
                         ),
                         Spacer(),
-                        CustomButton(
-                          onTap: () async {
-                            bool res = await authProvider.signInWithPin(
-                              emailOrPhone: user?.email ?? "",
-                              pin: authProvider.newPin,
-                            );
-                            if (res) {
-                              Get.offAll(
-                                BottomNav(),
-                                transition: Transition.rightToLeft,
-                              );
-                            }
-                          },
-                          label: "Sign In",
-                        ),
+                        // CustomButton(
+                        //   onTap: () async {
+                        //     bool res = await authProvider.signInWithPin(
+                        //       emailOrPhone: user?.email ?? "",
+                        //       pin: authProvider.newPin,
+                        //     );
+                        //     if (res) {
+                        //       Get.offAll(
+                        //         BottomNav(),
+                        //         transition: Transition.rightToLeft,
+                        //       );
+                        //     }
+                        //   },
+                        //   label: "Sign In",
+                        // ),
                         Gap(15),
                         CustomOnTap(
                           onTap: () {

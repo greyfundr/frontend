@@ -29,6 +29,7 @@ class _BottomNavState extends State<BottomNav> {
 
       userProvider.fetchUserProfileApi();
       walletProvider.fetchUserWallet();
+      walletProvider.fetchTransactions();
     });
   }
 

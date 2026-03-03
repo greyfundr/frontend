@@ -14,6 +14,8 @@ import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
 import 'package:greyfundr/features/home/add_money_sheet.dart';
 import 'package:greyfundr/features/settings/settings_screen.dart';
+import 'package:greyfundr/features/settings/transaction_history_screen.dart';
+import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/shared/utils.dart';
@@ -106,6 +108,68 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                    Gap(20),
+
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Recent Transactions",
+                              style: txStyle16SemiBold,
+                            ),
+                            CustomOnTap(
+                              onTap: () {
+                                Get.to(
+                                  TransactionHistoryScreen(),
+                                  transition: Transition.rightToLeft,
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Text(
+                                    "View All",
+                                    style: txStyle14SemiBold.copyWith(
+                                      color: appPrimaryColor,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 12,
+                                    color: appPrimaryColor,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        Gap(20),
+                        ListView.separated(
+                          physics: NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          // padding: const EdgeInsets.symmetric(
+                          //   horizontal: 16,
+                          //   vertical: 20,
+                          // ),
+                          itemCount:
+                              (walletProvider.transactionModel?.data?.length ??
+                                      0) >
+                                  3
+                              ? 3
+                              : walletProvider.transactionModel?.data?.length ??
+                                    0,
+                          separatorBuilder: (context, index) =>
+                              Divider(color: Color(0xFFEEEEEE), thickness: 1),
+                          itemBuilder: (context, index) {
+                            final tx =
+                                walletProvider.transactionModel?.data?[index];
+                            return buildTransactionItem(tx!);
+                          },
+                        ),
+                        Gap(40),
+                      ],
+                    ).paddingSymmetric(horizontal: SizeConfig.widthOf(5)),
                   ],
                 ),
               ),

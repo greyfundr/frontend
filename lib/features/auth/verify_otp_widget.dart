@@ -17,6 +17,7 @@ class VerifyOtpWidget extends StatefulWidget {
 
 class _VerifyOtpWidgetState extends State<VerifyOtpWidget> {
   AuthProvider? authProvider;
+  TextEditingController otpController = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -35,13 +36,13 @@ class _VerifyOtpWidgetState extends State<VerifyOtpWidget> {
         Text("Verify OTP", style: txStyle27Bold),
         RichText(
           text: TextSpan(
-            text: "We sent a code to the number",
+            text: "We sent a code to the phone number",
             style: txStyle13.copyWith(color: greyTextColor),
             children: [
-              TextSpan(
-                text: "+234 803 456 7890",
-                style: txStyle13.copyWith(color: appPrimaryColor),
-              ),
+              // TextSpan(
+              //   text: "+234 803 456 7890",
+              //   style: txStyle13.copyWith(color: appPrimaryColor),
+              // ),
             ],
           ),
         ),
@@ -52,7 +53,7 @@ class _VerifyOtpWidgetState extends State<VerifyOtpWidget> {
         ),
         Gap(40),
 
-        Center(child: PINCodeInput2()),
+        Center(child: PINCodeInput2(inputLenght: 6, controller: otpController)),
         Gap(10),
 
         Center(
@@ -60,11 +61,16 @@ class _VerifyOtpWidgetState extends State<VerifyOtpWidget> {
             onPressed: authProvider.timerActive
                 ? null
                 : () async {
-                    //  bool res = await authProvider.signInUser();
+                    bool res = await authProvider.forgotPassword(
+                      email: authProvider
+                          .emailOrPhoneForgotPasswordController
+                          .text,
+                    );
+                    otpController.clear();
 
-                    // if (res) {
-                    //   authProvider.startTimer();
-                    // }
+                    if (res) {
+                      authProvider.startTimer();
+                    }
                   },
             child: authProvider.timerActive
                 ? Text(
@@ -81,8 +87,14 @@ class _VerifyOtpWidgetState extends State<VerifyOtpWidget> {
         Gap(20),
 
         CustomButton(
-          onTap: () {
-            authProvider.animateToNextPage(3);
+          onTap: () async {
+            bool res = await authProvider.verifyOtpApi(
+              email: authProvider.emailOrPhoneForgotPasswordController.text,
+              otp: otpController.text,
+            );
+            if (res) {
+              authProvider.animateToNextPage(3);
+            }
           },
           label: "Continue",
         ),

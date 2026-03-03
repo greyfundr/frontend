@@ -47,8 +47,8 @@ class SignupGroupOutlet extends StatelessWidget {
                         children: [
                           AdaptiveIcons(
                             onTap: () {
-                              authProvider.currentSignupPage >0
-                                  ? authProvider.animateToNextPage(
+                              authProvider.currentSignupPage > 0
+                                  ? authProvider.animateToNextSignupPage(
                                       authProvider.currentSignupPage - 1,
                                     )
                                   : Get.close(1);

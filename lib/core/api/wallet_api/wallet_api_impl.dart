@@ -4,6 +4,7 @@ import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/wallet_api/wallet_api.dart';
 import 'package:greyfundr/core/models/wallet_model.dart';
+import 'package:greyfundr/core/models/transaction_model.dart';
 
 class WalletApiImpl implements WalletApi {
   final ApiClient _apiClient = ApiClient();
@@ -105,5 +106,17 @@ class WalletApiImpl implements WalletApi {
       body: data,
     );
     return response;
+  }
+
+  @override
+  Future<TransactionModel> getTransactions({
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final response = await _apiClient.get(
+      "${ApiRoute.transactionsRoute}?page=$page&limit=$limit",
+      headers: header,
+    );
+    return transactionModelFromJson(response);
   }
 }

@@ -34,16 +34,16 @@ class ApiClient {
     _setupInterceptors();
   }
 
- 
-
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-           options.headers.remove('requiresToken');
-          final token = await _tokenManager.getAccessToken();
-          options.headers['Authorization'] = 'Bearer $token';
-          
+          final requiresToken = options.headers.remove('requiresToken');
+
+          if (requiresToken == 'true' || requiresToken == null) {
+            final token = await _tokenManager.getAccessToken();
+            options.headers['Authorization'] = 'Bearer $token';
+          }
 
           log('🚀 REQUEST DETAILS:', name: 'API');
           log('URL INTERCEPTOR: ${options.uri}', name: 'API');
@@ -145,6 +145,8 @@ class ApiClient {
 
     if (requiresToken) {
       optionHeaders['requiresToken'] = 'true';
+    } else {
+      optionHeaders['requiresToken'] = 'false';
     }
 
     return Options(
@@ -211,11 +213,10 @@ class ApiClient {
       final response = await _dio.post(
         url,
         data: formData ?? body,
-        options:
-            _getOptions(headers, requiresToken: requiresToken)
-              ..contentType = formData != null ? "application/json" : null
-              ..responseType = ResponseType.plain
-              ..method = 'POST',
+        options: _getOptions(headers, requiresToken: requiresToken)
+          ..contentType = formData != null ? "application/json" : null
+          ..responseType = ResponseType.plain
+          ..method = 'POST',
         cancelToken: cancelToken, // <-- pass through
       );
 

@@ -43,6 +43,14 @@ class _SignupGroupOtpScreenState extends State<SignupGroupOtpScreen> {
                 text: authProvider.emailController.text,
                 style: txStyle13.copyWith(color: appPrimaryColor),
               ),
+              TextSpan(
+                text: " and ",
+                style: txStyle13.copyWith(color: greyTextColor),
+              ),
+              TextSpan(
+                text: authProvider.phoneController.text,
+                style: txStyle13.copyWith(color: appPrimaryColor),
+              ),
             ],
           ),
         ),
@@ -53,7 +61,9 @@ class _SignupGroupOtpScreenState extends State<SignupGroupOtpScreen> {
         ),
         Gap(40),
 
-        Center(child: PINCodeInput2(controller: _otpController)),
+        Center(
+          child: PINCodeInput2(controller: _otpController, inputLenght: 6),
+        ),
         Gap(10),
 
         Center(
@@ -84,7 +94,7 @@ class _SignupGroupOtpScreenState extends State<SignupGroupOtpScreen> {
         Gap(20),
 
         CustomButton(
-          enabled: _otpController.text.length == 4,
+          enabled: _otpController.text.length == 6,
           onTap: () async {
             bool res = await authProvider.verifyOtpApi(
               email: authProvider.emailController.text,

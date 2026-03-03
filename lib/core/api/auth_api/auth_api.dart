@@ -16,6 +16,12 @@ abstract class AuthApi {
 
   Future createPasswordApi({required String password});
 
+  Future changePasswordApi({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  });
+
   Future submitBasicInfoApi({
     required String firstName,
     required String lastName,
@@ -32,6 +38,8 @@ abstract class AuthApi {
   Future loginPinApi({String? pin, String? emailOrPhone});
 
   Future setPinApi({required String pin});
+
+  Future changePinApi({required String currentPin, required String newPin});
 
   Future refreshTokenApi();
 

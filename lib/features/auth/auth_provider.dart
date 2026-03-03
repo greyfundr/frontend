@@ -6,12 +6,14 @@ import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/shared/responsiveState/base_view_model.dart';
+import 'package:greyfundr/shared/responsiveState/view_state.dart';
 import 'package:greyfundr/shared/validator.dart';
 
 class AuthProvider extends BaseNotifier with Validators {
   var authApi = locator<AuthApi>();
 
-  TextEditingController emailOrPhoneForgotPasswordController = TextEditingController();
+  TextEditingController emailOrPhoneForgotPasswordController =
+      TextEditingController();
 
   PageController authPageController = PageController();
   int currentPage = 0;
@@ -239,10 +241,7 @@ class AuthProvider extends BaseNotifier with Validators {
     }
   }
 
-
-  Future<bool> forgotPassword({
-    required String email,
-   }) async {
+  Future<bool> forgotPassword({required String email}) async {
     EasyLoading.show();
     try {
       var response = await authApi.forgotPasswordApi(emailOrPhone: email);
@@ -255,13 +254,9 @@ class AuthProvider extends BaseNotifier with Validators {
     } finally {
       EasyLoading.dismiss();
     }
-
-    
   }
 
-  Future<bool> createPassword({
-    required String password,
-   }) async {
+  Future<bool> createPassword({required String password}) async {
     EasyLoading.show();
     try {
       var response = await authApi.createPasswordApi(password: password);
@@ -274,12 +269,34 @@ class AuthProvider extends BaseNotifier with Validators {
     } finally {
       EasyLoading.dismiss();
     }
-   }
+  }
 
 
- Future<bool> createPin({
-    required String pin,
-   }) async {
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    EasyLoading.show();
+    try {
+      await authApi.changePasswordApi(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        confirmNewPassword: confirmNewPassword,
+      );
+       notifyListeners();
+      return true;
+    } catch (e) {
+      log("ERROR ON CHANGE PASSWORD $e ");
+      showErrorToast("${e}");
+       notifyListeners();
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> createPin({required String pin}) async {
     EasyLoading.show();
     try {
       var response = await authApi.setPinApi(pin: pin);
@@ -292,15 +309,18 @@ class AuthProvider extends BaseNotifier with Validators {
     } finally {
       EasyLoading.dismiss();
     }
-   }
+  }
 
- Future<bool> signInWithPin({
+  Future<bool> signInWithPin({
     required String pin,
     required String emailOrPhone,
-   }) async {
+  }) async {
     EasyLoading.show();
     try {
-      var response = await authApi.loginPinApi(pin: pin, emailOrPhone: emailOrPhone);
+      var response = await authApi.loginPinApi(
+        pin: pin,
+        emailOrPhone: emailOrPhone,
+      );
       notifyListeners();
       return true;
     } catch (e) {
@@ -312,6 +332,26 @@ class AuthProvider extends BaseNotifier with Validators {
       pin = "";
       notifyListeners();
     }
-   }
+  }
 
+  Future<bool> changePin({
+    required String currentPin,
+    required String newPin,
+  }) async {
+    EasyLoading.show();
+    try {
+      var response = await authApi.changePinApi(
+        currentPin: currentPin,
+        newPin: newPin,
+      );
+      notifyListeners();
+      return true;
+    } catch (e) {
+      log("ERROR ON CHANGE PIN $e ");
+      showErrorToast("${e}");
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
 }

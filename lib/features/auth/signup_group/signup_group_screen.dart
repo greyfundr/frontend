@@ -7,6 +7,7 @@ import 'package:greyfundr/features/auth/auth_provider.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
+import 'package:greyfundr/shared/utils.dart';
 import 'package:provider/provider.dart';
 
 class SignupGroupScreen extends StatefulWidget {
@@ -61,6 +62,9 @@ class _SignupGroupScreenState extends State<SignupGroupScreen> {
                 textInputType: TextInputType.emailAddress,
                 controller: authProvider.emailController,
                 validator: (val) => authProvider.validateEmail(val!),
+                onChanged: (val) {
+                  setState(() {});
+                },
               ),
               Gap(15),
               CustomTextField(
@@ -69,6 +73,9 @@ class _SignupGroupScreenState extends State<SignupGroupScreen> {
                 textInputType: TextInputType.phone,
                 controller: authProvider.phoneController,
                 validator: (val) => authProvider.validatePhoneNumber(val!),
+                onChanged: (val) {
+                  setState(() {});
+                },
               ),
               Gap(15),
               CustomTextField(
@@ -78,6 +85,9 @@ class _SignupGroupScreenState extends State<SignupGroupScreen> {
                 obscureText: true,
                 controller: authProvider.passwordController,
                 validator: (val) => authProvider.validatePassword(val!),
+                onChanged: (val) {
+                  setState(() {});
+                },
               ),
               Gap(15),
               CustomTextField(
@@ -87,6 +97,9 @@ class _SignupGroupScreenState extends State<SignupGroupScreen> {
                 obscureText: true,
                 controller: authProvider.confirmPasswordController,
                 validator: (val) => authProvider.validatePassword(val!),
+                onChanged: (val) {
+                  setState(() {});
+                },
               ),
 
               Gap(40),
@@ -103,7 +116,9 @@ class _SignupGroupScreenState extends State<SignupGroupScreen> {
                   }
                   var response = await authProvider.signUpApi(
                     email: authProvider.emailController.text,
-                    phoneNumber: authProvider.phoneController.text,
+                    phoneNumber: formatPhoneNumber(
+                      authProvider.phoneController.text,
+                    ),
                     password: authProvider.passwordController.text,
                     accountType: "group",
                   );

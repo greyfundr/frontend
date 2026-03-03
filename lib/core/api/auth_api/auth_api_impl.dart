@@ -80,9 +80,33 @@ class AuthApiImpl implements AuthApi {
 
   @override
   Future createPasswordApi({required String password}) async {
-    Map<String, dynamic> data = {"password": password};
-    final response = await _apiClient.post(
+    Map<String, dynamic> data = {
+      "resetToken": await localStorage.getString("temp_access_token"),
+      "newPassword": password,
+      "confirmNewPassword": password,
+    };
+    final response = await _apiClient.patch(
       ApiRoute.createPasswordRoute,
+      headers: header,
+      body: data,
+      requiresToken: false,
+    );
+    return response;
+  }
+
+  @override
+  Future changePasswordApi({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmNewPassword,
+  }) async {
+    Map<String, dynamic> data = {
+      "currentPassword": currentPassword,
+      "newPassword": newPassword,
+      "confirmNewPassword": confirmNewPassword,
+    };
+    final response = await _apiClient.post(
+      ApiRoute.changePasswordRoute,
       headers: header,
       body: data,
       requiresToken: true,
@@ -158,6 +182,21 @@ class AuthApiImpl implements AuthApi {
   }
 
   @override
+  Future changePinApi({
+    required String currentPin,
+    required String newPin,
+  }) async {
+    Map<String, dynamic> data = {"currentPin": currentPin, "newPin": newPin};
+    final response = await _apiClient.post(
+      ApiRoute.changePinRoute,
+      headers: header,
+      body: data,
+      requiresToken: true,
+    );
+    return response;
+  }
+
+  @override
   Future submitBasicInfoApi({
     required String firstName,
     required String lastName,
@@ -188,8 +227,8 @@ class AuthApiImpl implements AuthApi {
       body: data,
     );
     var decodedResponse = jsonDecode(response);
-    localStorage.setString("access_token", decodedResponse["accessToken"]);
-    localStorage.setString("refresh_token", decodedResponse["refreshToken"]);
+    localStorage.setString("temp_access_token", decodedResponse["accessToken"]);
+    // localStorage.setString("refresh_token", decodedResponse["refreshToken"]);
     return response;
   }
 

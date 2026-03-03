@@ -1,4 +1,3 @@
- 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -72,9 +71,7 @@ void showSuccessToast(String message, {int? durartion}) {
         Flexible(
           child: Text(
             message,
-            style: txStyle14.copyWith(
-              color: successColor,
-             ),
+            style: txStyle14.copyWith(color: successColor),
             textAlign: TextAlign.left,
           ),
         ),

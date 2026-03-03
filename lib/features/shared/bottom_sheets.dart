@@ -8,6 +8,7 @@ import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
+import 'package:greyfundr/shared/utils.dart';
 import 'package:provider/provider.dart';
 
 class LogoutAppSheet extends StatelessWidget {
@@ -49,12 +50,9 @@ class LogoutAppSheet extends StatelessWidget {
                 Expanded(
                   child: CustomButton(
                     onTap: () {
-                      // logout();
+                      logout();
                       UserLocalStorageService().clearUserData();
-                      Get.offAll(
-                        OnboardingScreen(),
-                        transition: Transition.rightToLeft,
-                      );
+                      
                     },
                     label: "Logout",
                   ),

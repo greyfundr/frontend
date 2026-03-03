@@ -9,6 +9,9 @@ import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_circular_progress_indicator.dart';
+import 'package:greyfundr/features/auth/auth_outlet.dart';
+import 'package:greyfundr/features/auth/signin_widget.dart';
+import 'package:greyfundr/features/onboardinf/onboarding_screen.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
@@ -275,7 +278,7 @@ String capitalizeFirstText(String value) {
 
 void logout() {
   UserLocalStorageService().clearUserData();
-  // Get.offAll(SignInScreen(), transition: Transition.rightToLeft);
+  Get.offAll(AuthOutlet(), transition: Transition.rightToLeft);
 }
 
 String convertStringToCurrency(String amount) {

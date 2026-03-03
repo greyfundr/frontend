@@ -23,6 +23,7 @@ class CreatePasswordWidget extends StatefulWidget {
 
 class _CreatePasswordWidgetState extends State<CreatePasswordWidget> {
   AuthProvider? authProvider;
+  TextEditingController passwordController = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -51,6 +52,7 @@ class _CreatePasswordWidgetState extends State<CreatePasswordWidget> {
         CustomTextField(
           hintText: "New Password",
           obscureText: true,
+          controller: passwordController,
           onChanged: (val) {
             authProvider.checkPasswordStrength(val ?? "");
           },
@@ -62,7 +64,11 @@ class _CreatePasswordWidgetState extends State<CreatePasswordWidget> {
         Gap(20),
 
         CustomButton(
-          onTap: () {
+          onTap: () async {
+            bool res = await authProvider.createPassword(
+              password: passwordController.text,
+            );
+            if (!res) return;
             Get.to(PasswordChangeSuccessScreen());
             authProvider.animateToNextPage(0);
           },

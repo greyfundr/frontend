@@ -1,0 +1,11 @@
+register the campaign provider in provider.dart 
+
+implement this provider logic following the same pattern from user_provider
+it should use a viewstate logic and display errors properly with showerrortoast
+everything in the campaign_api should be implemented
+
+
+remove all _authApi in the files attached below
+replace it with this as an examplefinal walletProvider = Provider.of<WalletProvider>(context);
+connect the provider with the ui(lib/features/campaign/createcampaignflow/campaignapproval.dart,lib/features/campaign/createcampaignflow/fundraise_target.dart)
+campaign_api == provider == ui

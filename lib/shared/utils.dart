@@ -215,6 +215,44 @@ class UiUserNotLoggedIn extends StatelessWidget {
   }
 }
 
+
+class NumberTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+
+    String cleaned = newValue.text.replaceAll(RegExp(r'[^0-9.]'), '');
+    
+    // Prevent multiple decimal points
+    if (cleaned.split('.').length > 2) {
+      return oldValue;
+    }
+
+    // Limit to 2 decimal places if decimal exists
+    if (cleaned.contains('.')) {
+      final parts = cleaned.split('.');
+      if (parts[1].length > 2) {
+        return oldValue;
+      }
+    }
+
+    if (cleaned.isEmpty) return newValue.copyWith(text: '');
+
+    // Parse as double
+    final double? value = double.tryParse(cleaned);
+    if (value == null) return oldValue;
+
+    // Format with commas and up to 2 decimals
+    final formatter = NumberFormat('#,###.##');
+    final String formatted = formatter.format(value);
+
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
 String formatDate(DateTime date) {
   try {
     return DateFormat('d MMMM yyyy').format(date);

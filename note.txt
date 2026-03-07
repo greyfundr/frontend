@@ -1,0 +1,4 @@
+create the route
+create the implementation(core/api)(register it in locator)
+create the provider(register provider if it does not exist)
+connect it the ui

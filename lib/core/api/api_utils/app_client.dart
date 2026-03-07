@@ -60,6 +60,7 @@ class ApiClient {
         },
         onError: (DioException error, handler) async {
           // Log error details
+          
           log('❌ ERROR DETAILS: $error', name: 'API');
 
           // Handle token refresh for 401 errors

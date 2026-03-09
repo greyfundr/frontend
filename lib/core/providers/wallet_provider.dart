@@ -4,13 +4,18 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/api/wallet_api/wallet_api.dart';
 import 'package:greyfundr/core/models/wallet_model.dart';
+import 'package:greyfundr/core/models/transaction_model.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/shared/responsiveState/base_view_model.dart';
+import 'package:greyfundr/shared/responsiveState/view_state.dart';
 
 class WalletProvider extends BaseNotifier {
   var walletApi = locator<WalletApi>();
 
   WalletModel? walletModel;
+  TransactionModel? transactionModel;
+  bool isFetchingTransactions = false;
+
   Future<bool> fetchUserWallet() async {
     // EasyLoading.show();
     try {
@@ -38,6 +43,27 @@ class WalletProvider extends BaseNotifier {
       return "";
     } finally {
       EasyLoading.dismiss();
+    }
+  }
+
+  ViewState transactionState = ViewState.Idle;
+  Future<void> fetchTransactions({int page = 1, int limit = 20}) async {
+    transactionState = ViewState.Busy;
+    notifyListeners();
+    try {
+      transactionModel = await walletApi.getTransactions(
+        page: page,
+        limit: limit,
+      );
+      transactionState = ViewState.Success;
+      notifyListeners();
+    } catch (e) {
+      log("ERROR ON FETCH TRANSACTIONS $e ");
+      showErrorToast("${e}");
+      transactionState = ViewState.Error;
+      notifyListeners();
+    } finally {
+      notifyListeners();
     }
   }
 }

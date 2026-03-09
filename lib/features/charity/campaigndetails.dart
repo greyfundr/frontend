@@ -4,13 +4,16 @@ import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 
-import 'package:greyfundr/core/api/auth_api/auth_api.dart';
+// import 'package:greyfundr/core/api/auth_api/auth_api.dart';
+import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
+
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/widgets/campaigndetails/withdrawal_bottom_sheet.dart';
 import 'package:greyfundr/widgets/campaigndetails/manage_campaign_bottom_sheet.dart';
 import 'package:greyfundr/widgets/campaigndetails/campaignprogress.dart';
-import 'package:greyfundr/widgets/campaigndetails/add_money_bottom_sheet.dart';
+
+import 'package:greyfundr/widgets/campaigndetails/donation_bottom_sheet.dart';
 import 'package:greyfundr/services/custom_alert.dart';
 
 class CampaignDetails extends StatefulWidget {
@@ -73,7 +76,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
     });
 
     try {
-      final payload = await locator<AuthApi>().getCampaignDetails(widget.id);
+      final payload = await locator<CampaignApi>().getCampaignDetails(widget.id);
       final campaignData = payload['campaigns'] ?? payload;
 
       final rawDonors = payload['donors'] ?? [];
@@ -191,26 +194,16 @@ class _CampaignDetailsState extends State<CampaignDetails> {
     );
   }
 
-  void _showAddMoneyModal() {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final userId = userProvider.userProfileModel?.id?.toString() ?? '0';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => AddMoneyBottomSheet(
-        userId: userId,
-        creatorId: campaign?['creator_id']?.toString() ?? '0',
-        campaignId: widget.id,
-        campaign: campaign,
-        onDonationSuccess: () {
-          _showSuccessDonationDialog();
-          _loadCampaign();
-        },
-      ),
-    );
-  }
+  void _showDonateMoneyModal() {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => DonationBottomSheet(
+      campaign: campaign,  // pass campaign map for title/progress/days left display
+    ),
+  );
+}
 
   Widget _buildTabContent() {
     switch (_selectedTabIndex) {
@@ -438,7 +431,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                   heroTag: "donate",
                   backgroundColor: const Color(0xFF007A74),
                   label: const Text("DONATE"),
-                  onPressed: _showAddMoneyModal,
+                  onPressed: _showDonateMoneyModal,
                 ),
               )
             else ...[

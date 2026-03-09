@@ -9,7 +9,8 @@ import 'package:uuid/uuid.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:convert';
 
-import 'package:greyfundr/core/api/auth_api/auth_api.dart';
+import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
+
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/services/custom_alert.dart';
@@ -98,7 +99,7 @@ class _ManageLiveCampaignState extends State<ManageLiveCampaign> {
     });
 
     try {
-      final payload = await locator<AuthApi>().getCampaignDetails(widget.campaignId);
+      final payload = await locator<CampaignApi>().getCampaignDetails(widget.campaignId);
       final campaignData = payload['campaigns'] ?? payload;
 
       setState(() {
@@ -266,7 +267,7 @@ class _ManageLiveCampaignState extends State<ManageLiveCampaign> {
 
   Future<void> _uploadImage(File file, String tempId) async {
     try {
-      final url = await locator<AuthApi>().uploadImage(file);
+      final url = await locator<CampaignApi>().uploadImage(file);
       if (url != null) {
         setState(() {
           final index = campaignImages.indexWhere((img) => img['id'] == tempId);
@@ -556,7 +557,7 @@ class _ManageLiveCampaignState extends State<ManageLiveCampaign> {
       // Upload pending images
       for (var img in campaignImages) {
         if (img['file'] != null && (img['url'] == null || img['url'].isEmpty)) {
-          final url = await locator<AuthApi>().uploadImage(img['file']);
+          final url = await locator<CampaignApi>().uploadImage(img['file']);
           if (url != null) img['url'] = url;
         }
       }
@@ -583,7 +584,7 @@ class _ManageLiveCampaignState extends State<ManageLiveCampaign> {
         if (endDate != null) "end_date": endDate!.toIso8601String(),
       };
 
-      await locator<AuthApi>().updateCampaign(widget.campaignId, payload);
+      await locator<CampaignApi>().updateCampaign(widget.campaignId, payload);
 
       CustomMessageModal.show(context: context, message: "Campaign updated successfully", isSuccess: true);
       Navigator.pop(context, true);

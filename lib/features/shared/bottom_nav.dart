@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
-import 'package:greyfundr/features/bill/bill_screen.dart';
+import 'package:greyfundr/features/bill/bill_category_shell.dart'; // ← new import
 import 'package:greyfundr/features/home/home_screen.dart';
 import 'package:greyfundr/features/profile/profile_screen.dart';
 import 'package:greyfundr/shared/app_colors.dart';
@@ -18,7 +17,11 @@ class BottomNav extends StatefulWidget {
 }
 
 class _BottomNavState extends State<BottomNav> {
-  final List<Widget> _views = [HomeScreen(), BillScreen(), ProfileScreen()];
+  final List<Widget> _views = [
+    const HomeScreen(),              // 0: Home
+    const BillCategoryShell(),       // 1: Bill → now uses shell with Charity & Lifestyle inside
+    const ProfileScreen(),           // 2: Profile
+  ];
 
   @override
   void initState() {
@@ -29,10 +32,9 @@ class _BottomNavState extends State<BottomNav> {
 
       userProvider.fetchUserProfileApi();
       walletProvider.fetchUserWallet();
+       walletProvider.fetchTransactions();
     });
   }
-
-  // Maaynr
 
   @override
   Widget build(BuildContext context) {

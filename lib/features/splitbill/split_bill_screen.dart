@@ -6,6 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+// Correct imports for SplitBill API
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';        // interface
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';  // implementation
+
+// Auth API for user profile
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api_impl.dart';
 
@@ -55,7 +60,13 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
   List<User> _allUsers = [];
 
   final ImagePicker _picker = ImagePicker();
+
+  // FIXED: Add this line
+  final SplitBillApi _splitBillApi = SplitBillApiImpl();
+
   final AuthApi _authApi = AuthApiImpl();
+
+  
 
   @override
   void initState() {
@@ -75,7 +86,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
 
   Future<void> _loadCurrentUser() async {
     try {
-      final response = await _authApi.userProfileApi();
+     final response = await _authApi.userProfileApi();
       final decoded = _parseJson(response);
 
       Map<String, dynamic>? userData;
@@ -106,7 +117,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     setState(() => _isLoadingUsers = true);
 
     try {
-      final users = await _authApi.getUsers();
+      final users = await _splitBillApi.getUsers();
 
       // print("Fetched users: ${users}");
       print("Current user: ${_currentUser}");
@@ -194,7 +205,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
       final file = File(xFile.path);
       setState(() => _billImage = file);
 
-      final uploadedUrl = await _authApi.uploadBillReceipt(file);
+      final uploadedUrl = await _splitBillApi.uploadBillReceipt(file);
 
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
@@ -292,7 +303,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
   setState(() => _isCreating = true);
 
   try {
-    final Map<String, dynamic>? result = await _authApi.createEvenSplitBill(
+    final Map<String, dynamic>? result = await _splitBillApi.createEvenSplitBill(
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
       totalAmount: totalAmount,
@@ -330,7 +341,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
   setState(() => _isCreating = true);
 
   try {
-    final Map<String, dynamic>? result = await _authApi.createManualSplitBill(
+    final Map<String, dynamic>? result = await _splitBillApi.createManualSplitBill(
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
       totalAmount: totalAmount,

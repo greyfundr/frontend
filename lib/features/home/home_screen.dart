@@ -8,21 +8,19 @@ import 'package:gap/gap.dart';
 import 'package:get/get_utils/get_utils.dart';
 import 'package:get/route_manager.dart';
 import 'package:get/state_manager.dart';
-
+import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/features/createnew/create_new_screen.dart';
 import 'package:greyfundr/features/event/event_screen.dart';
 import 'package:greyfundr/features/invoice/invoice_screen.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
 
-import 'package:greyfundr/components/custom_network_image.dart';
-
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
-
 import 'package:greyfundr/features/home/add_money_sheet.dart';
 import 'package:greyfundr/features/settings/settings_screen.dart';
-
+import 'package:greyfundr/features/settings/transaction_history_screen.dart';
+import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/shared/utils.dart';
@@ -88,7 +86,7 @@ class HomeScreen extends StatelessWidget {
 
                     Row(
                       children: [
-                        
+
                          CustomOnTap(
   onTap: () {
     Get.to(
@@ -102,9 +100,9 @@ class HomeScreen extends StatelessWidget {
     width: SizeConfig.widthOf(50),
   ),
 ),
-                       
 
-                        CustomOnTap(
+
+                         CustomOnTap(
   onTap: () {
     Get.to(
       () => InvoiceScreen(), // ← replace with your actual screen/widget
@@ -120,10 +118,6 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                     Gap(20),
-
-
-
-                    
                     Row(
                       children: [
                         CustomOnTap(
@@ -139,9 +133,7 @@ class HomeScreen extends StatelessWidget {
     width: SizeConfig.widthOf(50),
   ),
 ),
-                       
-
-                        CustomOnTap(
+                          CustomOnTap(
   onTap: () {
     Get.to(
       () => CharityScreen(), // ← replace with your actual screen/widget
@@ -156,6 +148,68 @@ class HomeScreen extends StatelessWidget {
 ),
                       ],
                     ),
+                    Gap(20),
+
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Recent Transactions",
+                              style: txStyle16SemiBold,
+                            ),
+                            CustomOnTap(
+                              onTap: () {
+                                Get.to(
+                                  TransactionHistoryScreen(),
+                                  transition: Transition.rightToLeft,
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Text(
+                                    "View All",
+                                    style: txStyle14SemiBold.copyWith(
+                                      color: appPrimaryColor,
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 12,
+                                    color: appPrimaryColor,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        Gap(20),
+                        ListView.separated(
+                          physics: NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          // padding: const EdgeInsets.symmetric(
+                          //   horizontal: 16,
+                          //   vertical: 20,
+                          // ),
+                          itemCount:
+                              (walletProvider.transactionModel?.data?.length ??
+                                      0) >
+                                  3
+                              ? 3
+                              : walletProvider.transactionModel?.data?.length ??
+                                    0,
+                          separatorBuilder: (context, index) =>
+                              Divider(color: Color(0xFFEEEEEE), thickness: 1),
+                          itemBuilder: (context, index) {
+                            final tx =
+                                walletProvider.transactionModel?.data?[index];
+                            return buildTransactionItem(tx!);
+                          },
+                        ),
+                        Gap(40),
+                      ],
+                    ).paddingSymmetric(horizontal: SizeConfig.widthOf(5)),
                   ],
                 ),
               ),

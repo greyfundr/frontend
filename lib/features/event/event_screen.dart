@@ -21,7 +21,7 @@ class EventScreen extends StatelessWidget {
           onPressed: () => Get.back(),
         ),
         title: const Text(
-          'Create AN Event',
+          'Create Event',
           style: TextStyle(
             color: Colors.black87,
             fontSize: 18,

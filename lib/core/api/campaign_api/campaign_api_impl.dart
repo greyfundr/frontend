@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer'; // for log()
 
 import 'package:dio/dio.dart';
 import 'package:greyfundr/core/api/api_utils/api_route.dart';
@@ -70,6 +71,132 @@ class CampaignApiImpl implements CampaignApi {
       print('Error in getUsers(): $e');
       print('Stack: $stack');
       rethrow;
+    }
+  }
+
+
+  @override
+  Future<Map<String, dynamic>> getCampaignDetails(String campaignId) async {
+    try {
+      final responseBody = await _apiClient.get(
+        '/campaign/getcampaign/$campaignId',
+        requiresToken: true,
+      );
+
+      final data = jsonDecode(responseBody);
+
+      if (data is! Map<String, dynamic>) {
+        throw Exception('Invalid campaign response format: expected Map');
+      }
+
+      return data['payload'] ?? data['data'] ?? data;
+    } catch (e, stack) {
+      log('Error fetching campaign $campaignId: $e', stackTrace: stack);
+      rethrow;
+    }
+  }
+
+
+
+
+  @override
+  Future<Map<String, dynamic>> updateCampaign(String campaignId, Map<String, dynamic> payload) async {
+    try {
+      final responseBody = await _apiClient.put(
+        '/campaign/update/$campaignId',
+        body: payload,
+        requiresToken: true,
+      );
+
+      final decoded = jsonDecode(responseBody);
+
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('Invalid update response format');
+      }
+
+      return decoded;
+    } catch (e, stack) {
+      log('Error updating campaign $campaignId: $e', stackTrace: stack);
+      rethrow;
+    }
+  }
+
+
+
+   @override
+  Future<String?> uploadImage(File imageFile) async {
+    try {
+      final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: imageFile.path.split('/').last,
+          contentType: MediaType.parse(mimeType),
+        ),
+      });
+
+      final responseBody = await _apiClient.post(
+        ApiRoute.uploadImageRoute,
+        headers: header,
+        body: formData,
+        requiresToken: true,
+      );
+
+      final decoded = jsonDecode(responseBody);
+
+      if (decoded is Map<String, dynamic> && decoded.containsKey('url')) {
+        return decoded['url'] as String?;
+      } else if (decoded is Map<String, dynamic> && decoded.containsKey('data') && decoded['data'] is Map) {
+        return decoded['data']['url'] as String?;
+      }
+
+      log('Unexpected upload response format: $decoded');
+      return null;
+    } catch (e, stack) {
+      log('Error uploading image: $e', stackTrace: stack);
+      return null;
+    }
+  }
+
+
+
+   @override
+  Future<bool> createDonation({
+    required String userId,
+    required String creatorId,
+    required String campaignId,
+    required int amount,
+    String? nickname,
+    String? comments,
+    String? behalfUserId,
+    String? externalName,
+    String? externalContact,
+  }) async {
+    try {
+      final payload = {
+        'user_id': userId,
+        'creator_id': creatorId,
+        'campaign_id': campaignId,
+        'amount': amount,
+        if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
+        if (comments != null && comments.isNotEmpty) 'comments': comments,
+        if (behalfUserId != null && behalfUserId.isNotEmpty) 'behalf_user_id': behalfUserId,
+        if (externalName != null && externalName.isNotEmpty) 'external_name': externalName,
+        if (externalContact != null && externalContact.isNotEmpty) 'external_contact': externalContact,
+      };
+
+      final responseBody = await _apiClient.post(
+        '/donations',
+        headers: header,
+        body: payload,
+        requiresToken: true,
+      );
+
+      final decoded = jsonDecode(responseBody);
+      return responseBody != null && !decoded.toString().contains('error');
+    } catch (e, stack) {
+      log('createDonation failed: $e', stackTrace: stack);
+      return false;
     }
   }
 
@@ -171,6 +298,81 @@ class CampaignApiImpl implements CampaignApi {
   } catch (e, stackTrace) {
     print('getCampaignApprovalApi failed: $e');
     print('Stack trace: $stackTrace');
+    rethrow;
+  }
+}
+
+
+
+
+// ──────────────────────────────────────────────────────────────
+  // Get All Campaigns (paginated)
+  // ──────────────────────────────────────────────────────────────
+
+ @override
+  Future<Map<String, dynamic>> getAllCampaigns({required int page}) async {
+    final responseBody = await _apiClient.get(
+      '/campaigns?page=$page',
+      requiresToken: true,
+    );
+    return jsonDecode(responseBody);
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Get Campaigns (with optional category filter)
+  // ──────────────────────────────────────────────────────────────
+
+  @override
+  Future<Map<String, dynamic>> getCampaigns({
+    required int page,
+    String? category,
+  }) async {
+    try {
+      String url = '/campaigns?page=$page';
+      if (category != null && category != "All" && category.isNotEmpty) {
+        url += '&category=$category';
+      }
+
+      final responseBody = await _apiClient.get(
+        url,
+        requiresToken: false,
+      );
+
+      return jsonDecode(responseBody);
+    } catch (e, stack) {
+      log('getCampaigns failed (page $page, category: $category): $e', stackTrace: stack);
+      rethrow;
+    }
+  }
+
+
+  
+
+
+   // ──────────────────────────────────────────────────────────────
+  // Get Campaigns by Category (specific method)
+  // ──────────────────────────────────────────────────────────────
+
+
+  @override
+Future<Map<String, dynamic>> getCampaignsByCategory(String category, int page) async {
+  try {
+    final url = '/campaigns?page=$page&category=$category';
+
+    final responseBody = await _apiClient.get(
+      url,
+      requiresToken: false, // change to true if needed
+    );
+
+    final decoded = jsonDecode(responseBody);
+
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('Invalid response format from getCampaignsByCategory');
+    }
+
+    return decoded;
+  } catch (e, stack) {
+    log('getCampaignsByCategory failed (page: $page, category: $category): $e', stackTrace: stack);
     rethrow;
   }
 }

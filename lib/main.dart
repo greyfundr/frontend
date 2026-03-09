@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:greyfundr/core/providers/providers.dart';
 import 'package:greyfundr/features/onboardinf/splash_screen.dart';
 import 'package:greyfundr/services/locator.dart';
+import 'package:greyfundr/features/charity/charity_screen.dart';
+import 'package:greyfundr/features/event/event_home.dart';
+import 'package:greyfundr/features/bill/bill_screen.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/environment.dart';
@@ -55,7 +58,6 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
@@ -65,10 +67,22 @@ class MyApp extends StatelessWidget {
         fontFamily: "Montserrat",
         scaffoldBackgroundColor: Colors.white,
         splashColor: Colors.transparent,
-        useMaterial3: false
-        // 0xfff5f5f5
+        useMaterial3: false,
       ),
       home: const SplashScreen(),
+
+      // Add this line
+
+  defaultTransition: Transition.rightToLeft,   // ← add this line
+  transitionDuration: const Duration(milliseconds: 350), // optional: control speed
+
+      // ── ADD THIS getPages BLOCK ────────────────────────────────────────
+     getPages: [
+    GetPage(name: '/bill', page: () => const BillScreen()),
+    GetPage(name: '/charity', page: () => const CharityScreen()),
+    GetPage(name: '/lifestyle', page: () => const EventHome()),
+  ],
+      // ────────────────────────────────────────────────────────────────────
 
       builder: (BuildContext context, Widget? child) {
         final MediaQueryData originalMediaQuery = MediaQuery.of(context);
@@ -79,7 +93,6 @@ class MyApp extends StatelessWidget {
           ..loadingStyle = EasyLoadingStyle.custom
           ..indicatorSize = 45.0
           ..radius = 10.0
-          // ..progressColor = Colors.yellow
           ..backgroundColor = appPrimaryColor
           ..indicatorColor = Colors.white
           ..textColor = Colors.white

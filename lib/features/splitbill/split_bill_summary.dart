@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api_impl.dart';
+
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
+
 import 'package:greyfundr/core/models/split_bill_model.dart'; 
 import 'package:greyfundr/features/bill/bill_screen.dart';
 import './edit_split_bill.dart'; 
@@ -26,6 +30,10 @@ class _SplitBillSummaryScreenState extends State<SplitBillSummaryScreen>
 
   final AuthApi _authApi = AuthApiImpl();
 
+    
+
+  final SplitBillApi _splitBillApi = SplitBillApiImpl();
+
   @override
   void initState() {
     super.initState();
@@ -42,7 +50,12 @@ class _SplitBillSummaryScreenState extends State<SplitBillSummaryScreen>
 
   Future<SplitBill?> _fetchSplitBill() async {
   try {
-    final response = await _authApi.getSplitBillDetails(widget.splitBillId);
+
+
+
+    final response = await _splitBillApi.getSplitBillDetails(widget.splitBillId);
+
+    
 
     if (response['data'] != null) {
       return SplitBill.fromJson(response['data']);

@@ -72,9 +72,7 @@ void showSuccessToast(String message, {int? durartion}) {
         Flexible(
           child: Text(
             message,
-            style: txStyle14.copyWith(
-              color: successColor,
-             ),
+            style: txStyle14.copyWith(color: successColor),
             textAlign: TextAlign.left,
           ),
         ),

@@ -5,8 +5,12 @@ import 'package:get/route_manager.dart';
 import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/custom_app_bar.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
+import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/features/settings/edit_profile_screen.dart';
+import 'package:greyfundr/features/settings/change_password_screen.dart';
+import 'package:greyfundr/features/settings/change_pin_flow_screen.dart';
 import 'package:greyfundr/features/settings/notification_preference_screen.dart';
+import 'package:greyfundr/features/settings/transaction_history_screen.dart';
 import 'package:greyfundr/features/shared/bottom_sheets.dart';
 import 'package:greyfundr/shared/utils.dart';
 
@@ -34,9 +38,19 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.lock_outline,
             title: 'Change Password',
             onTap: () {
-              // TODO: Implement change password screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Change Password - Coming soon')),
+              Get.to(
+                const ChangePasswordScreen(),
+                transition: Transition.rightToLeft,
+              );
+            },
+          ),
+          _buildMenuItem(
+            icon: Icons.dialpad_outlined,
+            title: 'Change PIN',
+            onTap: () {
+              Get.to(
+                const ChangePinOldScreen(),
+                transition: Transition.rightToLeft,
               );
             },
           ),
@@ -45,24 +59,18 @@ class SettingsScreen extends StatelessWidget {
             title: 'Privacy',
             onTap: () {
               // TODO: Implement privacy settings
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Privacy settings - Coming soon')),
-              );
-            },
-          ),
-          _buildMenuItem(
-            icon: Icons.security_outlined,
-            title: 'Security',
-            onTap: () {
-              // TODO: Implement security settings
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Security settings - Coming soon'),
-                ),
-              );
+              showSuccessToast('Privacy settings - Coming soon');
             },
           ),
 
+          // _buildMenuItem(
+          //   icon: Icons.security_outlined,
+          //   title: 'Security',
+          //   onTap: () {
+          //     // TODO: Implement security settings
+          //     showSuccessToast('Security settings - Coming soon');
+          //   },
+          // ),
           const Divider(height: 32, thickness: 1),
 
           // Activity Section
@@ -71,11 +79,9 @@ class SettingsScreen extends StatelessWidget {
             icon: Icons.history,
             title: 'Transaction History',
             onTap: () {
-              // TODO: Navigate to transaction history screen
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Transaction History - Coming soon'),
-                ),
+              Get.to(
+                TransactionHistoryScreen(),
+                transition: Transition.rightToLeft,
               );
             },
           ),
@@ -84,15 +90,6 @@ class SettingsScreen extends StatelessWidget {
             title: 'Notifications',
             onTap: () {
               Get.to(NotificationPreferenceScreen());
-              // TODO: Navigate to notification settings
-              // ScaffoldMessenger.of(context).showSnackBar(
-              //   const SnackBar(content: Text('Notification settings - Coming soon')),
-              // );
-
-              // Navigator.push(
-              //               context,
-              //               MaterialPageRoute(builder: (_) => const NotificationScreen()),
-              //             );
             },
           ),
 
@@ -105,9 +102,7 @@ class SettingsScreen extends StatelessWidget {
             title: 'Help Center',
             onTap: () {
               // TODO: Navigate to help center
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Help Center - Coming soon')),
-              );
+              showSuccessToast('Help Center - Coming soon');
             },
           ),
           _buildMenuItem(
@@ -115,9 +110,7 @@ class SettingsScreen extends StatelessWidget {
             title: 'About',
             onTap: () {
               // TODO: Navigate to about page
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('About - Coming soon')),
-              );
+              showSuccessToast('About - Coming soon');
             },
           ),
           _buildMenuItem(
@@ -125,11 +118,7 @@ class SettingsScreen extends StatelessWidget {
             title: 'Terms and Conditions',
             onTap: () {
               // TODO: Navigate to terms & conditions
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Terms & Conditions - Coming soon'),
-                ),
-              );
+              showSuccessToast('Terms & Conditions - Coming soon');
             },
           ),
 

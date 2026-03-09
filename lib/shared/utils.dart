@@ -9,6 +9,9 @@ import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_circular_progress_indicator.dart';
+import 'package:greyfundr/features/auth/auth_outlet.dart';
+import 'package:greyfundr/features/auth/signin_widget.dart';
+import 'package:greyfundr/features/onboardinf/onboarding_screen.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
@@ -101,6 +104,43 @@ class UiErrorWidget extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class NumberTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    if (newValue.text.isEmpty) return newValue;
+
+    String cleaned = newValue.text.replaceAll(RegExp(r'[^0-9.]'), '');
+    
+    // Prevent multiple decimal points
+    if (cleaned.split('.').length > 2) {
+      return oldValue;
+    }
+
+    // Limit to 2 decimal places if decimal exists
+    if (cleaned.contains('.')) {
+      final parts = cleaned.split('.');
+      if (parts[1].length > 2) {
+        return oldValue;
+      }
+    }
+
+    if (cleaned.isEmpty) return newValue.copyWith(text: '');
+
+    // Parse as double
+    final double? value = double.tryParse(cleaned);
+    if (value == null) return oldValue;
+
+    // Format with commas and up to 2 decimals
+    final formatter = NumberFormat('#,###.##');
+    final String formatted = formatter.format(value);
+
+    return newValue.copyWith(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
@@ -215,44 +255,6 @@ class UiUserNotLoggedIn extends StatelessWidget {
   }
 }
 
-
-class NumberTextInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    if (newValue.text.isEmpty) return newValue;
-
-    String cleaned = newValue.text.replaceAll(RegExp(r'[^0-9.]'), '');
-    
-    // Prevent multiple decimal points
-    if (cleaned.split('.').length > 2) {
-      return oldValue;
-    }
-
-    // Limit to 2 decimal places if decimal exists
-    if (cleaned.contains('.')) {
-      final parts = cleaned.split('.');
-      if (parts[1].length > 2) {
-        return oldValue;
-      }
-    }
-
-    if (cleaned.isEmpty) return newValue.copyWith(text: '');
-
-    // Parse as double
-    final double? value = double.tryParse(cleaned);
-    if (value == null) return oldValue;
-
-    // Format with commas and up to 2 decimals
-    final formatter = NumberFormat('#,###.##');
-    final String formatted = formatter.format(value);
-
-    return newValue.copyWith(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-}
-
 String formatDate(DateTime date) {
   try {
     return DateFormat('d MMMM yyyy').format(date);
@@ -313,7 +315,7 @@ String capitalizeFirstText(String value) {
 
 void logout() {
   UserLocalStorageService().clearUserData();
-  // Get.offAll(SignInScreen(), transition: Transition.rightToLeft);
+  Get.offAll(AuthOutlet(), transition: Transition.rightToLeft);
 }
 
 String convertStringToCurrency(String amount) {
@@ -719,31 +721,7 @@ String convertDurationToTimeString(String duration) {
   return '$hoursString:$minutesString';
 }
 
-// showCustomFamilyBottomSheet(
-//   Widget bottomSheet,
-//   BuildContext context, {
-//   Color? backgroundColor,
-//   bool isDismissible = true,
-// }) {
-//   return FamilyModalSheet.show<void>(
-//     constraints: BoxConstraints(
-//       minWidth: SizeConfig.screenWidth ?? 0,
-//       maxHeight: SizeConfig.heightOf(95),
-//     ),
-//     contentBackgroundColor:
-//         backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
 
-//     // contentBackgroundColor: Colors.red,
-//     isScrollControlled: isDismissible,
-//     isDismissible: isDismissible,
-//     mainContentPadding: EdgeInsets.zero,
-//     useSafeArea: false,
-//     // safeAreaMinimum: EdgeInsets.all(10),
-//     mainContentBorderRadius: BorderRadius.circular(10),
-//     context: context,
-//     builder: (context) => bottomSheet,
-//   );
-// }
 
 String formatPhoneNumber(String phoneNumber) {
   if (phoneNumber.isEmpty) return phoneNumber;

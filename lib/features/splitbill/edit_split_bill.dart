@@ -1,8 +1,10 @@
 // import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:greyfundr/core/api/auth_api/auth_api.dart';
-import 'package:greyfundr/core/api/auth_api/auth_api_impl.dart';
+
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';        // interface
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';  // implementation
+
 import 'package:greyfundr/core/models/split_bill_model.dart';
 import 'package:greyfundr/services/custom_alert.dart';
 
@@ -37,7 +39,9 @@ class _EditSplitBillState extends State<EditSplitBill> {
     'by_amount',
   ];
 
-  final AuthApi _authApi = AuthApiImpl();
+ 
+
+ final SplitBillApi _splitBillApi = SplitBillApiImpl();
 
   bool _isSaving = false;
 
@@ -179,56 +183,57 @@ class _EditSplitBillState extends State<EditSplitBill> {
   }
 
   Future<void> _saveChanges() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isSaving = true);
+  setState(() => _isSaving = true);
 
-    try {
-      final updatedData = {
-        "title": _titleController.text.trim(),
-        "description": _descriptionController.text.trim(),
-        "amount": double.tryParse(_amountController.text) ?? 0.0,
-        "due_date": _dueDate.toUtc().toIso8601String(),
-        "split_method": _selectedSplitMethod,
-        "participants": _participants.map((p) {
-          final map = {
-            "id": p.id.startsWith("temp_") ? null : p.id,
-            "guestName": p.guestName,
-            "guestPhone": p.guestPhone,
-            "amountOwed": p.amountOwed,
-            "amountPaid": p.amountPaid,
-            "status": p.status,
-            "paid": p.paid,
-          };
-          map.removeWhere((key, value) => key == "id" && value == null);
-          return map;
-        }).toList(),
-      };
+  try {
+    final updatedData = {
+      "title": _titleController.text.trim(),
+      "description": _descriptionController.text.trim(),
+      "amount": double.tryParse(_amountController.text) ?? 0.0,
+      "due_date": _dueDate.toUtc().toIso8601String(),
+      "split_method": _selectedSplitMethod,
+      "participants": _participants.map((p) {
+        final map = {
+          "id": p.id.startsWith("temp_") ? null : p.id,
+          "guestName": p.guestName,
+          "guestPhone": p.guestPhone,
+          "amountOwed": p.amountOwed,
+          "amountPaid": p.amountPaid,
+          "status": p.status,
+          "paid": p.paid,
+        };
+        map.removeWhere((key, value) => key == "id" && value == null);
+        return map;
+      }).toList(),
+    };
 
-      final result = await _authApi.updateSplitBill(
-        splitBillId: widget.initialBill.id,
-        updatedData: updatedData,
+    // FIXED: use _splitBillApi instead of _authApi
+    final result = await _splitBillApi.updateSplitBill(
+  splitBillId: widget.initialBill.id,
+  updatedData: updatedData,
+);
+
+    if (!mounted) return;
+
+    if (result != null) {
+      CustomMessageModal.show(
+        context: context,
+        message: "Changes saved successfully",
+        isSuccess: true,
       );
-
-      if (!mounted) return;
-
-      if (result != null) {
-        CustomMessageModal.show(
-          context: context,
-          message: "Changes saved successfully",
-          isSuccess: true,
-        );
-        Navigator.pop(context, true); // true = refresh summary
-      } else {
-        _showError("Failed to save changes");
-      }
-    } catch (e) {
-      if (!mounted) return;
-      _showError("Error: ${e.toString().split('\n').first}");
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+      Navigator.pop(context, true); // true = refresh summary
+    } else {
+      _showError("Failed to save changes");
     }
+  } catch (e) {
+    if (!mounted) return;
+    _showError("Error: ${e.toString().split('\n').first}");
+  } finally {
+    if (mounted) setState(() => _isSaving = false);
   }
+}
 
   void _showError(String message) {
     CustomMessageModal.show(

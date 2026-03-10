@@ -46,40 +46,66 @@ class SplitBillApiImpl implements SplitBillApi {
   // ──────────────────────────────────────────────────────────────
   // Get Users / Participants
   // ──────────────────────────────────────────────────────────────
-  @override
-  Future<List<splitUser.User>> getUsers() async {
-    try {
-      final responseBody = await _apiClient.get(
-        ApiRoute.getUserRoute,
-        headers: header,
-        requiresToken: true,
-      );
+ @override
+Future<List<splitUser.User>> getUsers() async {
+  try {
+    final responseBody = await _apiClient.get(
+      ApiRoute.getUserRoute,
+      headers: header,
+      requiresToken: true,
+    );
 
-      final dynamic decoded = jsonDecode(responseBody);
+    // DEBUG: Print raw response to see exactly what came back
+    final raw = responseBody.toString();
+    print('RAW RESPONSE BODY (first 600 chars):');
+    print(raw.length > 600 ? raw.substring(0, 600) : raw);
 
-      List<dynamic> rawList;
+    // Clean the string
+    String cleaned = raw.trim(); // remove leading/trailing whitespace
 
-      if (decoded is List<dynamic>) {
-        rawList = decoded;
-      } else if (decoded is Map<String, dynamic>) {
-        rawList = decoded['data'] as List<dynamic>? ??
-                  decoded['users'] as List<dynamic>? ??
-                  decoded['results'] as List<dynamic>? ??
-                  decoded['members'] as List<dynamic>? ??
-                  (throw Exception('No user list found in response'));
-      } else {
-        throw Exception('Unexpected root type: ${decoded.runtimeType}');
-      }
+    // Remove UTF-8 BOM (most common cause of "Unexpected character (at character 3)")
+    cleaned = cleaned.replaceAll(RegExp(r'^[\xEF\xBB\xBF]'), '');
 
-      return rawList
-          .whereType<Map<String, dynamic>>()
-          .map((map) => splitUser.User.fromJson(map))
-          .toList();
-    } catch (e, stack) {
-      log('Error in getUsers(): $e', stackTrace: stack);
-      rethrow;
+    // If still junk before [, cut it off
+    final start = cleaned.indexOf('[');
+    if (start > 0) {
+      print('Junk prefix found — cutting ${start} characters');
+      cleaned = cleaned.substring(start);
     }
+
+    // Optional: cut trailing junk after last ]
+    final end = cleaned.lastIndexOf(']');
+    if (end > 0 && end < cleaned.length - 1) {
+      cleaned = cleaned.substring(0, end + 1);
+    }
+
+    // Now decode
+    final dynamic decoded = jsonDecode(cleaned);
+
+    List<dynamic> rawList;
+    if (decoded is List<dynamic>) {
+      rawList = decoded;
+    } else if (decoded is Map<String, dynamic>) {
+      rawList = decoded['data'] as List<dynamic>? ??
+                decoded['users'] as List<dynamic>? ??
+                decoded['results'] as List<dynamic>? ??
+                [];
+    } else {
+      throw Exception('Unexpected root type after cleaning: ${decoded.runtimeType}');
+    }
+
+    final users = rawList
+        .whereType<Map<String, dynamic>>()
+        .map((map) => splitUser.User.fromJson(map))
+        .toList();
+
+    print("Parsed ${users.length} users successfully");
+    return users;
+  } catch (e, stack) {
+    log('Error in getUsers(): $e', stackTrace: stack);
+    rethrow;
   }
+}
 
   // ──────────────────────────────────────────────────────────────
   // Upload Bill Receipt

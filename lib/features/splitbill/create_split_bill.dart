@@ -3,8 +3,16 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+
+import 'package:http/http.dart' as http;
+
+import 'package:provider/provider.dart';
+
+// ADD THIS IMPORT — this defines AuthProvider
+import 'package:greyfundr/features/auth/auth_provider.dart';  // ← this fixes the error
 
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
@@ -27,6 +35,9 @@ import 'package:greyfundr/modals/splitbill/manual_split_modal.dart';
 import 'package:greyfundr/modals/splitbill/due_date_time_modal.dart';
 
 import 'split_bill_summary.dart';
+
+
+
 
 class CreateSplitBillScreen extends StatefulWidget {
   const CreateSplitBillScreen({super.key});
@@ -68,8 +79,12 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCurrentUser();
-    _fetchUsers();
+   Future.delayed(  
+      Duration.zero,
+      () {
+        _loadCurrentUser().then((_) => _fetchUsers());
+      },
+    );  
   }
 
   @override
@@ -119,49 +134,75 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
   }
 
   Future<void> _fetchUsers() async {
-    setState(() => _isLoadingUsers = true);
+  setState(() => _isLoadingUsers = true);
 
-    try {
-      final List<User> users = await _splitBillApi.getUsers();
+  try {
+    // 1. Get auth provider and token
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final String? token = UserLocalStorageService().getAccessToken() ; // ← CHANGE THIS if your token property is named differently (e.g. authProvider.accessToken)
+     
+    if (token == null || token.isEmpty) {
+      throw Exception('No authentication token found. Please log in again.');
+    }
 
-      print("Fetched ${users.length} users from API");
+    print("Using Bearer token: ${token.substring(0, 10)}... (hidden for security)");
 
-      if (users.isNotEmpty) {
-        final first = users.first;
-        print("First user → "
-              "ID: ${first.id ?? 'no id'}, "
-              "Name: ${first.firstName ?? ''} ${first.lastName ?? ''}, "
-              "Email: ${first.email ?? 'no email'}");
+    // 2. Make authenticated request
+    final response = await http.get(
+      Uri.parse('https://back-end-z3es.onrender.com/api/v1/users'),
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    print("Users API status: ${response.statusCode}");
+    print("Response body preview: ${response.body.substring(0, response.body.length.clamp(0, 400))}");
+
+    if (response.statusCode == 200) {
+      final dynamic decoded = jsonDecode(response.body);
+
+      List<dynamic> rawList;
+      if (decoded is List) {
+        rawList = decoded;
+      } else if (decoded is Map<String, dynamic>) {
+        rawList = decoded['data'] ?? decoded['users'] ?? decoded['results'] ?? [];
       } else {
-        print("No users returned from API");
+        throw Exception('Unexpected response format');
       }
+
+      final List<User> fetchedUsers = rawList
+          .whereType<Map<String, dynamic>>()
+          .map((map) => User.fromJson(map))
+          .toList();
+
+      print("Successfully fetched ${fetchedUsers.length} users");
 
       if (mounted) {
         setState(() {
-          _usersFetched = true;
-          if (_currentUser != null && _currentUser!.id != null) {
-            _allUsers = users.where((u) => u.id != _currentUser!.id).toList();
-          } else {
-            _allUsers = List.from(users); // keep all until current user loads
-            print("Current user not loaded yet → showing all users temporarily");
-          }
+          _allUsers = fetchedUsers.where((u) => u.id != _currentUser?.id).toList();
         });
       }
-    } catch (e, stack) {
-      print("Fetch users error: $e");
-      print("Stack trace: $stack");
-
-      if (mounted) {
-        CustomMessageModal.show(
-          context: context,
-          message: "Failed to load users: ${e.toString()}",
-          isSuccess: false,
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoadingUsers = false);
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized — token invalid or expired. Please log in again.');
+    } else {
+      throw Exception('Server error: ${response.statusCode} — ${response.reasonPhrase}');
     }
+  } catch (e, stack) {
+    print("Fetch users error: $e");
+    print("Stack trace: $stack");
+
+    if (mounted) {
+      CustomMessageModal.show(
+        context: context,
+        message: "Failed to load users: ${e.toString()}",
+        isSuccess: false,
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _isLoadingUsers = false);
   }
+}
 
   // ── Image Picker + Upload ────────────────────────────────────────────────
   Future<void> _pickImage() async {

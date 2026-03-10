@@ -112,6 +112,19 @@ class AuthProvider extends BaseNotifier with Validators {
     notifyListeners();
   }
 
+
+  String? _token;  // ← NEW: private token field
+
+  // NEW: Public getter so other screens can access it
+  String? get token => _token;
+
+  // NEW: Method to clear token on logout (optional but good practice)
+  void logout() {
+    _token = null;
+    // clear any user data too
+    notifyListeners();
+  }
+
   // api calls
   Future<bool> signInApi({
     required String emailOrPhone,

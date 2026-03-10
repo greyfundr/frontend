@@ -34,8 +34,6 @@ class ApiClient {
     _setupInterceptors();
   }
 
- 
-
   void _setupInterceptors() {
     _dio.interceptors.add(
       InterceptorsWrapper(

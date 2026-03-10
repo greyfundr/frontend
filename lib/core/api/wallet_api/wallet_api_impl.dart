@@ -119,5 +119,4 @@ class WalletApiImpl implements WalletApi {
     );
     return transactionModelFromJson(response);
   }
-
 }

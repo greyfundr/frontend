@@ -2,6 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> d2ae88b (ready apk)
 	<dict>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
@@ -49,6 +52,7 @@
 		<key>UIStatusBarHidden</key>
 		<false/>
 	</dict>
+<<<<<<< HEAD
 =======
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
@@ -96,4 +100,6 @@
 	<true/>
 </dict>
 >>>>>>> ce6d2d2 (integration + ui)
+=======
+>>>>>>> d2ae88b (ready apk)
 </plist>

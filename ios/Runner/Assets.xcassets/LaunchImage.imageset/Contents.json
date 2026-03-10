@@ -2,6 +2,7 @@
   "images" : [
     {
 <<<<<<< HEAD
+<<<<<<< HEAD
       "filename" : "LaunchImage.png",
       "idiom" : "universal",
       "scale" : "1x"
@@ -49,22 +50,62 @@
       "idiom" : "universal",
 =======
       "idiom" : "universal",
+=======
+>>>>>>> d2ae88b (ready apk)
       "filename" : "LaunchImage.png",
+      "idiom" : "universal",
       "scale" : "1x"
     },
     {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "LaunchImageDark.png",
       "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
       "filename" : "LaunchImage@2x.png",
+      "idiom" : "universal",
       "scale" : "2x"
     },
     {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "LaunchImageDark@2x.png",
       "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
       "filename" : "LaunchImage@3x.png",
+<<<<<<< HEAD
 >>>>>>> ce6d2d2 (integration + ui)
+=======
+      "idiom" : "universal",
+      "scale" : "3x"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "filename" : "LaunchImageDark@3x.png",
+      "idiom" : "universal",
+>>>>>>> d2ae88b (ready apk)
       "scale" : "3x"
     }
   ],
   "info" : {
+<<<<<<< HEAD
 <<<<<<< HEAD
     "author" : "xcode",
     "version" : 1
@@ -72,5 +113,9 @@
     "version" : 1,
     "author" : "xcode"
 >>>>>>> ce6d2d2 (integration + ui)
+=======
+    "author" : "xcode",
+    "version" : 1
+>>>>>>> d2ae88b (ready apk)
   }
 }

@@ -133,32 +133,45 @@ Future<String?> showCategoryPicker(BuildContext context) {
 Future<List<Map<String, String>>> _fetchCategories() async {
   try {
     final response = await http.get(
-      Uri.parse('https://api.greyfundr.com/campaign/getCategory'),
+      Uri.parse('https://back-end-z3es.onrender.com/api/v1/campaigns/categories'),
       headers: {'Accept': 'application/json'},
     );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      if (data is Map && data.containsKey('campaign')) {
-        final List<dynamic> campaignList = data['campaign'];
+      List<dynamic> categoryList;
 
-        return campaignList.map((item) {
-          return {
-            'label': item['label']?.toString() ?? 'Unknown',
-            'icon': item['icon']?.toString() ?? 'assets/icons/placeholder.png',
-            // You can also keep 'id' if useful later: 'id': item['id']?.toString(),
-          };
-        }).toList();
-      } else {
-        throw Exception('Unexpected response format');
+      // Handle direct array (your current backend response)
+      if (data is List<dynamic>) {
+        categoryList = data;
       }
+      // Handle possible wrapped response (fallback for future-proofing)
+      else if (data is Map<String, dynamic>) {
+        categoryList = data['campaign'] as List<dynamic>? ??
+                       data['categories'] as List<dynamic>? ??
+                       data['data'] as List<dynamic>? ??
+                       [];
+      } else {
+        throw Exception('Unexpected root response format');
+      }
+
+      if (categoryList.isEmpty) {
+        throw Exception('No categories found in response');
+      }
+
+      return categoryList.map((item) {
+        return {
+          'label': item['name']?.toString() ?? 'Unknown',   // backend uses "name", not "label"
+          'icon': item['icon']?.toString() ?? 'assets/icons/placeholder.png',
+        };
+      }).toList();
     } else {
-      throw Exception('Failed to load categories: ${response.statusCode}');
+      throw Exception('Failed to load categories: ${response.statusCode} - ${response.reasonPhrase}');
     }
   } catch (e) {
-    // You can log(e) here or use a proper logger
-    rethrow; // Let FutureBuilder show the error
+    print('Category fetch error: $e');  // keep this for debugging
+    rethrow;
   }
 }
 

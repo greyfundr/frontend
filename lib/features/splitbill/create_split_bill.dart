@@ -6,11 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
-// Correct imports for SplitBill API
-import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';        // interface
-import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';  // implementation
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
 
-// Auth API for user profile
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api_impl.dart';
 
@@ -30,14 +28,14 @@ import 'package:greyfundr/modals/splitbill/due_date_time_modal.dart';
 
 import 'split_bill_summary.dart';
 
-class SplitBillScreen extends StatefulWidget {
-  const SplitBillScreen({super.key});
+class CreateSplitBillScreen extends StatefulWidget {
+  const CreateSplitBillScreen({super.key});
 
   @override
-  State<SplitBillScreen> createState() => _SplitBillScreenState();
+  State<CreateSplitBillScreen> createState() => _CreateSplitBillScreenState();
 }
 
-class _SplitBillScreenState extends State<SplitBillScreen> {
+class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
   // Controllers
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -47,7 +45,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
   // State
   File? _billImage;
   String? _billImageUrl;
-  String? _dueDate; // ISO8601 UTC string
+  String? _dueDate;
 
   User? _currentUser;
 
@@ -59,20 +57,19 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
   bool _isLoadingUsers = false;
   List<User> _allUsers = [];
 
+  // Flag to know if users have been fetched at least once
+  bool _usersFetched = false;
+
   final ImagePicker _picker = ImagePicker();
 
-  // FIXED: Add this line
   final SplitBillApi _splitBillApi = SplitBillApiImpl();
-
   final AuthApi _authApi = AuthApiImpl();
-
-  
 
   @override
   void initState() {
     super.initState();
-    _fetchUsers();
     _loadCurrentUser();
+    _fetchUsers();
   }
 
   @override
@@ -86,7 +83,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
 
   Future<void> _loadCurrentUser() async {
     try {
-     final response = await _authApi.userProfileApi();
+      final response = await _authApi.userProfileApi();
       final decoded = _parseJson(response);
 
       Map<String, dynamic>? userData;
@@ -100,6 +97,14 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
         setState(() {
           _currentUser = User.fromJson(userData!);
         });
+
+        // If users were already fetched, re-filter now that we have current user
+        if (_usersFetched && _allUsers.isNotEmpty) {
+          setState(() {
+            _allUsers = _allUsers.where((u) => u.id != _currentUser?.id).toList();
+          });
+          print("Re-filtered participants after current user loaded");
+        }
       }
     } catch (e) {
       debugPrint('Failed to load current user: $e');
@@ -117,25 +122,39 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     setState(() => _isLoadingUsers = true);
 
     try {
-      final users = await _splitBillApi.getUsers();
+      final List<User> users = await _splitBillApi.getUsers();
 
-      // print("Fetched users: ${users}");
-      print("Current user: ${_currentUser}");
+      print("Fetched ${users.length} users from API");
+
+      if (users.isNotEmpty) {
+        final first = users.first;
+        print("First user → "
+              "ID: ${first.id ?? 'no id'}, "
+              "Name: ${first.firstName ?? ''} ${first.lastName ?? ''}, "
+              "Email: ${first.email ?? 'no email'}");
+      } else {
+        print("No users returned from API");
+      }
 
       if (mounted) {
         setState(() {
-          _allUsers = users
-              .where((u) => u.id != _currentUser?.id)
-              .toList();
+          _usersFetched = true;
+          if (_currentUser != null && _currentUser!.id != null) {
+            _allUsers = users.where((u) => u.id != _currentUser!.id).toList();
+          } else {
+            _allUsers = List.from(users); // keep all until current user loads
+            print("Current user not loaded yet → showing all users temporarily");
+          }
         });
       }
-    } catch (e) {
-      // debugPrint("Fetch users error: $e");
+    } catch (e, stack) {
       print("Fetch users error: $e");
+      print("Stack trace: $stack");
+
       if (mounted) {
         CustomMessageModal.show(
           context: context,
-          message: "Failed to load users. Check your connection.",
+          message: "Failed to load users: ${e.toString()}",
           isSuccess: false,
         );
       }
@@ -144,7 +163,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     }
   }
 
-  // ── Image Picker + Upload ─────────────────────────────
+  // ── Image Picker + Upload ────────────────────────────────────────────────
   Future<void> _pickImage() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -227,7 +246,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     }
   }
 
-  // ── Participant Modal ─────────────────────────────────
+  // ── Participant Modal ────────────────────────────────────────────────────
   void _showAddParticipant() {
     showModalBottomSheet(
       context: context,
@@ -242,7 +261,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     );
   }
 
-  // ── Manual Split Modal ────────────────────────────────
+  // ── Manual Split Modal ───────────────────────────────────────────────────
   void _openManualSplit() {
     if (!_validateBeforeManual()) return;
 
@@ -258,7 +277,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     );
   }
 
-  // ── Validation Helpers ────────────────────────────────
+  // ── Validation Helpers ───────────────────────────────────────────────────
   bool _validateCommon() {
     final title = _titleController.text.trim();
     final desc = _descriptionController.text.trim();
@@ -276,9 +295,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     return true;
   }
 
-  bool _validateBeforeManual() {
-    return _validateCommon();
-  }
+  bool _validateBeforeManual() => _validateCommon();
 
   bool _showErrorAndReturnFalse(String message) {
     _showError(message);
@@ -293,83 +310,80 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
     CustomMessageModal.show(context: context, message: message, isSuccess: false);
   }
 
-  // ── Create Even Split ─────────────────────────────────
- Future<void> _createEvenSplit() async {
-  if (!_validateCommon()) return;
+  // ── Create Even Split ────────────────────────────────────────────────────
+  Future<void> _createEvenSplit() async {
+    if (!_validateCommon()) return;
 
-  final amountText = _amountController.text.trim().replaceAll(',', '');
-  final totalAmount = double.tryParse(amountText) ?? 0.0;
+    final amountText = _amountController.text.trim().replaceAll(',', '');
+    final totalAmount = double.tryParse(amountText) ?? 0.0;
 
-  setState(() => _isCreating = true);
+    setState(() => _isCreating = true);
 
-  try {
-    final Map<String, dynamic>? result = await _splitBillApi.createEvenSplitBill(
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      totalAmount: totalAmount,
-      imageUrl: _billImageUrl,
-      dueDateIso8601: _dueDate!,
-      participants: _selectedUsers,
-    );
-
-    // Safe null + type guard
-    if (result != null && result['data'] is Map<String, dynamic> && result['data']['id'] != null && mounted) {
-      final splitId = (result['data'] as Map<String, dynamic>)['id'].toString();
-      CustomMessageModal.show(context: context, message: "Even split bill created!", isSuccess: true);
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => SplitBillSummaryScreen(splitBillId: splitId)),
+    try {
+      final Map<String, dynamic>? result = await _splitBillApi.createEvenSplitBill(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        totalAmount: totalAmount,
+        imageUrl: _billImageUrl,
+        dueDateIso8601: _dueDate!,
+        participants: _selectedUsers,
       );
-    } else {
-      _showError("Failed to create even split bill");
+
+      if (result != null && result['data'] is Map<String, dynamic> && result['data']['id'] != null && mounted) {
+        final splitId = (result['data'] as Map<String, dynamic>)['id'].toString();
+        CustomMessageModal.show(context: context, message: "Even split bill created!", isSuccess: true);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => SplitBillSummaryScreen(splitBillId: splitId)),
+        );
+      } else {
+        _showError("Failed to create even split bill");
+      }
+    } catch (e) {
+      _showError("Error creating bill: $e");
+    } finally {
+      if (mounted) setState(() => _isCreating = false);
     }
-  } catch (e) {
-    _showError("Error creating bill: $e");
-  } finally {
-    if (mounted) setState(() => _isCreating = false);
   }
-}
 
-// ── Create Manual Split ───────────────────────────────
-
+  // ── Create Manual Split ──────────────────────────────────────────────────
   Future<void> _createManualSplit(Map<String, double> userAmounts) async {
-  if (!_validateCommon()) return;
+    if (!_validateCommon()) return;
 
-  final amountText = _amountController.text.trim().replaceAll(',', '');
-  final totalAmount = double.tryParse(amountText) ?? 0.0;
+    final amountText = _amountController.text.trim().replaceAll(',', '');
+    final totalAmount = double.tryParse(amountText) ?? 0.0;
 
-  setState(() => _isCreating = true);
+    setState(() => _isCreating = true);
 
-  try {
-    final Map<String, dynamic>? result = await _splitBillApi.createManualSplitBill(
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      totalAmount: totalAmount,
-      imageUrl: _billImageUrl,
-      dueDateIso8601: _dueDate!,
-      userAmounts: userAmounts,
-      participants: _selectedUsers,
-    );
-
-    // Safe null + type guard
-    if (result != null && result['data'] is Map<String, dynamic> && result['data']['id'] != null && mounted) {
-      final splitId = (result['data'] as Map<String, dynamic>)['id'].toString();
-      CustomMessageModal.show(context: context, message: "Manual split bill created!", isSuccess: true);
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => SplitBillSummaryScreen(splitBillId: splitId)),
+    try {
+      final Map<String, dynamic>? result = await _splitBillApi.createManualSplitBill(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        totalAmount: totalAmount,
+        imageUrl: _billImageUrl,
+        dueDateIso8601: _dueDate!,
+        userAmounts: userAmounts,
+        participants: _selectedUsers,
       );
-    } else {
-      _showError("Failed to create manual split bill");
-    }
-  } catch (e) {
-    _showError("Error creating bill: $e");
-  } finally {
-    if (mounted) setState(() => _isCreating = false);
-  }
-}
 
-  // ── Due Date Picker ───────────────────────────────────
+      if (result != null && result['data'] is Map<String, dynamic> && result['data']['id'] != null && mounted) {
+        final splitId = (result['data'] as Map<String, dynamic>)['id'].toString();
+        CustomMessageModal.show(context: context, message: "Manual split bill created!", isSuccess: true);
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => SplitBillSummaryScreen(splitBillId: splitId)),
+        );
+      } else {
+        _showError("Failed to create manual split bill");
+      }
+    } catch (e) {
+      _showError("Error creating bill: $e");
+    } finally {
+      if (mounted) setState(() => _isCreating = false);
+    }
+  }
+
+  // ── Due Date Picker ──────────────────────────────────────────────────────
   Future<void> _pickDueDate() async {
     final initialDate = _dueDate != null ? DateTime.parse(_dueDate!) : DateTime.now().add(const Duration(days: 7));
     final initialTime = TimeOfDay.fromDateTime(initialDate);
@@ -443,9 +457,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
-
                   FormSectionTitle("Description"),
                   Text(
                     "Give a detailed description for this bill",
@@ -466,9 +478,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 24),
-
                   FormSectionTitle("Bill Amount"),
                   TextField(
                     controller: _amountController,
@@ -498,18 +508,14 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   BillImagePreview(
                     imageFile: _billImage,
                     imageUrl: _billImageUrl,
                     onPickImage: _pickImage,
                     onRemove: () => setState(() => _billImage = null),
                   ),
-
                   const SizedBox(height: 32),
-
                   SplitParticipantsContainer(
                     selectedUsers: _selectedUsers,
                     onAddParticipant: _showAddParticipant,
@@ -526,9 +532,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                       });
                     },
                   ),
-
                   const SizedBox(height: 32),
-
                   FormSectionTitle("Due Date"),
                   GestureDetector(
                     onTap: _pickDueDate,
@@ -552,9 +556,7 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 32),
-
                   SplitMethodSelector(
                     isEvenSplit: _isEvenSplit,
                     onChanged: (v) => setState(() => _isEvenSplit = v),
@@ -562,14 +564,11 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                     billAmount: billAmount,
                     participantCount: _selectedUsers.length,
                   ),
-
                   if (_splitError != null) ...[
                     const SizedBox(height: 12),
                     Text(_splitError!, style: const TextStyle(color: Colors.red)),
                   ],
-
                   const SizedBox(height: 40),
-
                   SizedBox(
                     width: double.infinity,
                     height: 54,
@@ -595,7 +594,6 @@ class _SplitBillScreenState extends State<SplitBillScreen> {
                           : const Text("CREATE SPLIT BILL"),
                     ),
                   ),
-
                   const SizedBox(height: 100),
                 ],
               ),

@@ -14,7 +14,7 @@ import 'package:greyfundr/features/bill/pathsforbill/sboscreen.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
 // import 'package:greyfundr/features/event/event_home.dart';
 import 'package:greyfundr/features/shared/notification.dart';
-import 'package:greyfundr/features/splitbill/split_bill_screen.dart';
+import 'package:greyfundr/features/splitbill/create_split_bill.dart';
 import 'package:greyfundr/shared/text_style.dart';
 // import 'package:greyfundr/shared/utils.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
@@ -930,7 +930,7 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                               onPressed: () {
                                 Navigator.push(
                                   context,
-                                  MaterialPageRoute(builder: (_) => const SplitBillScreen()),
+                                  MaterialPageRoute(builder: (_) => const CreateSplitBillScreen()),
                                 );
                               },
                               style: ElevatedButton.styleFrom(

@@ -5,7 +5,7 @@ import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 
-import 'package:greyfundr/features/splitbill/split_bill_screen.dart';
+import 'package:greyfundr/features/splitbill/create_split_bill.dart';
 import 'package:greyfundr/features/fundpool/fund_pool_screen.dart';
 import 'package:greyfundr/features/invoice/invoice_screen.dart';
 import 'package:greyfundr/features/event/event_screen.dart';
@@ -62,7 +62,7 @@ class CreateNewScreen extends StatelessWidget {
                 title: 'Split A Bill',
                 description: 'Enter the bill amount and choose how to split it with others.',
                 onTap: () => Get.to(
-                  () => SplitBillScreen(),
+                  () => CreateSplitBillScreen(),
                   transition: Transition.rightToLeft,
                 ),
               ),

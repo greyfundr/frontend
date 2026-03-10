@@ -8,6 +8,7 @@ import 'package:gap/gap.dart';
 import 'package:get/get_utils/get_utils.dart';
 import 'package:get/route_manager.dart';
 import 'package:get/state_manager.dart';
+
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/features/createnew/create_new_screen.dart';
 import 'package:greyfundr/features/event/event_screen.dart';

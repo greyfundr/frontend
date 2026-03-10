@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   goToHome() async {
-    Get.off(SignInWithPinScreen(), transition: Transition.rightToLeft);
+    Get.off(BottomNav(), transition: Transition.rightToLeft);
   }
 
   @override

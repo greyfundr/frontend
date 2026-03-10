@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:greyfundr/core/models/all_user_model.dart';
 import 'package:greyfundr/core/models/split_bill_model.dart' as splitBill;
 import 'package:greyfundr/core/models/split_user_model.dart' as splitUser;
 
@@ -8,7 +9,7 @@ abstract class SplitBillApi {
   Future<Map<String, dynamic>> getSplitBillDetails(String splitBillId);
 
   /// Get list of users/participants (used when creating/editing bills)
-  Future<List<splitUser.User>> getUsers();
+  Future<List<AllUsersModel>> getUsers();
 
   /// Get all split bills where current user is a participant
   Future<List<splitBill.SplitBill>> getMySplitBills();

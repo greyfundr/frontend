@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:greyfundr/features/splitbill/splitbill_provider.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -12,7 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 // ADD THIS IMPORT — this defines AuthProvider
-import 'package:greyfundr/features/auth/auth_provider.dart';  // ← this fixes the error
+import 'package:greyfundr/features/auth/auth_provider.dart'; // ← this fixes the error
 
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
@@ -36,9 +37,6 @@ import 'package:greyfundr/modals/splitbill/due_date_time_modal.dart';
 
 import 'split_bill_summary.dart';
 
-
-
-
 class CreateSplitBillScreen extends StatefulWidget {
   const CreateSplitBillScreen({super.key});
 
@@ -51,7 +49,6 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _amountController = TextEditingController();
-  final _searchController = TextEditingController();
 
   // State
   File? _billImage;
@@ -66,7 +63,6 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
 
   bool _isCreating = false;
   bool _isLoadingUsers = false;
-  List<User> _allUsers = [];
 
   // Flag to know if users have been fetched at least once
   bool _usersFetched = false;
@@ -79,12 +75,9 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
   @override
   void initState() {
     super.initState();
-   Future.delayed(  
-      Duration.zero,
-      () {
-        _loadCurrentUser().then((_) => _fetchUsers());
-      },
-    );  
+    Future.delayed(Duration.zero, () {
+      _loadCurrentUser().then((_) => _fetchUsers());
+    });
   }
 
   @override
@@ -92,7 +85,6 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
     _titleController.dispose();
     _descriptionController.dispose();
     _amountController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -102,25 +94,25 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
       final decoded = _parseJson(response);
 
       Map<String, dynamic>? userData;
-      if (decoded != null) {
-        userData = decoded['data'] as Map<String, dynamic>? ??
-                   decoded['user'] as Map<String, dynamic>? ??
-                   (decoded is Map<String, dynamic> ? decoded : null);
-      }
+      // if (decoded != null) {
+      //   userData = decoded['data'] as Map<String, dynamic>? ??
+      //              decoded['user'] as Map<String, dynamic>? ??
+      //              (decoded is Map<String, dynamic> ? decoded : null);
+      // }
 
-      if (userData != null && userData.isNotEmpty && mounted) {
-        setState(() {
-          _currentUser = User.fromJson(userData!);
-        });
+      // if (userData != null && userData.isNotEmpty && mounted) {
+      //   setState(() {
+      //     _currentUser = User.fromJson(userData!);
+      //   });
 
-        // If users were already fetched, re-filter now that we have current user
-        if (_usersFetched && _allUsers.isNotEmpty) {
-          setState(() {
-            _allUsers = _allUsers.where((u) => u.id != _currentUser?.id).toList();
-          });
-          print("Re-filtered participants after current user loaded");
-        }
-      }
+      //   // If users were already fetched, re-filter now that we have current user
+      //   if (_usersFetched && _allUsers.isNotEmpty) {
+      //     setState(() {
+      //       _allUsers = _allUsers.where((u) => u.id != _currentUser?.id).toList();
+      //     });
+      //     print("Re-filtered participants after current user loaded");
+      //   }
+      // }
     } catch (e) {
       debugPrint('Failed to load current user: $e');
       if (mounted) {
@@ -134,88 +126,47 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
   }
 
   Future<void> _fetchUsers() async {
-  setState(() => _isLoadingUsers = true);
+    setState(() => _isLoadingUsers = true);
 
-  try {
-    // 1. Get auth provider and token
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final String? token = UserLocalStorageService().getAccessToken() ; // ← CHANGE THIS if your token property is named differently (e.g. authProvider.accessToken)
-     
-    if (token == null || token.isEmpty) {
-      throw Exception('No authentication token found. Please log in again.');
-    }
-
-    print("Using Bearer token: ${token.substring(0, 10)}... (hidden for security)");
-
-    // 2. Make authenticated request
-    final response = await http.get(
-      Uri.parse('https://back-end-z3es.onrender.com/api/v1/users'),
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    print("Users API status: ${response.statusCode}");
-    print("Response body preview: ${response.body.substring(0, response.body.length.clamp(0, 400))}");
-
-    if (response.statusCode == 200) {
-      final dynamic decoded = jsonDecode(response.body);
-
-      List<dynamic> rawList;
-      if (decoded is List) {
-        rawList = decoded;
-      } else if (decoded is Map<String, dynamic>) {
-        rawList = decoded['data'] ?? decoded['users'] ?? decoded['results'] ?? [];
-      } else {
-        throw Exception('Unexpected response format');
-      }
-
-      final List<User> fetchedUsers = rawList
-          .whereType<Map<String, dynamic>>()
-          .map((map) => User.fromJson(map))
-          .toList();
-
-      print("Successfully fetched ${fetchedUsers.length} users");
+    try {
+      final splitProvider = Provider.of<SplitBillProvider>(
+        context,
+        listen: false,
+      );
+      await splitProvider.getAllUsers();
+    } catch (e, stack) {
+      print("Fetch users error: $e");
+      print("Stack trace: $stack");
 
       if (mounted) {
-        setState(() {
-          _allUsers = fetchedUsers.where((u) => u.id != _currentUser?.id).toList();
-        });
+        CustomMessageModal.show(
+          context: context,
+          message: "Failed to load users: ${e.toString()}",
+          isSuccess: false,
+        );
       }
-    } else if (response.statusCode == 401) {
-      throw Exception('Unauthorized — token invalid or expired. Please log in again.');
-    } else {
-      throw Exception('Server error: ${response.statusCode} — ${response.reasonPhrase}');
+    } finally {
+      if (mounted) setState(() => _isLoadingUsers = false);
     }
-  } catch (e, stack) {
-    print("Fetch users error: $e");
-    print("Stack trace: $stack");
-
-    if (mounted) {
-      CustomMessageModal.show(
-        context: context,
-        message: "Failed to load users: ${e.toString()}",
-        isSuccess: false,
-      );
-    }
-  } finally {
-    if (mounted) setState(() => _isLoadingUsers = false);
   }
-}
 
   // ── Image Picker + Upload ────────────────────────────────────────────────
   Future<void> _pickImage() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Padding(
               padding: EdgeInsets.all(16),
-              child: Text("Choose source", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              child: Text(
+                "Choose source",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.camera_alt, color: Color(0xFF007A74)),
@@ -223,7 +174,10 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
               onTap: () => Navigator.pop(context, ImageSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: Color(0xFF007A74)),
+              leading: const Icon(
+                Icons.photo_library,
+                color: Color(0xFF007A74),
+              ),
               title: const Text("Gallery"),
               onTap: () => Navigator.pop(context, ImageSource.gallery),
             ),
@@ -240,7 +194,14 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
         const SnackBar(
           content: Row(
             children: [
-              SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white)),
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              ),
               SizedBox(width: 16),
               Text("Processing receipt..."),
             ],
@@ -271,10 +232,18 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
 
       if (uploadedUrl != null) {
         setState(() => _billImageUrl = uploadedUrl);
-        CustomMessageModal.show(context: context, message: "Receipt uploaded!", isSuccess: true);
+        CustomMessageModal.show(
+          context: context,
+          message: "Receipt uploaded!",
+          isSuccess: true,
+        );
       } else {
         setState(() => _billImage = null);
-        CustomMessageModal.show(context: context, message: "Upload failed.", isSuccess: false);
+        CustomMessageModal.show(
+          context: context,
+          message: "Upload failed.",
+          isSuccess: false,
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -294,10 +263,9 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AddParticipantModal(
-        allUsers: _allUsers,
-        selectedUsers: _selectedUsers,
-        onUsersChanged: (updated) => setState(() => _selectedUsers = updated),
-        searchController: _searchController,
+        // selectedUsers: _selectedUsers,
+        // onUsersChanged: (updated) => setState(() => _selectedUsers = updated),
+        // searchController: _searchController,
       ),
     );
   }
@@ -326,11 +294,16 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
     final amount = double.tryParse(amountText) ?? 0.0;
 
     if (title.isEmpty) return _showErrorAndReturnFalse("Please enter a title");
-    if (title.length > 100) return _showErrorAndReturnFalse("Title must be under 100 characters");
-    if (desc.isEmpty) return _showErrorAndReturnFalse("Please enter a description");
-    if (amount <= 0) return _showErrorAndReturnFalse("Please enter a valid bill amount");
-    if (_billImageUrl == null) return _showErrorAndReturnFalse("Please upload a receipt");
-    if (_selectedUsers.isEmpty) return _showErrorAndReturnFalse("Add at least one participant");
+    if (title.length > 100)
+      return _showErrorAndReturnFalse("Title must be under 100 characters");
+    if (desc.isEmpty)
+      return _showErrorAndReturnFalse("Please enter a description");
+    if (amount <= 0)
+      return _showErrorAndReturnFalse("Please enter a valid bill amount");
+    if (_billImageUrl == null)
+      return _showErrorAndReturnFalse("Please upload a receipt");
+    if (_selectedUsers.isEmpty)
+      return _showErrorAndReturnFalse("Add at least one participant");
     if (_dueDate == null) return _showErrorAndReturnFalse("Set a due date");
 
     return true;
@@ -348,7 +321,11 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
     Future.delayed(const Duration(seconds: 4), () {
       if (mounted) setState(() => _splitError = null);
     });
-    CustomMessageModal.show(context: context, message: message, isSuccess: false);
+    CustomMessageModal.show(
+      context: context,
+      message: message,
+      isSuccess: false,
+    );
   }
 
   // ── Create Even Split ────────────────────────────────────────────────────
@@ -361,21 +338,32 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
     setState(() => _isCreating = true);
 
     try {
-      final Map<String, dynamic>? result = await _splitBillApi.createEvenSplitBill(
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        totalAmount: totalAmount,
-        imageUrl: _billImageUrl,
-        dueDateIso8601: _dueDate!,
-        participants: _selectedUsers,
-      );
+      final Map<String, dynamic>? result = await _splitBillApi
+          .createEvenSplitBill(
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            totalAmount: totalAmount,
+            imageUrl: _billImageUrl,
+            dueDateIso8601: _dueDate!,
+            participants: _selectedUsers,
+          );
 
-      if (result != null && result['data'] is Map<String, dynamic> && result['data']['id'] != null && mounted) {
-        final splitId = (result['data'] as Map<String, dynamic>)['id'].toString();
-        CustomMessageModal.show(context: context, message: "Even split bill created!", isSuccess: true);
+      if (result != null &&
+          result['data'] is Map<String, dynamic> &&
+          result['data']['id'] != null &&
+          mounted) {
+        final splitId = (result['data'] as Map<String, dynamic>)['id']
+            .toString();
+        CustomMessageModal.show(
+          context: context,
+          message: "Even split bill created!",
+          isSuccess: true,
+        );
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => SplitBillSummaryScreen(splitBillId: splitId)),
+          MaterialPageRoute(
+            builder: (_) => SplitBillSummaryScreen(splitBillId: splitId),
+          ),
         );
       } else {
         _showError("Failed to create even split bill");
@@ -397,22 +385,33 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
     setState(() => _isCreating = true);
 
     try {
-      final Map<String, dynamic>? result = await _splitBillApi.createManualSplitBill(
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        totalAmount: totalAmount,
-        imageUrl: _billImageUrl,
-        dueDateIso8601: _dueDate!,
-        userAmounts: userAmounts,
-        participants: _selectedUsers,
-      );
+      final Map<String, dynamic>? result = await _splitBillApi
+          .createManualSplitBill(
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            totalAmount: totalAmount,
+            imageUrl: _billImageUrl,
+            dueDateIso8601: _dueDate!,
+            userAmounts: userAmounts,
+            participants: _selectedUsers,
+          );
 
-      if (result != null && result['data'] is Map<String, dynamic> && result['data']['id'] != null && mounted) {
-        final splitId = (result['data'] as Map<String, dynamic>)['id'].toString();
-        CustomMessageModal.show(context: context, message: "Manual split bill created!", isSuccess: true);
+      if (result != null &&
+          result['data'] is Map<String, dynamic> &&
+          result['data']['id'] != null &&
+          mounted) {
+        final splitId = (result['data'] as Map<String, dynamic>)['id']
+            .toString();
+        CustomMessageModal.show(
+          context: context,
+          message: "Manual split bill created!",
+          isSuccess: true,
+        );
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => SplitBillSummaryScreen(splitBillId: splitId)),
+          MaterialPageRoute(
+            builder: (_) => SplitBillSummaryScreen(splitBillId: splitId),
+          ),
         );
       } else {
         _showError("Failed to create manual split bill");
@@ -426,7 +425,9 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
 
   // ── Due Date Picker ──────────────────────────────────────────────────────
   Future<void> _pickDueDate() async {
-    final initialDate = _dueDate != null ? DateTime.parse(_dueDate!) : DateTime.now().add(const Duration(days: 7));
+    final initialDate = _dueDate != null
+        ? DateTime.parse(_dueDate!)
+        : DateTime.now().add(const Duration(days: 7));
     final initialTime = TimeOfDay.fromDateTime(initialDate);
 
     showModalBottomSheet(
@@ -464,7 +465,8 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final billAmount = double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
+    final billAmount =
+        double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -486,7 +488,10 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                   const SizedBox(height: 3),
                   TextField(
                     controller: _titleController,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w400),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                    ),
                     decoration: InputDecoration(
                       hintText: "E.g Dinner at the Beach",
                       hintStyle: TextStyle(color: Colors.grey[400]),
@@ -494,7 +499,10 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                       fillColor: Colors.transparent,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.teal, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.teal,
+                          width: 1,
+                        ),
                       ),
                     ),
                   ),
@@ -509,13 +517,17 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                     controller: _descriptionController,
                     maxLines: 2,
                     decoration: InputDecoration(
-                      hintText: "E.g Sunset seafood dinner at the beach for the whole group",
+                      hintText:
+                          "E.g Sunset seafood dinner at the beach for the whole group",
                       hintStyle: TextStyle(color: Colors.grey[400]),
                       filled: true,
                       fillColor: Colors.transparent,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.teal, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.teal,
+                          width: 1,
+                        ),
                       ),
                     ),
                   ),
@@ -538,14 +550,23 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                           color: const Color(0xFF0B5754),
                         ),
                       ),
-                      prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                      prefixIconConstraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
                       hintText: "0.00",
-                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 18),
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 18,
+                      ),
                       filled: true,
                       fillColor: Colors.transparent,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.teal, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.teal,
+                          width: 1,
+                        ),
                       ),
                     ),
                   ),
@@ -564,11 +585,15 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                     onIncludeMeChanged: (include) {
                       setState(() {
                         if (include && _currentUser != null) {
-                          if (!_selectedUsers.any((u) => u.id == _currentUser!.id)) {
+                          if (!_selectedUsers.any(
+                            (u) => u.id == _currentUser!.id,
+                          )) {
                             _selectedUsers.add(_currentUser!);
                           }
                         } else {
-                          _selectedUsers.removeWhere((u) => u.id == _currentUser?.id);
+                          _selectedUsers.removeWhere(
+                            (u) => u.id == _currentUser?.id,
+                          );
                         }
                       });
                     },
@@ -588,9 +613,15 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                         children: [
                           Text(
                             _dueDate != null
-                                ? DateFormat('dd MMM yyyy HH:mm').format(DateTime.parse(_dueDate!))
+                                ? DateFormat(
+                                    'dd MMM yyyy HH:mm',
+                                  ).format(DateTime.parse(_dueDate!))
                                 : "Not set",
-                            style: TextStyle(color: _dueDate != null ? Colors.black87 : Colors.grey),
+                            style: TextStyle(
+                              color: _dueDate != null
+                                  ? Colors.black87
+                                  : Colors.grey,
+                            ),
                           ),
                           const Icon(Icons.calendar_today),
                         ],
@@ -607,7 +638,10 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                   ),
                   if (_splitError != null) ...[
                     const SizedBox(height: 12),
-                    Text(_splitError!, style: const TextStyle(color: Colors.red)),
+                    Text(
+                      _splitError!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                   ],
                   const SizedBox(height: 40),
                   SizedBox(
@@ -624,13 +658,18 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF007A74),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _isCreating
                           ? const SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.5,
+                              ),
                             )
                           : const Text("CREATE SPLIT BILL"),
                     ),

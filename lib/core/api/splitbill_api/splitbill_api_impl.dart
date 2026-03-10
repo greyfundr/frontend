@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
+import 'package:greyfundr/core/models/all_user_model.dart';
 import 'package:greyfundr/core/models/split_bill_model.dart' as splitBill;
 import 'package:greyfundr/core/models/split_user_model.dart' as splitUser;
 import 'package:http_parser/http_parser.dart';
@@ -47,60 +48,26 @@ class SplitBillApiImpl implements SplitBillApi {
   // Get Users / Participants
   // ──────────────────────────────────────────────────────────────
  @override
-Future<List<splitUser.User>> getUsers() async {
+Future<List<AllUsersModel>> getUsers() async {
   try {
     final responseBody = await _apiClient.get(
       ApiRoute.getUserRoute,
       headers: header,
       requiresToken: true,
+      hideLog: true
     );
+    
+    final decoded = jsonDecode(responseBody);
+    log("DECODED USERS RESPONSE: $decoded");
 
-    // DEBUG: Print raw response to see exactly what came back
-    final raw = responseBody.toString();
-    print('RAW RESPONSE BODY (first 600 chars):');
-    print(raw.length > 600 ? raw.substring(0, 600) : raw);
-
-    // Clean the string
-    String cleaned = raw.trim(); // remove leading/trailing whitespace
-
-    // Remove UTF-8 BOM (most common cause of "Unexpected character (at character 3)")
-    cleaned = cleaned.replaceAll(RegExp(r'^[\xEF\xBB\xBF]'), '');
-
-    // If still junk before [, cut it off
-    final start = cleaned.indexOf('[');
-    if (start > 0) {
-      print('Junk prefix found — cutting ${start} characters');
-      cleaned = cleaned.substring(start);
+    if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+      return (decoded['data'] as List).map((x) => AllUsersModel.fromJson(x)).toList();
+    } else if (decoded is List) {
+      return decoded.map((x) => AllUsersModel.fromJson(x)).toList();
     }
 
-    // Optional: cut trailing junk after last ]
-    final end = cleaned.lastIndexOf(']');
-    if (end > 0 && end < cleaned.length - 1) {
-      cleaned = cleaned.substring(0, end + 1);
-    }
-
-    // Now decode
-    final dynamic decoded = jsonDecode(cleaned);
-
-    List<dynamic> rawList;
-    if (decoded is List<dynamic>) {
-      rawList = decoded;
-    } else if (decoded is Map<String, dynamic>) {
-      rawList = decoded['data'] as List<dynamic>? ??
-                decoded['users'] as List<dynamic>? ??
-                decoded['results'] as List<dynamic>? ??
-                [];
-    } else {
-      throw Exception('Unexpected root type after cleaning: ${decoded.runtimeType}');
-    }
-
-    final users = rawList
-        .whereType<Map<String, dynamic>>()
-        .map((map) => splitUser.User.fromJson(map))
-        .toList();
-
-    print("Parsed ${users.length} users successfully");
-    return users;
+    // Fallback logic in case the structure is different or empty
+    return []; 
   } catch (e, stack) {
     log('Error in getUsers(): $e', stackTrace: stack);
     rethrow;

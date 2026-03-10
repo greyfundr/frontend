@@ -169,7 +169,8 @@ class ApiClient {
       final response = await _dio.get(
         url,
         queryParameters: queryParameters,
-        options: _getOptions(headers, requiresToken: requiresToken),
+        options: _getOptions(headers, requiresToken: requiresToken)
+          ..responseType = ResponseType.plain,
       );
       if (!hideLog) {
         log('🚀 GET REQUEST:', name: 'API');
@@ -190,7 +191,7 @@ class ApiClient {
             ),
       );
       if (!hideLog) log(response.toString());
-      return response.data.toString();
+      return response.toString();
     } catch (e) {
       throw "An error occurred";
     }

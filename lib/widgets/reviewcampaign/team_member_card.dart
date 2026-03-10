@@ -1,6 +1,6 @@
 // lib/screens/campaign_review/widgets/team_member_card.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:greyfundr/shared/text_style.dart';
 
 class TeamMemberCard extends StatelessWidget {
   final String imageUrl;
@@ -61,9 +61,9 @@ class TeamMemberCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(name, style: GoogleFonts.inter(fontSize: 14.5, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(name, style: txStyle14.copyWith(fontSize: 14.5, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2), // reduced spacing
-                Text(role, style: GoogleFonts.inter(fontSize: 11.5, color: Colors.grey[700])),
+                Text(role, style: txStyle14.copyWith(fontSize: 11.5, color: Colors.grey[700])),
               ],
             ),
           ),

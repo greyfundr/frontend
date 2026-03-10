@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:greyfundr/core/models/budget_model.dart';
+import 'package:greyfundr/shared/text_style.dart';
 
 class CampaignTabs extends StatelessWidget {
   final int selectedIndex;
@@ -34,8 +34,7 @@ class CampaignTabs extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
+                style: txStyle13.copyWith(
                   fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   color: selected ? Colors.black87 : Colors.grey[600],
                 ),
@@ -63,8 +62,7 @@ class CampaignTabs extends StatelessWidget {
     );
   }
 
-
-// icon: const Icon(Icons.edit_note_rounded, color: Colors.teal),
+  // icon: const Icon(Icons.edit_note_rounded, color: Colors.teal),
 
   @override
   Widget build(BuildContext context) {
@@ -72,14 +70,17 @@ class CampaignTabs extends StatelessWidget {
       children: [
         // Tab Header with White Background
         Container(
-         
           decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
-              boxShadow: [
-                BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-              ],
-            ), // White background for header
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ), // White background for header
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -95,7 +96,12 @@ class CampaignTabs extends StatelessWidget {
         Container(
           width: double.infinity,
           height: 190,
-          color: const Color.fromARGB(255, 229, 229, 229), // Grey background for content
+          color: const Color.fromARGB(
+            255,
+            229,
+            229,
+            229,
+          ), // Grey background for content
           child: IndexedStack(
             index: selectedIndex,
             children: [
@@ -103,7 +109,7 @@ class CampaignTabs extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   description,
-                  style: GoogleFonts.inter(fontSize: 14),
+                  style: txStyle14,
                 ),
               ),
               Padding(
@@ -113,23 +119,26 @@ class CampaignTabs extends StatelessWidget {
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: budgetItems
-                            .map((e) => Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 4),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(e.name),
-                                      Text(
-                                        "₦${e.cost}",
-                                        style: const TextStyle(
-                                            color: Color.fromRGBO(
-                                                0, 164, 175, 1)),
+                            .map(
+                              (e) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(e.name),
+                                    Text(
+                                      "₦${e.cost}",
+                                      style: const TextStyle(
+                                        color: Color.fromRGBO(0, 164, 175, 1),
                                       ),
-                                    ],
-                                  ),
-                                ))
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
                             .toList(),
                       ),
               ),
@@ -139,23 +148,25 @@ class CampaignTabs extends StatelessWidget {
                     ? const Text("No offers")
                     : Column(
                         children: offers
-                            .map((o) => Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 6),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text("Condition: ${o['condition'] ?? ''}"),
-                                      Text(
-                                        "Reward: ${o['reward'] ?? ''}",
-                                        style: const TextStyle(
-                                            color: Color.fromRGBO(
-                                                0, 164, 175, 1)),
+                            .map(
+                              (o) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text("Condition: ${o['condition'] ?? ''}"),
+                                    Text(
+                                      "Reward: ${o['reward'] ?? ''}",
+                                      style: const TextStyle(
+                                        color: Color.fromRGBO(0, 164, 175, 1),
                                       ),
-                                    ],
-                                  ),
-                                ))
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
                             .toList(),
                       ),
               ),

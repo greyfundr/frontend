@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:greyfundr/core/models/participants_model.dart';
+import 'package:greyfundr/shared/text_style.dart';
 
 class ParticipantsSection extends StatelessWidget {
   final List<Participant> participants;
@@ -65,14 +65,14 @@ class ParticipantsSection extends StatelessWidget {
               children: [
                 Text(
                   name,
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14.5),
+                  style: txStyle14SemiBold,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   role,
-                  style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[700]),
+                  style: txStyle12.copyWith(color: Colors.grey[700]),
                 ),
               ],
             ),
@@ -96,7 +96,7 @@ class ParticipantsSection extends StatelessWidget {
           children: [
             Text(
               "Campaign Organizers",
-              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+              style: txStyle14SemiBold,
             ),
             TextButton(
   onPressed: onEdit,

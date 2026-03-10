@@ -1,7 +1,7 @@
 
 import 'package:flutter/material.dart';
+import 'package:greyfundr/shared/text_style.dart';
 import 'package:intl/intl.dart'; 
-import 'package:google_fonts/google_fonts.dart';
 import 'package:greyfundr/core/models/campaign_model.dart';
 import 'package:greyfundr/services/error_boundary.dart';
 
@@ -49,7 +49,7 @@ class EditCampaignProgress extends StatelessWidget {
             // Amount raised text with properly formatted target
             RichText(
               text: TextSpan(
-                style: GoogleFonts.inter(fontSize: 14, color: Colors.black87),
+                style: txStyle14.copyWith(color: Colors.black87),
                 children: [
                   const TextSpan(text: "₦0 raised of "),
                   TextSpan(
@@ -85,11 +85,10 @@ class EditCampaignProgress extends StatelessWidget {
 
                 Text(
                   '$percentage%',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
+                  style: txStyle14.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
-                  ),
+                  )
                 ),
               ],
             ),

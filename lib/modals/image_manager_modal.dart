@@ -2,8 +2,8 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:greyfundr/shared/text_style.dart';
+ import 'package:image_picker/image_picker.dart';
 
 // Custom Clipper for the curved top edge
 class CurvedTopClipper extends CustomClipper<Path> {
@@ -68,10 +68,7 @@ void showImageManagerModal(
                     // Title
                     Text(
                       "Campaign Images",
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: txStyle18.copyWith(fontSize: 18, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),

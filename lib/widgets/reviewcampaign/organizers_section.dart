@@ -1,7 +1,7 @@
 // lib/screens/campaign_review/widgets/organizers_section.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:greyfundr/core/models/campaign_model.dart';
+import 'package:greyfundr/shared/text_style.dart';
 import 'team_member_card.dart';
 
 class OrganizersSection extends StatelessWidget {
@@ -21,7 +21,7 @@ class OrganizersSection extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Organizers", style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+              Text("Organizers", style: txStyle12.copyWith(fontSize: 12, fontWeight: FontWeight.w600)),
               GestureDetector(
                 onTap: onSeeAll,
                 child: Container(
@@ -31,7 +31,7 @@ class OrganizersSection extends StatelessWidget {
                     
                     
                   ),
-                  child: Text("See All", style: GoogleFonts.inter(color: Colors.teal, fontWeight: FontWeight.w600, fontSize: 12)),
+                  child: Text("See All", style: txStyle12.copyWith(color: Colors.teal, fontWeight: FontWeight.w600, fontSize: 12)),
                 ),
               ),
             ],

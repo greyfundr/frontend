@@ -1,7 +1,7 @@
 // lib/screens/campaign/modals/edit_budget_modal.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:greyfundr/core/models/budget_model.dart';
+ import 'package:greyfundr/core/models/budget_model.dart';
+import 'package:greyfundr/shared/text_style.dart';
 
 void showEditBudgetModal(
   BuildContext context,
@@ -25,7 +25,7 @@ void showEditBudgetModal(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Edit Budget", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600)),
+                  Text("Edit Budget", style: txStyle20.copyWith(fontSize: 18, fontWeight: FontWeight.w600)),
                   IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                 ],
               ),

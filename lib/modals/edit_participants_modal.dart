@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:greyfundr/core/models/participants_model.dart';
+ import 'package:greyfundr/core/models/participants_model.dart';
+import 'package:greyfundr/shared/text_style.dart';
 
 void showEditParticipantsModal(
   BuildContext context,
@@ -26,7 +26,7 @@ void showEditParticipantsModal(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Manage Participants", style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600)),
+                  Text("Manage Participants", style: txStyle20.copyWith(fontSize: 18, fontWeight: FontWeight.w600)),
                   IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
                 ],
               ),

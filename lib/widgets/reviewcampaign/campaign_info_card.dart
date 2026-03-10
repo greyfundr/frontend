@@ -1,6 +1,6 @@
 // lib/screens/campaign_review/widgets/campaign_info_card.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:greyfundr/shared/text_style.dart';
 import 'package:intl/intl.dart';
 import 'package:greyfundr/core/models/campaign_model.dart';
 
@@ -23,8 +23,7 @@ class CampaignInfoCard extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 4),
           child: Text(
             campaign.title,
-            style: GoogleFonts.inter(
-              fontSize: 18,
+            style: txStyle18.copyWith(
               fontWeight: FontWeight.w700,
               color: Colors.black87,
             ),
@@ -58,11 +57,11 @@ class CampaignInfoCard extends StatelessWidget {
                 children: [
                   Text(
                     "₦0 Raised of $formattedTarget",
-                    style: GoogleFonts.inter(fontSize: 12),
+                    style: txStyle12,
                   ),
                   Text(
                     "$daysLeft Days left",
-                    style: GoogleFonts.inter(fontSize: 12, color: Colors.grey[700]),
+                    style: txStyle12.copyWith(color: Colors.grey[700]),
                   ),
                 ],
               ),
@@ -100,7 +99,7 @@ class CampaignInfoCard extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600),
+          style: txStyle10SemiBold.copyWith(color: Colors.grey[700]),
         ),
       ],
     );

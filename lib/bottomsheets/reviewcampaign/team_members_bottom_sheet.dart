@@ -1,7 +1,7 @@
 // lib/screens/campaign_review/bottom_sheets/team_members_bottom_sheet.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:greyfundr/core/models/campaign_model.dart';
+import 'package:greyfundr/shared/text_style.dart';
 
 class TeamMembersBottomSheet {
   static void show(BuildContext context, Campaign campaign, Map<String, dynamic> user) {
@@ -39,7 +39,7 @@ class TeamMembersBottomSheet {
                 // Perfectly centered title
                 Text(
                   "Campaign Organizers",
-                  style: GoogleFonts.inter(
+                  style: txStyle19.copyWith(
                     fontSize: 19,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -126,8 +126,8 @@ class TeamMembersBottomSheet {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600)),
-                Text(role, style: GoogleFonts.inter(fontSize: 13, color: Colors.grey)),
+                Text(name, style: txStyle13.copyWith(fontSize: 15, fontWeight: FontWeight.w600)),
+                Text(role, style: txStyle13.copyWith(fontSize: 13, color: Colors.grey)),
               ],
             ),
           ),

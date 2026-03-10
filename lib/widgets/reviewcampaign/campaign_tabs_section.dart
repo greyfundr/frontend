@@ -1,7 +1,7 @@
 // lib/screens/campaign_review/widgets/campaign_tabs_section.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:greyfundr/core/models/budget_model.dart';
+import 'package:greyfundr/shared/text_style.dart';
 
 class CampaignTabsSection extends StatelessWidget {
   final int selectedTab;
@@ -62,11 +62,10 @@ class CampaignTabsSection extends StatelessWidget {
                       children: [
                         Text(
                           label,
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
+                          style: txStyle14.copyWith(
                             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                             color: isSelected ? Colors.black87 : Colors.grey[600],
-                          ),
+                          )
                         ),
                         const SizedBox(height: 6),
                         Container(
@@ -108,7 +107,7 @@ class CampaignTabsSection extends StatelessWidget {
         return Text(
           description,
           textAlign: TextAlign.start,
-          style: GoogleFonts.inter(fontSize: 13.5, height: 1.7),
+          style: txStyle13.copyWith(height: 1.7),
         );
 
       case 1: // BUDGETING
@@ -130,7 +129,7 @@ class CampaignTabsSection extends StatelessWidget {
                   Expanded(
                     child: Text(
                       e.name,
-                      style: GoogleFonts.inter(fontSize: 14),
+                      style: txStyle14,
                     ),
                   ),
                   Text(
@@ -177,11 +176,11 @@ class CampaignTabsSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Condition:", style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  Text("Condition:", style: txStyle13.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
-                  Text(o['condition'] ?? '', style: GoogleFonts.inter()),
+                  Text(o['condition'] ?? '', style: txStyle13.copyWith()),
                   const SizedBox(height: 12),
-                  Text("Reward:", style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                  Text("Reward:", style: txStyle13.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
                   Text(
                     o['reward'] ?? '',

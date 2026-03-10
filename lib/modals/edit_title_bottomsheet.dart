@@ -1,7 +1,7 @@
 // lib/screens/campaign/modals/edit_title_bottomsheet.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-
+import 'package:greyfundr/shared/text_style.dart';
+ 
 class CurvedTopClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -62,10 +62,7 @@ void showEditTitleBottomSheet(
               children: [
                 Text(
                   "Edit Campaign Title",
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: txStyle20.copyWith(fontSize: 20, fontWeight: FontWeight.w600),
                 ),
 
                 const SizedBox(height: 16),
@@ -108,10 +105,7 @@ void showEditTitleBottomSheet(
                         onPressed: () => Navigator.pop(context),
                         child: Text(
                           "Cancel",
-                          style: GoogleFonts.inter(
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: txStyle20.copyWith(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                       ),
                     ),
@@ -128,7 +122,7 @@ void showEditTitleBottomSheet(
                         ),
                         child: Text(
                           "Save",
-                          style: GoogleFonts.inter(
+                          style:txStyle14.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),

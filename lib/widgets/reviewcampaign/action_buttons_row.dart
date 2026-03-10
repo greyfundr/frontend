@@ -1,6 +1,6 @@
 // lib/screens/campaign_review/widgets/action_buttons_row.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:greyfundr/shared/text_style.dart';
 
 class ActionButtonsRow extends StatelessWidget {
   final VoidCallback onEdit;
@@ -35,8 +35,7 @@ class ActionButtonsRow extends StatelessWidget {
               ),
               child: Text(
                 "EDIT CAMPAIGN",
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
+                style: txStyle15SemiBold.copyWith(
                   color: const Color.fromRGBO(0, 164, 175, 1),
                   fontSize: 15,
                 ),
@@ -61,8 +60,7 @@ class ActionButtonsRow extends StatelessWidget {
               ),
               child: Text(
                 "SUBMIT FOR APPROVAL",
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
+                style: txStyle15SemiBold.copyWith(
                   color: Colors.white,
                   fontSize: 15,
                 ),

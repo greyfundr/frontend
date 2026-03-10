@@ -722,7 +722,6 @@ String convertDurationToTimeString(String duration) {
 }
 
 
-
 String formatPhoneNumber(String phoneNumber) {
   if (phoneNumber.isEmpty) return phoneNumber;
   if (phoneNumber.startsWith("+234")) {

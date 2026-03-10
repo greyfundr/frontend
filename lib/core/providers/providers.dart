@@ -13,6 +13,4 @@ class AppProviders {
     ListenableProvider(create: (_) => CampaignProvider()),
     ListenableProvider(create: (_) => AuthProvider()),
     ListenableProvider(create: (_) => WalletProvider()),
-
-
   ];}

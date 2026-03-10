@@ -1,6 +1,5 @@
 // lib/screens/campaign/edit_campaign_screen.dart
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:greyfundr/core/models/budget_model.dart';
 import 'package:greyfundr/core/models/campaign_model.dart';
@@ -88,7 +87,7 @@ class _EditCampaignScreenState extends State<EditCampaignScreen> {
                         Expanded(
                           child: Text(
                             _campaign.title,
-                            style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ),
                         IconButton(
@@ -152,7 +151,7 @@ class _EditCampaignScreenState extends State<EditCampaignScreen> {
             ),
             child: Text(
               "FINISHED EDITING!",
-              style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ),
         ),

@@ -242,7 +242,7 @@ class _CampaignApprovalPageState extends State<CampaignApprovalPage> {
                     isActive: campaignLive,
                     onTap: () {
                       final link =
-                          'https://api.greyfundr.com/campaign/getcampaign/${widget.campaign.sharetitle ?? ''}';
+                          'https://back-end-z3es.onrender.com/api/v1/campaigns/${widget.campaign.sharetitle ?? ''}';
                       Clipboard.setData(ClipboardData(text: link));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Link copied to clipboard')),

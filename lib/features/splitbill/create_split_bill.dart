@@ -22,6 +22,7 @@ import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api_impl.dart';
 
 import 'package:greyfundr/core/models/split_user_model.dart';
+import 'package:greyfundr/core/models/all_user_model.dart';
 
 import 'package:greyfundr/services/custom_alert.dart';
 import 'package:greyfundr/shared/currency_input_formatter.dart';
@@ -92,27 +93,23 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
     try {
       final response = await _authApi.userProfileApi();
       final decoded = _parseJson(response);
-
       Map<String, dynamic>? userData;
-      // if (decoded != null) {
-      //   userData = decoded['data'] as Map<String, dynamic>? ??
-      //              decoded['user'] as Map<String, dynamic>? ??
-      //              (decoded is Map<String, dynamic> ? decoded : null);
-      // }
 
-      // if (userData != null && userData.isNotEmpty && mounted) {
-      //   setState(() {
-      //     _currentUser = User.fromJson(userData!);
-      //   });
+      if (decoded != null) {
+        if (decoded['data'] is Map<String, dynamic>) {
+          userData = Map<String, dynamic>.from(decoded['data']);
+        } else if (decoded['user'] is Map<String, dynamic>) {
+          userData = Map<String, dynamic>.from(decoded['user']);
+        } else if (decoded is Map<String, dynamic>) {
+          userData = Map<String, dynamic>.from(decoded);
+        }
+      }
 
-      //   // If users were already fetched, re-filter now that we have current user
-      //   if (_usersFetched && _allUsers.isNotEmpty) {
-      //     setState(() {
-      //       _allUsers = _allUsers.where((u) => u.id != _currentUser?.id).toList();
-      //     });
-      //     print("Re-filtered participants after current user loaded");
-      //   }
-      // }
+      if (userData != null && userData.isNotEmpty && mounted) {
+        setState(() {
+          _currentUser = User.fromJson(userData!);
+        });
+      }
     } catch (e) {
       debugPrint('Failed to load current user: $e');
       if (mounted) {
@@ -257,17 +254,46 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
   }
 
   // ── Participant Modal ────────────────────────────────────────────────────
-  void _showAddParticipant() {
-    showModalBottomSheet(
+  Future<void> _showAddParticipant() async {
+    final result = await showModalBottomSheet<List<dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AddParticipantModal(
-        // selectedUsers: _selectedUsers,
-        // onUsersChanged: (updated) => setState(() => _selectedUsers = updated),
-        // searchController: _searchController,
-      ),
+      builder: (_) => AddParticipantModal(currentUserId: _currentUser?.id),
     );
+
+    if (result != null && mounted) {
+      final mapped = result.map<User>((e) {
+        if (e is User) return e;
+        if (e is AllUsersModel) {
+          return User(
+            id: e.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            firstName: e.firstName ?? '',
+            lastName: e.lastName ?? '',
+            username: (e.username ?? '')?.toString() ?? '',
+            email: e.email ?? '',
+            phoneNumber: e.phoneNumber ?? '',
+            profilePic: e.profile?.toString() ?? 'assets/images/personal.png',
+          );
+        }
+
+        // Fallback: try dynamic fields
+        final dyn = e as dynamic;
+        return User(
+          id: dyn.id?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          firstName: dyn.firstName ?? dyn.first_name ?? '',
+          lastName: dyn.lastName ?? dyn.last_name ?? '',
+          username: (dyn.username ?? '')?.toString() ?? '',
+          email: dyn.email ?? '',
+          phoneNumber: dyn.phoneNumber ?? dyn.phone ?? '',
+          profilePic: dyn.profile?.toString() ?? 'assets/images/personal.png',
+        );
+      }).toList();
+
+      setState(() {
+        _selectedUsers = mapped;
+      });
+    }
   }
 
   // ── Manual Split Modal ───────────────────────────────────────────────────

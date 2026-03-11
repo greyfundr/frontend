@@ -160,10 +160,24 @@ Future<List<Map<String, String>>> _fetchCategories() async {
         throw Exception('No categories found in response');
       }
 
+      String _resolveIcon(String? icon) {
+        if (icon == null) return 'assets/icons/placeholder.png';
+        final trimmed = icon.toString().trim();
+        // If already an asset path or URL, return as-is
+        if (trimmed.startsWith('assets/') || trimmed.startsWith('http')) return trimmed;
+        // If contains an extension, assume it's a filename
+        if (trimmed.contains('.')) return 'assets/icons/$trimmed';
+        // Otherwise append .png by convention
+        return 'assets/icons/$trimmed.png';
+      }
+
       return categoryList.map((item) {
+        final name = item['name']?.toString() ?? 'Unknown';
+        final iconRaw = item['icon']?.toString();
+
         return {
-          'label': item['name']?.toString() ?? 'Unknown',   // backend uses "name", not "label"
-          'icon': item['icon']?.toString() ?? 'assets/icons/placeholder.png',
+          'label': name,
+          'icon': _resolveIcon(iconRaw),
         };
       }).toList();
     } else {

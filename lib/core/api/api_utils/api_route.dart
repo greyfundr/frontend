@@ -60,17 +60,17 @@ class ApiRoute {
   // ──────────────────────────────────────────────────────────────
   // Campaign Routes (NEW)
   // ──────────────────────────────────────────────────────────────
-  static final String createCampaignRoute = "$baseUrl/campaign/create";
-  static const String uploadImageRoute = '/upload/image';
-  // static const String uploadImageRoute = "$baseUrl/upload/image";
+  static final String createCampaignRoute = "$baseUrl/campaigns";
+  static const String uploadImageRoute = '/upload/campaign-image';
+  // static const String uploadImagesRoute = "$baseUrl/upload/image";
   static final String getCampaignApprovalRoute = "$baseUrl/campaign/getApprovalStatus";
 
   static final String getCampaignCategories = "$baseUrl/campaign/categories";
 
   // You can add more campaign-related routes here later, for example:
-  // static final String getCampaignRoute = "$baseUrl/campaign/{id}";
+  static final String getCampaignRoute = "$baseUrl/campaign/{id}";
   // static final String getCampaignApprovalRoute = "$baseUrl/campaign/{id}/approval";
-  // static final String updateCampaignRoute = "$baseUrl/campaign/{id}";
+  static final String updateCampaignRoute = "$baseUrl/campaign/{id}";
 
 
 // ──────────────────────────────────────────────────────────────

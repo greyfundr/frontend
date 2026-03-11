@@ -74,21 +74,57 @@ class OffersBottomSheetContent extends StatefulWidget {
 }
 
 class _OffersBottomSheetContentState extends State<OffersBottomSheetContent> {
-  final List<Map<String, TextEditingController>> autoOffers = [];
+  // Auto offers will hold plain string maps (condition + reward)
+  final List<Map<String, String>> autoOffers = [];
+  // Manual offers use controllers so user can edit them inline
   final List<Map<String, TextEditingController>> manualOffers = [];
 
-  void _addOffer(List<Map<String, TextEditingController>> list) {
+  // Quick manual add controllers (for the add-row when type=manual)
+  final TextEditingController _manualConditionCtrl = TextEditingController();
+  final TextEditingController _manualRewardCtrl = TextEditingController();
+
+  // Offer type selection
+  bool _isAutoType = true;
+
+  // Auto-presets (8 standard conditions + fixed rewards)
+  final List<Map<String, String>> _autoPresets = [
+    {'condition': 'Donate ₦500 or more', 'reward': 'Thank you message'},
+    {'condition': 'Donate ₦1,000 or more', 'reward': 'Personal shoutout'},
+    {'condition': 'Donate ₦2,500 or more', 'reward': 'Social media mention'},
+    {'condition': 'Donate ₦5,000 or more', 'reward': 'Early access update'},
+    {'condition': 'Donate ₦10,000 or more', 'reward': 'Behind-the-scenes video'},
+    {'condition': 'Donate ₦20,000 or more', 'reward': 'Signed thank you card'},
+    {'condition': 'Share campaign 5x', 'reward': 'Bonus entry prize'},
+    {'condition': 'Refer 3 donors', 'reward': 'Special recognition'},
+  ];
+
+  int? _selectedPresetIndex;
+
+  void _addManualOfferFromInputs() {
+    final cond = _manualConditionCtrl.text.trim();
+    final rew = _manualRewardCtrl.text.trim();
+    if (cond.isEmpty && rew.isEmpty) return;
     setState(() {
-      list.add({
-        'condition': TextEditingController(),
-        'reward': TextEditingController(),
+      manualOffers.add({
+        'condition': TextEditingController(text: cond),
+        'reward': TextEditingController(text: rew),
       });
+      _manualConditionCtrl.clear();
+      _manualRewardCtrl.clear();
     });
+  }
+
+  void _addSelectedAutoPreset() {
+    if (_selectedPresetIndex == null) return;
+    final preset = _autoPresets[_selectedPresetIndex!];
+    setState(() => autoOffers.add({'condition': preset['condition']!, 'reward': preset['reward']!}));
   }
 
   @override
   void dispose() {
-    for (var offer in [...autoOffers, ...manualOffers]) {
+    _manualConditionCtrl.dispose();
+    _manualRewardCtrl.dispose();
+    for (var offer in manualOffers) {
       offer['condition']?.dispose();
       offer['reward']?.dispose();
     }
@@ -117,46 +153,95 @@ class _OffersBottomSheetContentState extends State<OffersBottomSheetContent> {
           ),
           const SizedBox(height: 24),
 
-          // Auto Offers Section
-          const Text('Auto Offers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          const Text('These can be verified automatically in the app', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 12),
+          // Offer Type Selector
+          Row(
+            children: [
+              Expanded(
+                child: ChoiceChip(
+                  label: const Text('Auto'),
+                  selected: _isAutoType,
+                  onSelected: (v) => setState(() => _isAutoType = true),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ChoiceChip(
+                  label: const Text('Manual'),
+                  selected: !_isAutoType,
+                  onSelected: (v) => setState(() => _isAutoType = false),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
 
-          ...autoOffers.asMap().entries.map((entry) {
-            return OfferInputCard(
-              conditionCtrl: entry.value['condition']!,
-              rewardCtrl: entry.value['reward']!,
-              onRemove: () {
-                entry.value['condition']!.dispose();
-                entry.value['reward']!.dispose();
-                setState(() => autoOffers.removeAt(entry.key));
-              },
-            );
-          }),
-
-          _addButton('Add Auto Offer', () => _addOffer(autoOffers)),
-          const SizedBox(height: 24),
-
-          // Manual Offers Section
-          const Text('Manual Offers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          const Text('You will verify these manually', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 12),
-
-          ...manualOffers.asMap().entries.map((entry) {
-            return OfferInputCard(
-              conditionCtrl: entry.value['condition']!,
-              rewardCtrl: entry.value['reward']!,
-              onRemove: () {
-                entry.value['condition']!.dispose();
-                entry.value['reward']!.dispose();
-                setState(() => manualOffers.removeAt(entry.key));
-              },
-            );
-          }),
-
-          _addButton('Add Manual Offer', () => _addOffer(manualOffers)),
+          // Auto type UI: preset dropdown + add button
+          if (_isAutoType) ...[
+            const Text('Auto Offers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text('Select a standard condition to auto-verify', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<int>(
+              value: _selectedPresetIndex,
+              items: _autoPresets.asMap().entries.map((e) {
+                return DropdownMenuItem<int>(
+                  value: e.key,
+                  child: Text(e.value['condition']!),
+                );
+              }).toList(),
+              onChanged: (v) => setState(() => _selectedPresetIndex = v),
+              decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
+            ),
+            const SizedBox(height: 8),
+            _addButton('Add Selected Auto Offer', _addSelectedAutoPreset),
+            const SizedBox(height: 18),
+            // show existing auto offers
+            ...autoOffers.asMap().entries.map((entry) {
+              return AutoOfferCard(
+                condition: entry.value['condition']!,
+                reward: entry.value['reward']!,
+                onRemove: () => setState(() => autoOffers.removeAt(entry.key)),
+              );
+            }),
+          ] else ...[
+            // Manual type UI: inline inputs for new manual offer
+            const Text('Manual Offers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text('You will verify these manually', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _manualConditionCtrl,
+                    decoration: InputDecoration(hintText: 'Condition', border: OutlineInputBorder(borderRadius: BorderRadius.circular(6))),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _manualRewardCtrl,
+                    decoration: InputDecoration(hintText: 'Reward', border: OutlineInputBorder(borderRadius: BorderRadius.circular(6))),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(onPressed: _addManualOfferFromInputs, child: const Text('Add')),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // show existing manual offers (editable)
+            ...manualOffers.asMap().entries.map((entry) {
+              return OfferInputCard(
+                conditionCtrl: entry.value['condition']!,
+                rewardCtrl: entry.value['reward']!,
+                onRemove: () {
+                  entry.value['condition']!.dispose();
+                  entry.value['reward']!.dispose();
+                  setState(() => manualOffers.removeAt(entry.key));
+                },
+              );
+            }),
+          ],
           const SizedBox(height: 32),
 
           // Save Button
@@ -165,18 +250,12 @@ class _OffersBottomSheetContentState extends State<OffersBottomSheetContent> {
             child: ElevatedButton(
               onPressed: () {
                 final auto = autoOffers
-                    .map((e) => {
-                          'condition': e['condition']!.text.trim(),
-                          'reward': e['reward']!.text.trim(),
-                        })
+                    .map((e) => {'condition': e['condition']!.trim(), 'reward': e['reward']!.trim()})
                     .where((e) => e['condition']!.isNotEmpty || e['reward']!.isNotEmpty)
                     .toList();
 
                 final manual = manualOffers
-                    .map((e) => {
-                          'condition': e['condition']!.text.trim(),
-                          'reward': e['reward']!.text.trim(),
-                        })
+                    .map((e) => {'condition': e['condition']!.text.trim(), 'reward': e['reward']!.text.trim()})
                     .where((e) => e['condition']!.isNotEmpty || e['reward']!.isNotEmpty)
                     .toList();
 
@@ -313,6 +392,47 @@ class OfferInputCard extends StatelessWidget {
                     ),
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: onRemove,
+                icon: const Icon(Icons.delete_outline, color: Colors.red),
+                label: const Text('Remove', style: TextStyle(color: Colors.red)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Simple card for displaying auto offers (read-only with delete)
+class AutoOfferCard extends StatelessWidget {
+  final String condition;
+  final String reward;
+  final VoidCallback onRemove;
+
+  const AutoOfferCard({required this.condition, required this.reward, required this.onRemove, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text(condition, style: const TextStyle(fontWeight: FontWeight.w600))),
+                const SizedBox(width: 12),
+                Expanded(child: Text(reward, style: const TextStyle(color: Colors.grey))),
               ],
             ),
             const SizedBox(height: 12),

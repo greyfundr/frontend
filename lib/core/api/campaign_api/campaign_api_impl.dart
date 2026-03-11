@@ -237,23 +237,36 @@ class CampaignApiImpl implements CampaignApi {
       // Build form data
       final formData = FormData.fromMap({
         "image": multipartImages.isNotEmpty ? multipartImages : null,
-
-        'title': campaign.title ?? '',
-        'description': campaign.description ?? '',
-        'category': campaign.category ?? '',
-        'startDate': campaign.startDate ?? '',
-        'endDate': campaign.endDate ?? '',
-        'amount': campaign.amount?.toString() ?? '0',
+        'title': campaign.title,
+        'description': campaign.description,
+        'category': campaign.category,
+        'startDate': campaign.startDate,
+        'endDate': campaign.endDate,
+        'amount': campaign.amount.toString(),
         'id': userId,
-        'stakeholders': jsonEncode(campaign.participants ?? []),
-        'budget': jsonEncode(campaign.budgets ?? []),
-        'moffers': jsonEncode(campaign.savedManualOffers ?? []),
-        'aoffers': jsonEncode(campaign.savedAutoOffers ?? []),
-        'sharetitle': campaign.sharetitle ?? '',
+        'stakeholders': jsonEncode(campaign.participants),
+        'budget': jsonEncode(campaign.budgets),
+        'moffers': jsonEncode(campaign.savedManualOffers),
+        'aoffers': jsonEncode(campaign.savedAutoOffers),
+        'sharetitle': campaign.sharetitle,
       });
 
-      // Clean up empty values
-      formData.fields.removeWhere((e) => e.value.isEmpty);
+      // Debug: log built form data fields and files to help server-side parsing issues
+      try {
+        log('createCampaignApi - built FormData fields:');
+        for (final f in formData.fields) {
+          log('field: ${f.key} => ${f.value} (type: ${f.value.runtimeType})');
+        }
+        log('createCampaignApi - built FormData files:');
+        for (final fileEntry in formData.files) {
+          log('file key: ${fileEntry.key} => filename: ${fileEntry.value.filename} (type: ${fileEntry.value.runtimeType})');
+        }
+      } catch (e) {
+        log('Error while logging FormData: $e');
+      }
+
+      // Clean up empty string values
+      formData.fields.removeWhere((e) => e.value == null || (e.value is String && (e.value as String).isEmpty));
 
       // Send request
       final response = await _apiClient.post(

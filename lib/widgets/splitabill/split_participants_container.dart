@@ -39,14 +39,20 @@ class _SplitParticipantsContainerState extends State<SplitParticipantsContainer>
       _includeMe = value;
     });
 
+    // Notify parent to update its selectedUsers list. Parent owns the list.
     widget.onIncludeMeChanged(value);
+  }
 
-    if (value) {
-      if (!widget.selectedUsers.any((u) => u.id == widget.currentUser!.id)) {
-        widget.selectedUsers.add(widget.currentUser!);
-      }
-    } else {
-      widget.selectedUsers.removeWhere((u) => u.id == widget.currentUser!.id);
+  @override
+  void didUpdateWidget(covariant SplitParticipantsContainer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Keep local _includeMe in sync when parent updates the selectedUsers or currentUser
+    final includesCurrent = widget.currentUser != null &&
+        widget.selectedUsers.any((u) => u.id == widget.currentUser!.id);
+
+    if (_includeMe != includesCurrent) {
+      setState(() => _includeMe = includesCurrent);
     }
   }
 

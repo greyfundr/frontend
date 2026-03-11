@@ -98,8 +98,31 @@ Future<List<AllUsersModel>> getUsers() async {
       );
 
       final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      log('uploadBillReceipt response decoded: $decoded');
 
-      return decoded is Map ? decoded['url'] as String? : null;
+      if (decoded is Map<String, dynamic>) {
+        // Common shapes: { "url": "..." } or { "data": { "url": "..." } }
+        if (decoded.containsKey('url') && decoded['url'] is String) {
+          return decoded['url'] as String;
+        }
+
+        if (decoded.containsKey('data')) {
+          final data = decoded['data'];
+          if (data is Map && data.containsKey('url') && data['url'] is String) {
+            return data['url'] as String;
+          }
+
+          // sometimes API returns { data: { data: { url: '...' } } }
+          if (data is Map && data.containsKey('data')) {
+            final inner = data['data'];
+            if (inner is Map && inner.containsKey('url') && inner['url'] is String) {
+              return inner['url'] as String;
+            }
+          }
+        }
+      }
+
+      return null;
     } catch (e) {
       log('uploadBillReceipt failed: $e');
       return null;

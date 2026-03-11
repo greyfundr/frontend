@@ -13,8 +13,11 @@ class AddParticipantModal extends StatefulWidget {
   // final ValueChanged<List<User>> onUsersChanged;
   // final TextEditingController searchController;
 
+  final String? currentUserId;
+
   const AddParticipantModal({
     super.key,
+    this.currentUserId,
     // required this.selectedUsers,
     // required this.onUsersChanged,
     // required this.searchController,
@@ -413,22 +416,25 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
           const SizedBox(height: 16),
 
           Expanded(
-            child:
-                // _isLoadingContacts
-                //     ? const Center(child: CircularProgressIndicator())
-                // : _filteredUsers.isEmpty
-                // ? const Center(child: Text("No users found"))
-                // :
-                ListView.builder(
+            child: Builder(
+              builder: (context) {
+                final displayUsers = splitBillProvider.allUsers
+                    .where((u) => u.id != widget.currentUserId)
+                    .toList();
+
+                if (displayUsers.isEmpty) {
+                  return const Center(child: Text("No users found"));
+                }
+
+                return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: splitBillProvider.allUsers.length,
+                  itemCount: displayUsers.length,
                   itemBuilder: (context, index) {
-                    final user = splitBillProvider.allUsers[index];
+                    final user = displayUsers[index];
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       child: ListTile(
                         leading: CircleAvatar(
-                          // backgroundImage: AssetImage(user),
                           backgroundColor: appSecondaryColor.withOpacity(.2),
                           child: Text(
                             (user.firstName?.isNotEmpty ?? false)
@@ -454,18 +460,20 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
                       ),
                     );
                   },
-                ),
-          ),
+                );
+              },
+            ),
+            ),
 
           Padding(
             padding: const EdgeInsets.all(24),
-            child: SizedBox(
+                child: SizedBox(
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
                 onPressed: splitBillProvider.selectedUsers.isEmpty
                     ? null
-                    : () => Navigator.pop(context),
+                    : () => Navigator.pop(context, splitBillProvider.selectedUsers),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   shape: RoundedRectangleBorder(

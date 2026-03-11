@@ -1,73 +1,372 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:greyfundr/shared/text_style.dart'; // ← assuming you have txStyle18SemiBold or similar
 
-class FundPoolScreen extends StatelessWidget {
+class FundPoolScreen extends StatefulWidget {
   const FundPoolScreen({super.key});
+
+  @override
+  State<FundPoolScreen> createState() => _FundPoolScreenState();
+}
+
+class _FundPoolScreenState extends State<FundPoolScreen> {
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // _titleController.text = 'Okija Youths Upliftment Fund';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // or your app's background color
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0, // flat modern look
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            color: Colors.black87,
-            size: 24,
-          ),
-          onPressed: () => Get.back(),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Start A Fund Pool',
+          'Fund Pool',
           style: TextStyle(
-            color: Colors.black87,
+            color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: true,
       ),
-      body: const SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // You can add your intro text or form fields here
-              Text(
-                'Fund A Pool',
+              // Fund-Pool Title Section
+              const Text(
+                'Fund-Pool Title',
                 style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
               ),
-              SizedBox(height: 8),
-              Text(
-                'Fund a ppol with friends and family.',
+              const SizedBox(height: 4),
+              const Text(
+                'Give your campaign a name',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 13,
                   color: Colors.grey,
                 ),
               ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _titleController,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    label: const Text('Images'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.teal,
+                      side: const BorderSide(color: Colors.teal),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
 
-              SizedBox(height: 32),
-
-              // Placeholder for your actual content (form, amount input, participants, etc.)
-              Center(
-                child: Text(
-                  'Fund Pool form coming soon...',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+              // Description Section
+              const Text(
+                'Description',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
               ),
+              const SizedBox(height: 4),
+              const Text(
+                'Let backers and champions know the purpose of this campaign and how their support helps.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _descriptionController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.all(16),
+                ),
+              ),
+              const SizedBox(height: 24),
 
-              // Add your input fields, buttons, participant list, etc. here
+              // Optional Fields
+              _buildOptionItem(
+                icon: Icons.add_circle,
+                title: 'Set Date',
+                subtitle: '(Optional)',
+                onTap: () {},
+              ),
+              const SizedBox(height: 16),
+              _buildOptionItem(
+                icon: Icons.add_circle,
+                title: 'Fund-Pool Target',
+                subtitle: '(Optional)',
+                onTap: () {},
+              ),
+              const SizedBox(height: 16),
+              _buildOptionItem(
+                icon: Icons.add_circle,
+                title: 'PayIn Conditions',
+                subtitle: '(Optional)',
+                description:
+                    'Define the rules for qualify and how Deposits will be made — such as Slot Capacity and amount per slot',
+                onTap: () {},
+              ),
+              const SizedBox(height: 16),
+              _buildOptionItem(
+                icon: Icons.add_circle,
+                title: 'Campaign Purpose',
+                subtitle: '(Optional)',
+                onTap: () {},
+              ),
+              const SizedBox(height: 16),
+              _buildOptionItem(
+                icon: Icons.add_circle,
+                title: 'Campaign Visibility',
+                onTap: () {},
+              ),
+              const SizedBox(height: 16),
+              _buildOptionItem(
+                icon: Icons.add_circle,
+                title: 'Add Participant',
+                subtitle: '(Optional)',
+                onTap: () {},
+              ),
+              const SizedBox(height: 32),
+
+              // Create Team Members Section
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Create Team Members',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {},
+                    child: const Text(
+                      'Search',
+                      style: TextStyle(
+                        color: Colors.teal,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Your team member are you crew you are organizing it with',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.teal, width: 1.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.teal, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        color: Colors.teal,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundImage: NetworkImage(
+                        'https://i.pravatar.cc/150?img=1',
+                      ),
+                    ),
+                    const Spacer(),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Buttons
+              OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.teal,
+                  side: const BorderSide(color: Colors.teal, width: 1.5),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: const Text(
+                  'CUSTOMISE',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  minimumSize: const Size(double.infinity, 50),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'NEXT',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildOptionItem({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    String? description,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: const BoxDecoration(
+              color: Colors.teal,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                if (description != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

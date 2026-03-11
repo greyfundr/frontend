@@ -212,11 +212,12 @@ class ApiClient {
       // headers['idempotencyKey'] = generateIdempotencyKey();
     }
     try {
+      final isForm = formData != null || body is FormData;
       final response = await _dio.post(
         url,
         data: formData ?? body,
         options: _getOptions(headers, requiresToken: requiresToken)
-          ..contentType = formData != null ? "application/json" : null
+          ..contentType = isForm ? 'multipart/form-data' : 'application/json'
           ..responseType = ResponseType.plain
           ..method = 'POST',
         cancelToken: cancelToken, // <-- pass through

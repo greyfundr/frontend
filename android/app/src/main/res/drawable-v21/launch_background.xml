@@ -1,32 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<<<<<<< HEAD
-<<<<<<< HEAD
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
-        <bitmap android:gravity="fill" android:src="@drawable/background"/>
+        <bitmap
+            android:gravity="fill"
+            android:src="@drawable/background"/>
     </item>
     <item>
-        <bitmap android:gravity="center" android:src="@drawable/splash"/>
-    </item>
-=======
-<!-- Modify this file to customize your launch splash screen -->
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="?android:colorBackground" />
-
-    <!-- You can insert your own image assets here -->
-    <!-- <item>
         <bitmap
             android:gravity="center"
-            android:src="@mipmap/launch_image" />
-    </item> -->
->>>>>>> ce6d2d2 (integration + ui)
-=======
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <bitmap android:gravity="fill" android:src="@drawable/background"/>
+            android:src="@drawable/splash"/>
     </item>
-    <item>
-        <bitmap android:gravity="center" android:src="@drawable/splash"/>
-    </item>
->>>>>>> d2ae88b (ready apk)
 </layer-list>

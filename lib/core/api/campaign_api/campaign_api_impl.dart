@@ -65,7 +65,7 @@ class CampaignApiImpl implements CampaignApi {
                 imageUrl: map['profile_pic'] as String? ??
                           map['avatar'] as String? ??
                           map['photo'] as String? ??
-                          'assets/images/avatar.png',
+                          '',
               ))
           .toList();
     } catch (e, stack) {
@@ -129,7 +129,7 @@ class CampaignApiImpl implements CampaignApi {
     try {
       final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
       final formData = FormData.fromMap({
-        'image': await MultipartFile.fromFile(
+        'file': await MultipartFile.fromFile(
           imageFile.path,
           filename: imageFile.path.split('/').last,
           contentType: MediaType.parse(mimeType),
@@ -319,12 +319,44 @@ class CampaignApiImpl implements CampaignApi {
           sanitizedBudgets.add({
             'item': item,
             'cost': cost,
-            // only include image if it's an http(s) URL
-            if (b.file != null && b.file!.path != null)
-              'image': (b.file!.path!.startsWith('http') ? b.file!.path! : ''),
+            // Backend requires an 'image' string, even if empty.
+            'image': (b.file?.path?.startsWith('http') ?? false) ? b.file!.path! : '',
           });
         } catch (e) {
           log('Skipping invalid budget item: $e');
+        }
+      }
+
+      // Sanitize and combine offers to match the backend's expected format.
+      // Based on your endpoint, it expects an array of objects with 'type', 'condition', and 'reward'.
+      final sanitizedOffers = <Map<String, dynamic>>[];
+
+      // Process 'manual' offers (assuming from campaign.moffers)
+      if (campaign.savedManualOffers.isNotEmpty) {
+        for (final offer in campaign.savedManualOffers) {
+          // NOTE: The Campaign model stores offers as a List<Map<String, String>>.
+          // Backend requires non-null strings for condition and reward.
+          final condition = offer['condition'] ?? offer['name'] ?? '';
+          final reward = offer['reward'] ?? offer['description'] ?? '';
+          if (condition.isNotEmpty) {
+            sanitizedOffers.add({
+              'type': 'manual',
+              'condition': condition,
+              'reward': reward,
+            });
+          }
+        }
+      }
+
+      // Process 'auto' offers (assuming from campaign.aoffers)
+      if (campaign.savedAutoOffers.isNotEmpty) {
+        for (final offer in campaign.savedAutoOffers) {
+          final condition = offer['condition'] ?? offer['name'] ?? '';
+          final reward = offer['reward'] ?? offer['description'] ?? '';
+          if (condition.isNotEmpty) {
+            sanitizedOffers.add(
+                {'type': 'auto', 'condition': condition, 'reward': reward});
+          }
         }
       }
 
@@ -338,6 +370,7 @@ class CampaignApiImpl implements CampaignApi {
         'target': campaign.amount.toInt(),
         'budget': sanitizedBudgets,
         if (imageUrls.isNotEmpty) 'images': imageUrls,
+        if (sanitizedOffers.isNotEmpty) 'offers': sanitizedOffers,
       };
 
       final bodyToSend = jsonEncode(payload);

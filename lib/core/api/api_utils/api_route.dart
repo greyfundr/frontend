@@ -61,8 +61,7 @@ class ApiRoute {
   // Campaign Routes (NEW)
   // ──────────────────────────────────────────────────────────────
   static final String createCampaignRoute = "$baseUrl/campaigns";
-  static final String uploadImageRoute = "$baseUrl/upload/campaign-image";
-  // static const String uploadImagesRoute = "$baseUrl/upload/image";
+  static final String uploadImageRoute = "$baseUrl/upload/image";
   static final String getCampaignApprovalRoute = "$baseUrl/campaign/getApprovalStatus";
 
   static final String getCampaignCategories = "$baseUrl/campaigns/categories";
@@ -76,7 +75,7 @@ class ApiRoute {
 // ──────────────────────────────────────────────────────────────
   // Split Bill Routes (NEW)
   // ──────────────────────────────────────────────────────────────
-  static final String uploadBillReceiptRoute = "$baseUrl/upload/campaign-image";
+  static final String uploadBillReceiptRoute = "$baseUrl/upload/image";
   static final String createSplitBillRoute = "$baseUrl/split-bills";
   static final String updateSplitBillRoute = "$baseUrl/split-bills/:id"; 
 }

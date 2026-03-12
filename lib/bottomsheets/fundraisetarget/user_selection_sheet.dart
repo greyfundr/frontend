@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:greyfundr/core/models/participants_model.dart';
 
@@ -45,15 +47,20 @@ class _UserSelectionSheetState extends State<UserSelectionSheet> {
         filteredUsers = List.from(widget.allUsers);
       } else {
         filteredUsers = widget.allUsers
-            .where((u) =>
-                u.name.toLowerCase().contains(query.toLowerCase()) ||
-                u.username.toLowerCase().contains(query.toLowerCase()))
+            .where(
+              (u) =>
+                  u.name.toLowerCase().contains(query.toLowerCase()) ||
+                  u.username.toLowerCase().contains(query.toLowerCase()),
+            )
             .toList();
       }
     });
   }
 
   void _toggle(Participant user) {
+    log(
+      "Toggling selection for user: ${user.name} (currently ${tempSelected.contains(user) ? 'selected' : 'not selected'})",
+    );
     setState(() {
       tempSelected.contains(user)
           ? tempSelected.remove(user)
@@ -108,7 +115,6 @@ class _UserSelectionSheetState extends State<UserSelectionSheet> {
                           ),
                         ),
                       ),
-                     
                     ],
                   ),
 
@@ -122,7 +128,8 @@ class _UserSelectionSheetState extends State<UserSelectionSheet> {
                             child: Text(
                               'No organizers selected yet',
                               style: TextStyle(
-                                  color: Color.fromARGB(255, 113, 113, 113)),
+                                color: Color.fromARGB(255, 113, 113, 113),
+                              ),
                             ),
                           )
                         : ListView.builder(
@@ -132,30 +139,41 @@ class _UserSelectionSheetState extends State<UserSelectionSheet> {
                             itemBuilder: (_, i) {
                               final p = tempSelected[i];
                               return Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
                                 child: Stack(
                                   clipBehavior: Clip.none,
                                   children: [
                                     CircleAvatar(
-  radius: 34,
-  backgroundImage: NetworkImage('https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/${p.imageUrl}'),
-  onBackgroundImageError: (exception, stackTrace) {
-    // Optional: log or do nothing – prevents console spam
-  },
-  child: const Icon(Icons.person, size: 40), // fallback shown when image fails
-),
+                                      radius: 34,
+                                      backgroundImage: NetworkImage(
+                                        'https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/${p.imageUrl}',
+                                      ),
+                                      onBackgroundImageError:
+                                          (exception, stackTrace) {
+                                            // Optional: log or do nothing – prevents console spam
+                                          },
+                                      child: const Icon(
+                                        Icons.person,
+                                        size: 40,
+                                      ), // fallback shown when image fails
+                                    ),
                                     Positioned(
                                       right: -6,
                                       top: -6,
                                       child: GestureDetector(
                                         onTap: () => setState(
-                                            () => tempSelected.remove(p)),
+                                          () => tempSelected.remove(p),
+                                        ),
                                         child: const CircleAvatar(
                                           radius: 13,
                                           backgroundColor: Colors.red,
-                                          child: Icon(Icons.close,
-                                              size: 18, color: Colors.white),
+                                          child: Icon(
+                                            Icons.close,
+                                            size: 18,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -194,20 +212,22 @@ class _UserSelectionSheetState extends State<UserSelectionSheet> {
                         final isSelected = tempSelected.contains(user);
 
                         return ListTile(
-                          leading:
-                            CircleAvatar(
-  backgroundImage: NetworkImage('https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/${user.imageUrl}'),
-  onBackgroundImageError: (_, __) {},
-  child: const Icon(Icons.person),
-),
+                          leading: CircleAvatar(
+                            backgroundImage: NetworkImage(
+                              'https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/${user.imageUrl}',
+                            ),
+                            onBackgroundImageError: (_, __) {},
+                            child: const Icon(Icons.person),
+                          ),
                           title: Text(user.name),
 
                           subtitle: Text(user.username),
                           trailing: ElevatedButton(
                             onPressed: () => _toggle(user),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor:
-                                  isSelected ? Colors.grey[700] : Colors.teal,
+                              backgroundColor: isSelected
+                                  ? Colors.grey[700]
+                                  : Colors.teal,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
@@ -229,6 +249,9 @@ class _UserSelectionSheetState extends State<UserSelectionSheet> {
                       onPressed: tempSelected.isEmpty
                           ? null
                           : () {
+                              log(
+                                "Selected organizers: ${tempSelected.map((p) => p.name).join(', ')}",
+                              );
                               widget.onSelectionConfirmed(tempSelected);
                               Navigator.pop(context);
                             },

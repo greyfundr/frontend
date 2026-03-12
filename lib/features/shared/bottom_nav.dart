@@ -141,6 +141,7 @@ class _BottomNavState extends State<BottomNav> {
             ),
             label: 'Lifestyle',
           ),
+         
           BottomNavigationBarItem(
             icon: Padding(
               padding: const EdgeInsets.all(8.0),

@@ -60,7 +60,7 @@ class CampaignApiImpl implements CampaignApi {
           .whereType<Map<String, dynamic>>()
           .map((map) => Participant(
                 id: map['id']?.toString() ?? map['_id']?.toString() ?? '',
-                name: map['first_name'] as String? ?? map['name'] as String? ?? '',
+                name: map['firstName'] as String? ?? map['name'] as String? ?? '',
                 username: map['username'] as String? ?? map['email'] as String? ?? '',
                 imageUrl: map['profile_pic'] as String? ??
                           map['avatar'] as String? ??
@@ -125,15 +125,23 @@ class CampaignApiImpl implements CampaignApi {
 
 
    @override
-  Future<String?> uploadImage(File imageFile) async {
+  Future<List<Map<String, dynamic>>> uploadImage(List<File> imageFiles) async {
     try {
-      final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
+      final List<MultipartFile> multipartFiles = [];
+      
+      for (final imageFile in imageFiles) {
+        final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
+        multipartFiles.add(
+          await MultipartFile.fromFile(
+            imageFile.path,
+            filename: imageFile.path.split('/').last,
+            contentType: MediaType.parse(mimeType),
+          ),
+        );
+      }
+
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(
-          imageFile.path,
-          filename: imageFile.path.split('/').last,
-          contentType: MediaType.parse(mimeType),
-        ),
+        'files': multipartFiles,
       });
 
       final responseBody = await _apiClient.post(
@@ -145,17 +153,23 @@ class CampaignApiImpl implements CampaignApi {
 
       final decoded = jsonDecode(responseBody);
 
-      if (decoded is Map<String, dynamic> && decoded.containsKey('url')) {
-        return decoded['url'] as String?;
-      } else if (decoded is Map<String, dynamic> && decoded.containsKey('data') && decoded['data'] is Map) {
-        return decoded['data']['url'] as String?;
+      if (decoded is Map<String, dynamic> && decoded.containsKey('data') && decoded['data'] is List) {
+        final List<dynamic> dataList = decoded['data'] as List<dynamic>;
+        return dataList
+            .whereType<Map<String, dynamic>>()
+            .map((item) => {
+                  'imageUrl': item['imageUrl'] as String? ?? '',
+                  'providerId': item['providerId'] as String? ?? '',
+                })
+            .where((map) => (map['imageUrl'] as String).isNotEmpty)
+            .toList();
       }
 
       log('Unexpected upload response format: $decoded');
-      return null;
+      return [];
     } catch (e, stack) {
-      log('Error uploading image: $e', stackTrace: stack);
-      return null;
+      log('Error uploading images: $e', stackTrace: stack);
+      return [];
     }
   }
 
@@ -255,14 +269,20 @@ class CampaignApiImpl implements CampaignApi {
       final isoStart = toIso(campaign.startDate);
       final isoEnd = toIso(campaign.endDate);
 
-      // If there are images, upload them first and collect URLs
-      final List<String> imageUrls = [];
-      for (final file in campaign.images) {
+      // If there are images, upload them all at once and collect URLs
+      final List<Map<String, dynamic>> imageUrls = [];
+      if (campaign.images.isNotEmpty) {
         try {
-          final url = await uploadImage(file);
-          if (url != null && url.isNotEmpty) imageUrls.add(url);
+          final uploaded = await uploadImage(campaign.images);
+          // Only add valid URLs
+          for (final img in uploaded) {
+            final url = img['imageUrl'] as String?;
+            if (url != null && url.isNotEmpty) {
+              imageUrls.add(img);
+            }
+          }
         } catch (e) {
-          log('Warning: failed to upload image: $e');
+          log('Warning: failed to upload images: $e');
         }
       }
 
@@ -375,7 +395,6 @@ class CampaignApiImpl implements CampaignApi {
 
       final bodyToSend = jsonEncode(payload);
       log('createCampaignApi - JSON payload: $bodyToSend');
-
       final response = await _apiClient.post(
         ApiRoute.createCampaignRoute,
         headers: header,
@@ -386,12 +405,9 @@ class CampaignApiImpl implements CampaignApi {
       if (response is String) {
         return jsonDecode(response);
       }
-
-      return response;
     } catch (e, stackTrace) {
-      print('createCampaignApi failed: $e');
-      print('Stack trace: $stackTrace');
-      rethrow;
+      log('createCampaignApi failed: $e  :::::: $stackTrace');
+       rethrow;
     }
   }
 

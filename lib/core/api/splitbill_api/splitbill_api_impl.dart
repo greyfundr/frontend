@@ -54,7 +54,7 @@ Future<List<AllUsersModel>> getUsers() async {
       ApiRoute.getUserRoute,
       headers: header,
       requiresToken: true,
-      hideLog: true
+      hideLog: false
     );
     
     final decoded = jsonDecode(responseBody);

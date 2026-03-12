@@ -162,7 +162,6 @@ class _ReviewCampaignScreenState extends State<ReviewCampaignScreen> {
 
                 OrganizersSection(
                   campaign: widget.campaign,
-                  user: currentUser!,
                   onSeeAll: () => TeamMembersBottomSheet.show(
                     context,
                     widget.campaign,

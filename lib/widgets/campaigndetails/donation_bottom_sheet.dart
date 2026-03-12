@@ -565,8 +565,8 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
                       (double.tryParse(widget.campaign!['goal_amount']?.toString() ?? '1') ?? 1)
                   : 0.0,
               daysLeft: _calculateDaysLeft(),
-              donors: widget.campaign?['donors'] ?? 0,
-              champions: widget.campaign?['champions'] ?? 0,
+              donors: (widget.campaign?['donors'] ?? 0).toString(),
+              champions: (widget.campaign?['champions'] ?? 0).toString(),
             ),
             Gap(16),
             Text("You are supporting ${widget.campaign?['title'] ?? 'this campaign'}", style: TextStyle(color: Colors.grey, fontSize: 14),),

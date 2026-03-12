@@ -94,7 +94,8 @@ class _CharityScreenState extends State<CharityScreen> {
     });
 
     try {
-      final payload = await locator<CampaignApi>().getAllCampaigns(page: _pageNumber);
+      final payload =
+          await locator<CampaignApi>().getCampaigns(page: _pageNumber, category: _selectedCategory);
 
       final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
       final List<Map<String, dynamic>> campaigns = rawList.cast<Map<String, dynamic>>();
@@ -122,7 +123,8 @@ class _CharityScreenState extends State<CharityScreen> {
 
     try {
       final nextPage = _pageNumber + 1;
-      final payload = await locator<CampaignApi>().getAllCampaigns(page: nextPage);
+      final payload =
+          await locator<CampaignApi>().getCampaigns(page: nextPage, category: _selectedCategory);
 
       final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
       final List<Map<String, dynamic>> newCampaigns = rawList.cast<Map<String, dynamic>>();

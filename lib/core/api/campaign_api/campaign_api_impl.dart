@@ -80,7 +80,7 @@ class CampaignApiImpl implements CampaignApi {
   Future<Map<String, dynamic>> getCampaignDetails(String campaignId) async {
     try {
       final responseBody = await _apiClient.get(
-        '/campaign/getcampaign/$campaignId',
+        '/campaigns/$campaignId',
         requiresToken: true,
       );
 
@@ -433,7 +433,7 @@ class CampaignApiImpl implements CampaignApi {
   Future<Map<String, dynamic>> getAllCampaigns({required int page}) async {
     try {
       final responseBody = await _apiClient.get(
-        '/campaigns?page=$page',
+        '${ApiRoute.createCampaignRoute}?page=$page',
         requiresToken: true,
       );
 
@@ -469,17 +469,28 @@ class CampaignApiImpl implements CampaignApi {
     String? category,
   }) async {
     try {
-      String url = '/campaigns?page=$page';
+      // Use queryParameters map for cleaner URL construction and safe encoding
+      final Map<String, dynamic> queryParams = {'page': page};
       if (category != null && category != "All" && category.isNotEmpty) {
-        url += '&category=$category';
+        queryParams['category'] = category;
       }
 
       final responseBody = await _apiClient.get(
-        url,
-        requiresToken: false,
+        ApiRoute.createCampaignRoute,
+        queryParameters: queryParams,
+        requiresToken: true,
       );
 
-      return jsonDecode(responseBody);
+      final decoded = jsonDecode(responseBody);
+
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      } else if (decoded is List) {
+        // Wrap the list in a map with a 'data' key so the UI can consume it consistently
+        return {'data': decoded};
+      }
+
+      return {'data': []};
     } catch (e, stack) {
       log('getCampaigns failed (page $page, category: $category): $e', stackTrace: stack);
       rethrow;
@@ -498,10 +509,12 @@ class CampaignApiImpl implements CampaignApi {
   @override
 Future<Map<String, dynamic>> getCampaignsByCategory(String category, int page) async {
   try {
-    final url = '/campaigns?page=$page&category=$category';
+    // Using query params ensures the category string is properly encoded
+    final queryParams = {'page': page, 'category': category};
 
     final responseBody = await _apiClient.get(
-      url,
+      ApiRoute.createCampaignRoute,
+      queryParameters: queryParams,
       requiresToken: false, // change to true if needed
     );
 

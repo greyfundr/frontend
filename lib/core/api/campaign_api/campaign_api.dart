@@ -55,7 +55,7 @@ abstract class CampaignApi {
   // Upload Campaign Image
   // ──────────────────────────────────────────────────────────────
 
-  Future<String?> uploadImage(File imageFile);
+  Future<List<Map<String, dynamic>>> uploadImage(List<File> imageFiles);
 
   // ──────────────────────────────────────────────────────────────
   // Create Donation (campaign-related)
@@ -78,4 +78,10 @@ abstract class CampaignApi {
   // ──────────────────────────────────────────────────────────────
 
   Future<dynamic> getCampaignApprovalApi(String campaignId);
+
+  // ──────────────────────────────────────────────────────────────
+  // Get Campaigns by Category
+  // ──────────────────────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getCampaignsByCategory(String category, int page);
 }

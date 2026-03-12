@@ -73,4 +73,5 @@ class CampaignProvider extends BaseNotifier {
 			return null;
 		}
 	}
+  
 }

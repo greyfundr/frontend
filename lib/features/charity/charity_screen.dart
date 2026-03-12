@@ -5,10 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
-
-
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/features/home/home_screen.dart';

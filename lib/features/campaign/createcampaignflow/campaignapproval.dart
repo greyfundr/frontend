@@ -73,6 +73,7 @@ class _CampaignApprovalPageState extends State<CampaignApprovalPage> {
     try {
       final campaignProvider = Provider.of<CampaignProvider>(context, listen: false);
       final decoded = await campaignProvider.createCampaign(widget.campaign, userId.toString());
+      print('CampaignApprovalPage._createCampaign -> provider returned: $decoded');
 
       if (decoded != null && decoded['id'] != null && mounted) {
         setState(() {
@@ -88,6 +89,8 @@ class _CampaignApprovalPageState extends State<CampaignApprovalPage> {
             ),
           );
         }
+      } else {
+        print('CampaignApprovalPage._createCampaign -> unexpected create response: $decoded');
       }
     } catch (e) {
       debugPrint('Campaign creation failed: $e');

@@ -10,6 +10,7 @@ import 'package:greyfundr/core/models/campaign_model.dart';
 import 'package:greyfundr/core/models/participants_model.dart';
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
+import 'package:intl/intl.dart';
 
 
 extension FilePathSafety on File {
@@ -234,52 +235,125 @@ class CampaignApiImpl implements CampaignApi {
         }
       }
 
-      // Build form data
-      final formData = FormData.fromMap({
-        "image": multipartImages.isNotEmpty ? multipartImages : null,
-        'title': campaign.title,
-        'description': campaign.description,
-        'category': campaign.category,
-        'startDate': campaign.startDate,
-        'endDate': campaign.endDate,
-        'amount': campaign.amount.toString(),
-        'id': userId,
-        'stakeholders': jsonEncode(campaign.participants),
-        'budget': jsonEncode(campaign.budgets),
-        'moffers': jsonEncode(campaign.savedManualOffers),
-        'aoffers': jsonEncode(campaign.savedAutoOffers),
-        'sharetitle': campaign.sharetitle,
-      });
-
-      // Debug: log built form data fields and files to help server-side parsing issues
-      try {
-        log('createCampaignApi - built FormData fields:');
-        for (final f in formData.fields) {
-          log('field: ${f.key} => ${f.value} (type: ${f.value.runtimeType})');
+      // Convert provided date strings (likely dd/MM/yyyy) into ISO8601
+      String? toIso(String? dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty) return null;
+        try {
+          // Try common dd/MM/yyyy first
+          final dt = DateFormat('dd/MM/yyyy').parseLoose(dateStr);
+          return dt.toUtc().toIso8601String();
+        } catch (e) {
+          try {
+            final dt = DateTime.parse(dateStr);
+            return dt.toUtc().toIso8601String();
+          } catch (_) {
+            return dateStr; // fallback: send raw
+          }
         }
-        log('createCampaignApi - built FormData files:');
-        for (final fileEntry in formData.files) {
-          log('file key: ${fileEntry.key} => filename: ${fileEntry.value.filename} (type: ${fileEntry.value.runtimeType})');
-        }
-      } catch (e) {
-        log('Error while logging FormData: $e');
       }
 
-      // Clean up empty string values
-      formData.fields.removeWhere((e) => e.value == null || (e.value is String && (e.value as String).isEmpty));
+      final isoStart = toIso(campaign.startDate);
+      final isoEnd = toIso(campaign.endDate);
 
-      // Send request
+      // If there are images, upload them first and collect URLs
+      final List<String> imageUrls = [];
+      for (final file in campaign.images) {
+        try {
+          final url = await uploadImage(file);
+          if (url != null && url.isNotEmpty) imageUrls.add(url);
+        } catch (e) {
+          log('Warning: failed to upload image: $e');
+        }
+      }
+
+      // Resolve category id: backend expects category ID, not display name.
+      String? categoryId;
+      try {
+        final catResp = await _apiClient.get(
+          ApiRoute.getCampaignCategories,
+          requiresToken: false,
+        );
+
+        dynamic decodedCat;
+        try {
+          decodedCat = catResp is String ? jsonDecode(catResp) : catResp;
+        } catch (_) {
+          decodedCat = catResp;
+        }
+
+        List<dynamic> catList = [];
+        if (decodedCat is Map<String, dynamic>) {
+          catList = decodedCat['data'] as List<dynamic>? ?? decodedCat['categories'] as List<dynamic>? ?? [];
+        } else if (decodedCat is List) {
+          catList = decodedCat;
+        }
+
+        if (catList.isNotEmpty && campaign.category.isNotEmpty) {
+          final match = catList.cast<Map<String, dynamic>>().firstWhere(
+            (m) {
+              final name = (m['name'] ?? m['title'] ?? m['label'] ?? '').toString();
+              final id = m['id']?.toString() ?? m['_id']?.toString() ?? '';
+              return id == campaign.category || name.toLowerCase() == campaign.category.toLowerCase();
+            },
+            orElse: () => {},
+          );
+          if (match.isNotEmpty) {
+            categoryId = (match['id'] ?? match['_id'])?.toString();
+          }
+        }
+      } catch (e) {
+        log('Could not resolve category id: $e');
+      }
+
+      // Build JSON payload with properly typed fields
+      // Build payload matching backend validation: remove 'id', 'stakeholders',
+      // 'moffers', 'aoffers', and 'sharetitle' which the server rejects.
+      // Map budgets to expected keys: use 'item' and 'image' (server expects 'item' and 'image').
+      // Sanitize budgets: ensure numeric 'cost' and remove invalid keys
+      final sanitizedBudgets = <Map<String, dynamic>>[];
+      for (final b in campaign.budgets) {
+        try {
+          final item = b.name ?? '';
+          final cost = (b.cost is num) ? b.cost : double.tryParse(b.cost.toString()) ?? 0.0;
+          if (item.isEmpty || cost <= 0) continue;
+          sanitizedBudgets.add({
+            'item': item,
+            'cost': cost,
+            // only include image if it's an http(s) URL
+            if (b.file != null && b.file!.path != null)
+              'image': (b.file!.path!.startsWith('http') ? b.file!.path! : ''),
+          });
+        } catch (e) {
+          log('Skipping invalid budget item: $e');
+        }
+      }
+
+      final payload = <String, dynamic>{
+        'title': campaign.title,
+        'description': campaign.description,
+        // Always include category as a string; prefer resolved id, fall back to provided name
+        'category': (categoryId != null && categoryId.isNotEmpty) ? categoryId : campaign.category,
+        'startDate': isoStart,
+        'endDate': isoEnd,
+        'target': campaign.amount.toInt(),
+        'budget': sanitizedBudgets,
+        if (imageUrls.isNotEmpty) 'images': imageUrls,
+      };
+
+      final bodyToSend = jsonEncode(payload);
+      log('createCampaignApi - JSON payload: $bodyToSend');
+
       final response = await _apiClient.post(
         ApiRoute.createCampaignRoute,
         headers: header,
-        body: formData,
+        body: bodyToSend,
         requiresToken: true,
       );
 
-      // Handle response
       if (response is String) {
         return jsonDecode(response);
       }
+
       return response;
     } catch (e, stackTrace) {
       print('createCampaignApi failed: $e');
@@ -324,11 +398,32 @@ class CampaignApiImpl implements CampaignApi {
 
  @override
   Future<Map<String, dynamic>> getAllCampaigns({required int page}) async {
-    final responseBody = await _apiClient.get(
-      '/campaigns?page=$page',
-      requiresToken: true,
-    );
-    return jsonDecode(responseBody);
+    try {
+      final responseBody = await _apiClient.get(
+        '/campaigns?page=$page',
+        requiresToken: true,
+      );
+
+      // Try decode JSON; if it fails, log and return an empty data list
+      try {
+        final decoded = jsonDecode(responseBody);
+
+        if (decoded is Map<String, dynamic>) return decoded;
+
+        if (decoded is List) return {'data': decoded};
+
+        // unexpected root type -> wrap as data or return empty
+        return {'data': []};
+      } catch (e) {
+        print('getAllCampaigns: failed to parse response JSON: $e');
+        print('Raw response: $responseBody');
+        return {'data': []};
+      }
+    } catch (e, stack) {
+      print('getAllCampaigns failed: $e');
+      print('Stack: $stack');
+      return {'data': []};
+    }
   }
 
   // ──────────────────────────────────────────────────────────────

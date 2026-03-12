@@ -33,12 +33,14 @@ class CampaignProvider extends BaseNotifier {
 		setState(ViewState.Busy);
 		try {
 			final res = await campaignApi.createCampaignApi(campaign: campaign, userId: userId);
+			print('CampaignProvider.createCampaign -> API response: $res');
 			setState(ViewState.Success);
 			return res;
 		} catch (e) {
 			final err = e.toString();
 			setError(err);
 			showErrorToast(err);
+			print('CampaignProvider.createCampaign -> error: $err');
 			rethrow;
 		}
 	}

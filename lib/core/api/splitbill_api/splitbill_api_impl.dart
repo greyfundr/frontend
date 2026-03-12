@@ -90,37 +90,61 @@ Future<List<AllUsersModel>> getUsers() async {
         ),
       });
 
+      // Use the dedicated formData parameter to make intent explicit
       final responseBody = await _apiClient.post(
         ApiRoute.uploadBillReceiptRoute,
         headers: header,
-        body: formData,
+        formData: formData,
         requiresToken: true,
       );
 
-      final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      // Try to decode JSON safely, fall back to raw body
+      dynamic decoded;
+      try {
+        decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      } catch (e) {
+        decoded = responseBody;
+      }
+
       log('uploadBillReceipt response decoded: $decoded');
 
       if (decoded is Map<String, dynamic>) {
-        // Common shapes: { "url": "..." } or { "data": { "url": "..." } }
-        if (decoded.containsKey('url') && decoded['url'] is String) {
-          return decoded['url'] as String;
+        // try common keys
+        final candidates = <String>[
+          'url',
+          'imageUrl',
+          'path',
+          'link',
+          'data',
+          'result',
+          'file'
+        ];
+
+        // direct string keys
+        for (final k in ['url', 'imageUrl', 'path', 'link']) {
+          if (decoded.containsKey(k) && decoded[k] is String && (decoded[k] as String).isNotEmpty) {
+            return decoded[k] as String;
+          }
         }
 
-        if (decoded.containsKey('data')) {
-          final data = decoded['data'];
-          if (data is Map && data.containsKey('url') && data['url'] is String) {
-            return data['url'] as String;
-          }
-
-          // sometimes API returns { data: { data: { url: '...' } } }
-          if (data is Map && data.containsKey('data')) {
-            final inner = data['data'];
-            if (inner is Map && inner.containsKey('url') && inner['url'] is String) {
-              return inner['url'] as String;
+        // nested under data/result/file structures
+        for (final parentKey in ['data', 'result', 'file']) {
+          if (decoded.containsKey(parentKey)) {
+            final parent = decoded[parentKey];
+            if (parent is String && parent.isNotEmpty) return parent;
+            if (parent is Map) {
+              for (final k in ['url', 'imageUrl', 'path', 'link']) {
+                if (parent.containsKey(k) && parent[k] is String && (parent[k] as String).isNotEmpty) {
+                  return parent[k] as String;
+                }
+              }
             }
           }
         }
       }
+
+      // If decoded is a plain string, return it (it might already be a URL)
+      if (decoded is String && decoded.isNotEmpty) return decoded;
 
       return null;
     } catch (e) {

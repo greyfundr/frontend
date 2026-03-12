@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:greyfundr/features/bill/bill_screen.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
 import 'package:greyfundr/features/event/event_home.dart';
-import 'package:greyfundr/widgets/reusable_bottom_nav.dart';
+// no bottom nav here; parent BottomNav provides it
 
 class BillCategoryShell extends StatelessWidget {
   const BillCategoryShell({super.key});
@@ -20,9 +20,12 @@ class BillCategoryShell extends StatelessWidget {
       if (route == '/lifestyle') subIndex.value = 2;
     });
 
-    return Scaffold(
-      bottomNavigationBar: reusableBottomNav(context),
-      body: Obx(() => IndexedStack(
+    // Return only the shell body (no Scaffold) so the app-level BottomNav
+    // provided by `BottomNav` remains the single source of truth for
+    // bottom navigation. Child screens should not render their own
+    // bottomNavigationBar when used inside the main BottomNav view.
+    return SafeArea(
+      child: Obx(() => IndexedStack(
             index: subIndex.value,
             children: const [
               BillScreen(),

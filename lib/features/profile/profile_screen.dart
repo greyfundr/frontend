@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:greyfundr/shared/app_colors.dart';
+import 'package:greyfundr/shared/utils.dart';
+import 'package:greyfundr/features/home/home_screen.dart';
+import 'package:greyfundr/features/bill/bill_screen.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/features/charity/campaigndetails.dart';
@@ -41,6 +46,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userProvider = Provider.of<UserProvider>(context);
     final user = userProvider.userProfileModel;
 
+    // If this screen is shown standalone (no ancestor BottomNavigationBar),
+    // ensure the provider marks Profile as active so the local 3-tab nav
+    // highlights the Profile tab.
+    final bool noAncestorNav = context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
+    if (noAncestorNav && userProvider.selectedIndex != 4) {
+      userProvider.updateSelectedIndex(4);
+    }
+    userProvider.setSuppressAppNav(noAncestorNav);
+
     if (userProvider.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -62,6 +76,107 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      bottomNavigationBar: noAncestorNav
+          ? Builder(builder: (ctx) {
+              int mapTo3(int gi) {
+                if (gi == 0) return 0;
+                if (gi == 1) return 1;
+                if (gi == 4) return 2;
+                return 0;
+              }
+              final up = Provider.of<UserProvider>(ctx);
+              return BottomNavigationBar(
+                backgroundColor: Colors.white,
+                type: BottomNavigationBarType.fixed,
+                showUnselectedLabels: true,
+                showSelectedLabels: true,
+                elevation: 0,
+                selectedFontSize: 12,
+                unselectedFontSize: 12,
+                unselectedLabelStyle: const TextStyle(
+                  color: greyTextColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                selectedLabelStyle: const TextStyle(
+                  color: appPrimaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                currentIndex: mapTo3(up.selectedIndex),
+                selectedItemColor: appPrimaryColor,
+                unselectedItemColor: greyTextColor,
+                onTap: (i) {
+                  doHepticFeedback();
+                  if (i == 0) {
+                    up.updateSelectedIndex(0);
+                    Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const HomeScreen()));
+                    return;
+                  }
+                    if (i == 1) {
+                      up.updateSelectedIndex(1);
+                      Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const BillScreen()));
+                      return;
+                    }
+                  if (i == 2) {
+                    up.updateSelectedIndex(4);
+                    return;
+                  }
+                },
+                items: [
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: SvgPicture.asset(
+                          'assets/svgs/home.svg',
+                          colorFilter: ColorFilter.mode(
+                            mapTo3(up.selectedIndex) == 0 ? appPrimaryColor : greyTextColor,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                    ),
+                    label: 'Home',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: SvgPicture.asset(
+                          'assets/svgs/bills.svg',
+                          colorFilter: ColorFilter.mode(
+                            mapTo3(up.selectedIndex) == 1 ? appPrimaryColor : greyTextColor,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                    ),
+                    label: 'Bills',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: SvgPicture.asset(
+                          'assets/svgs/profile.svg',
+                          colorFilter: ColorFilter.mode(
+                            mapTo3(up.selectedIndex) == 2 ? appPrimaryColor : greyTextColor,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                    ),
+                    label: 'Profile',
+                  ),
+                ],
+              );
+            })
+          : null,
       body: SafeArea(
         child: SmartRefresher(
           controller: _refreshController,

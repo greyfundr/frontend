@@ -11,9 +11,19 @@ import 'package:greyfundr/features/shared/notification.dart';
 import 'package:greyfundr/shared/utils.dart'; // for showCustomBottomSheet & convertStringToCurrency
 
 // Import your screens (adjust paths if needed)
-// import 'package:greyfundr/features/bill/bill_screen.dart'; // ← add this
-// import 'package:greyfundr/features/event/event_home.dart'; // ← add this (or event_screen.dart)
-// import 'package:greyfundr/features/charity/charity_screen.dart';
+import 'package:greyfundr/features/bill/bill_screen.dart'; // ← add this
+import 'package:greyfundr/features/event/event_home.dart'; // ← add this (or event_screen.dart)
+import 'package:greyfundr/features/charity/charity_screen.dart';
+
+
+
+
+
+
+
+
+
+
 
 
 class ConcaveBottomClipper extends CustomClipper<Path> {
@@ -36,12 +46,12 @@ class ConcaveBottomClipper extends CustomClipper<Path> {
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
-class HeaderSection extends StatefulWidget {
+class EventHeaderSection extends StatefulWidget {
   final bool isCollapsed;
   final VoidCallback onStartCampaign;
   final VoidCallback onSettings;
 
-  const HeaderSection({
+  const EventHeaderSection({
     super.key,
     required this.isCollapsed,
     required this.onStartCampaign,
@@ -49,10 +59,10 @@ class HeaderSection extends StatefulWidget {
   });
 
   @override
-  State<HeaderSection> createState() => _HeaderSectionState();
+  State<EventHeaderSection> createState() => _EventHeaderSectionState();
 }
 
-class _HeaderSectionState extends State<HeaderSection> {
+class _EventHeaderSectionState extends State<EventHeaderSection> {
   bool _showBalance = true;
 
   @override
@@ -136,8 +146,7 @@ class _HeaderSectionState extends State<HeaderSection> {
                          widget.isCollapsed
     ? Row(
         children: [
-
-          // Text("Charity & FundPool", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+         
           _tabButton('Bill', Get.currentRoute == '/bill', () {
             Get.offNamed('/bill');  // ← no transition here anymore
           }),
@@ -372,7 +381,7 @@ class _HeaderSectionState extends State<HeaderSection> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         Text(
-                          "Total Donations",
+                          "Total Gift",
                           style: TextStyle(color: Colors.white70, fontSize: 12),
                         ),
                         Text(
@@ -406,7 +415,7 @@ class _HeaderSectionState extends State<HeaderSection> {
                             Icon(Icons.favorite_border, size: 14),
                             SizedBox(width: 6),
                             Text(
-                              "Create Campaign",
+                              "Create Event",
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,

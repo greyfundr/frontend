@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:greyfundr/features/campaign/createcampaignflow/fundraise_target.dart';
+import 'package:greyfundr/features/home/home_screen.dart';
 import 'package:greyfundr/core/models/campaign_model.dart';
 
 import 'package:greyfundr/components/campaign/personal_account_card.dart';
@@ -77,7 +78,20 @@ class _CampaignScreenState extends State<CampaignScreen> {
         elevation: 1, // No shadow under app bar
         title: const Text('Start Campaign'),
         centerTitle: true,
-        leading: const BackButton(),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Try to pop; if there's no previous route, go to Home
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+              );
+            }
+          },
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

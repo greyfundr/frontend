@@ -10,18 +10,22 @@ import 'package:greyfundr/core/models/split_bill_model.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
 import 'package:greyfundr/features/bill/pathsforbill/sboscreen.dart';
-// import 'package:greyfundr/features/home/add_money_sheet.dart';
+import 'package:greyfundr/features/home/add_money_sheet.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
-// import 'package:greyfundr/features/event/event_home.dart';
 import 'package:greyfundr/features/shared/notification.dart';
 import 'package:greyfundr/features/splitbill/create_split_bill.dart';
+import 'package:greyfundr/features/home/home_screen.dart';
+import 'package:greyfundr/features/profile/profile_screen.dart';
+import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/text_style.dart';
-// import 'package:greyfundr/shared/utils.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/features/settings/settings_screen.dart';
 import 'package:gap/gap.dart';
 import 'package:greyfundr/services/custom_alert.dart';
+import 'package:greyfundr/shared/utils.dart';
+
+
 
 class BillScreen extends StatefulWidget {
   const BillScreen({super.key});
@@ -65,7 +69,8 @@ class ConcaveBottomClipper extends CustomClipper<Path> {
 class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateMixin {
   final SplitBillApi _splitBillApi = SplitBillApiImpl();
 
-  late TabController _tabController; // for Bill | Charity | Lifestyle
+  // for Bill | Charity | Lifestyle
+  late TabController _tabController; 
 
   final ScrollController _scrollController = ScrollController();
   bool _isHeaderCollapsed = true;
@@ -214,6 +219,7 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
     ),
   );
 }
+
 
   Widget _featureIcon(String label, IconData icon, Color color) {
     return Column(
@@ -776,9 +782,119 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
     final userProvider = Provider.of<UserProvider>(context);
     final walletProvider = Provider.of<WalletProvider>(context);
     var userProfile = userProvider.userProfileModel;
+      var walletModel = walletProvider.walletModel;
+    // If shown standalone (no ancestor BottomNavigationBar), make sure
+    // the provider marks Bills as active so the compact nav highlights it.
+    final bool noAncestorNav = context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
+    if (noAncestorNav && userProvider.selectedIndex != 1) {
+      userProvider.updateSelectedIndex(1);
+    }
+    userProvider.setSuppressAppNav(noAncestorNav);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
+      bottomNavigationBar: noAncestorNav
+          ? Builder(builder: (ctx) {
+              final up = Provider.of<UserProvider>(ctx);
+              int mapTo3(int gi) {
+                if (gi == 0) return 0;
+                if (gi == 1) return 1;
+                if (gi == 4) return 2;
+                return 0;
+              }
+              return BottomNavigationBar(
+                backgroundColor: Colors.white,
+                type: BottomNavigationBarType.fixed,
+                showUnselectedLabels: true,
+                showSelectedLabels: true,
+                elevation: 0,
+                selectedFontSize: 12,
+                unselectedFontSize: 12,
+                unselectedLabelStyle: const TextStyle(
+                  color: greyTextColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                selectedLabelStyle: const TextStyle(
+                  color: appPrimaryColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                currentIndex: mapTo3(up.selectedIndex),
+                selectedItemColor: appPrimaryColor,
+                unselectedItemColor: greyTextColor,
+                onTap: (i) {
+                  doHepticFeedback();
+                  if (i == 0) {
+                    up.updateSelectedIndex(0);
+                    Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const HomeScreen()));
+                    return;
+                  }
+                  if (i == 1) {
+                    up.updateSelectedIndex(1);
+                    Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const BillScreen()));
+                    return;
+                  }
+                  if (i == 2) {
+                    up.updateSelectedIndex(4);
+                    Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+                    return;
+                  }
+                },
+                items: [
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: SvgPicture.asset(
+                          'assets/svgs/home.svg',
+                          colorFilter: ColorFilter.mode(
+                            mapTo3(up.selectedIndex) == 0 ? appPrimaryColor : greyTextColor,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                    ),
+                    label: 'Home',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: SvgPicture.asset(
+                          'assets/svgs/bills.svg',
+                          colorFilter: ColorFilter.mode(
+                            mapTo3(up.selectedIndex) == 1 ? appPrimaryColor : greyTextColor,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                    ),
+                    label: 'Bills',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: SvgPicture.asset(
+                          'assets/svgs/profile.svg',
+                          colorFilter: ColorFilter.mode(
+                            mapTo3(up.selectedIndex) == 2 ? appPrimaryColor : greyTextColor,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                      ),
+                    ),
+                    label: 'Profile',
+                  ),
+                ],
+              );
+            })
+          : null,
       body: SafeArea(
         child: Column(
           children: [
@@ -823,7 +939,7 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                                         child: Row(
                                           children: [
                                             CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
-                                            Gap(5),
+                                            Gap(10),
                                           ],
                                         ),
                                       ),
@@ -833,6 +949,7 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                                           child: Row(
                                             mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
+                                               
                                               _headerTabButton('Bill', _tabController.index == 0),
                                               _headerTabButton('Charity', _tabController.index == 1),
                                               _headerTabButton('Lifestyle', _tabController.index == 2),
@@ -840,6 +957,31 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                                           ),
                                         ),
                                       ),
+                                       Row(
+                          children: [
+                            // Notification SVG - Opens NotificationScreen
+                            GestureDetector(
+                              onTap: () {
+                                Get.to(
+                                  () => const NotificationScreen(),
+                                  transition: Transition.rightToLeft,
+                                );
+                              },
+                              child: SvgPicture.asset(
+                                "assets/svgs/notification.svg",
+                                height: 22,
+                                width: 22,
+                                colorFilter: const ColorFilter.mode(
+                                  Colors.white,
+                                  BlendMode.srcIn,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+
+                            
+                          ],
+                        ),
                                     ],
                                   ),
                                 )
@@ -885,22 +1027,184 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                         ),
                       ),
 
+                      // AnimatedOpacity(
+                      //   opacity: _isHeaderCollapsed ? 0.0 : 1.0,
+                      //   duration: const Duration(milliseconds: 300),
+                      //   child: Offstage(
+                      //     offstage: _isHeaderCollapsed,
+                      //     child: Padding(
+                      //       padding: const EdgeInsets.only(top: 70, left: 20, right: 20),
+                      //       child: Column(
+                      //         children: [
+                      //           // Points + Trophy, Balance + Add Money
+                      //           // ← add your original expanded content here if needed
+                      //         ],
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
                       AnimatedOpacity(
-                        opacity: _isHeaderCollapsed ? 0.0 : 1.0,
-                        duration: const Duration(milliseconds: 300),
-                        child: Offstage(
-                          offstage: _isHeaderCollapsed,
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 70, left: 20, right: 20),
-                            child: Column(
-                              children: [
-                                // Points + Trophy, Balance + Add Money
-                                // ← add your original expanded content here if needed
-                              ],
-                            ),
-                          ),
-                        ),
+              opacity: _isHeaderCollapsed ? 0.0 : 1.0,
+              duration: const Duration(milliseconds: 300),
+              child: Offstage(
+                offstage: _isHeaderCollapsed,
+                child: Padding(
+                  
+                  padding: const EdgeInsets.only(top: 55, left: 20, right: 20),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 6),
+
+                      // Points + Trophy
+                     Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    // Left: Points text
+    Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        Text("Total Point", style: TextStyle(color: Colors.white70, fontSize: 12)),
+        Text("0Pts", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        Text("10 points to your next star", style: TextStyle(color: Colors.white70, fontSize: 10)),
+      ],
+    ),
+
+    // Right: Trophy — wrapped in a Column and pulled in from the edge
+    Padding(
+      padding: const EdgeInsets.only(right: 20.0), // This brings it inward
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              
+              border: Border.all(color: const Color.fromARGB(0, 108, 107, 107), width: 1.8),
+              
+            ),
+            child: Image.asset(
+              'assets/images/trophy.png',
+              width: 38,
+              height: 38,
+              errorBuilder: (_, __, ___) => const Icon(Icons.emoji_events, color: Colors.amber, size: 38),
+            ),
+          ),
+        ],
+      ),
+    ),
+  ],
+),
+
+                      const Divider(color: Colors.white24, height: 10),
+
+                      // Balance + Add Money
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                        Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    const Text("Total Balance", style: TextStyle(color: Colors.white70, fontSize: 12)),
+    Row(
+      children: [
+        // Balance Text (Visible or Hidden)
+        // Text(
+        //   _isBalanceVisible && wallet?['balance'] != null
+        //       ? NumberFormat('#,##0.00').format(double.parse(wallet!['balance']))
+        //       : '••••••',
+        //   style: TextStyle(
+        //     color: Colors.white,
+        //     fontSize: 16,
+        //     fontWeight: FontWeight.bold,
+        //     letterSpacing: _isBalanceVisible ? 0.5 : 2,
+        //   ),
+        // ),
+
+
+        Text(
+                        "${convertStringToCurrency(walletModel?.balance?.available ?? "0")}",
+                        style: txStyle18SemiBold.copyWith(color: Colors.white),
                       ),
+        const SizedBox(width: 20),
+        // Eye Icon with Toggle Functionality
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _isBalanceVisible = !_isBalanceVisible;
+            });
+          },
+          child: Icon(
+            _isBalanceVisible
+                ? Icons.visibility_outlined
+                : Icons.visibility_off_outlined,
+            color: Colors.white70,
+            size: 18,
+          ),
+        ),
+      ],
+    ),
+     Text(
+                        "Escrow:  ${convertStringToCurrency("${walletModel?.balance?.escrow ?? "0"}")}",
+                        style: txStyle12wt,
+                      ),
+  ],
+),
+                        SizedBox(
+                                        width: 100,
+                                        child: ElevatedButton(
+                                          onPressed: () {},
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.transparent,     
+                                            foregroundColor: Colors.white,            
+                                            shadowColor: Colors.transparent,
+                                            elevation: 0,
+                                            
+                                            side: BorderSide.none,                    
+                                            
+                                            splashFactory: NoSplash.splashFactory,   
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                            
+
+                                              InkWell(
+                    onTap: () {
+                      showCustomBottomSheet(AddMoneySheet(), context);
+                    },
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SvgPicture.asset(
+                          "assets/svgs/add_money.svg",
+                          height: 30,
+                        ),
+                        Text("Add Money", style: txStyle12wt),
+                      ],
+                    ),
+                  ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                        ],
+                      ),
+
+                      const Divider(color: Colors.white24, height: 10),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+
+
+
 
                       AnimatedPositioned(
                         duration: const Duration(milliseconds: 400),
@@ -926,21 +1230,41 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                                 ),
                               ],
                             ),
-                            ElevatedButton(
-                              onPressed: () {
+                            
+
+
+                             ElevatedButton(
+                        onPressed: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(builder: (_) => const CreateSplitBillScreen()),
                                 );
                               },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFFF6B35),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFF6B35),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.favorite_border, size: 14),
+                            SizedBox(width: 6),
+                            Text(
+                              "Create Bill",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
                               ),
-                              child: const Text("Create Bill", style: TextStyle(fontSize: 14)),
                             ),
+                          ],
+                        ),
+                      ),
                           ],
                         ),
                       ),

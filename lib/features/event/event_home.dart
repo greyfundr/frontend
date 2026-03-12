@@ -1,175 +1,462 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:get/get.dart';
-import 'package:greyfundr/features/charity/charity_screen.dart';
-import 'package:greyfundr/features/bill/bill_screen.dart';
-import 'package:greyfundr/shared/app_colors.dart';
-import 'package:greyfundr/widgets/reusable_bottom_nav.dart'; // ← import from Step 2
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:pull_to_refresh/pull_to_refresh.dart';
 
-class EventHome extends StatelessWidget {
+import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
+
+import 'package:gap/gap.dart';
+import 'package:greyfundr/core/providers/user_provider.dart';
+import 'package:greyfundr/services/locator.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:greyfundr/shared/app_colors.dart';
+import 'package:greyfundr/shared/utils.dart';
+import 'package:greyfundr/features/home/home_screen.dart';
+import 'package:greyfundr/features/bill/bill_screen.dart';
+import 'package:greyfundr/features/profile/profile_screen.dart';
+
+import 'package:greyfundr/features/event/event_screen.dart';
+
+import 'package:greyfundr/widgets/lifestyle/header_section.dart';
+
+import 'package:greyfundr/widgets/lifestyle/tab_selector.dart';
+import 'package:greyfundr/widgets/lifestyle/event_card.dart';
+
+// import 'package:greyfundr/widgets/charity/horizontal_campaign_carousel.dart';
+
+class EventHome extends StatefulWidget {
   const EventHome({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      bottomNavigationBar: reusableBottomNav(context), // ← keeps bottom nav visible & Bill highlighted
-      body: SafeArea(
+  State<EventHome> createState() => _EventHomeState();
+}
+
+class _EventHomeState extends State<EventHome> {
+  final RefreshController _refreshController = RefreshController(initialRefresh: false);
+  late ScrollController _scrollController;
+
+  bool _isHeaderCollapsed = true;
+  String selectedTab = 'Live Event';
+  // String _selectedCategory = "All";
+
+  List<Map<String, dynamic>> _allCampaigns = [];
+  bool _isLoading = true;
+  bool _isLoadingMore = false;
+  String? _errorMessage;
+
+  int _pageNumber = 1;
+  double _lastScrollPixels = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
+    _loadInitialCampaigns();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _refreshController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final current = _scrollController.position.pixels;
+    final delta = current - _lastScrollPixels;
+
+    if (delta.abs() > 8) {
+      setState(() {
+        _isHeaderCollapsed = delta > 0;
+      });
+    }
+    _lastScrollPixels = current;
+
+    // Load more when near bottom
+    if (current >= _scrollController.position.maxScrollExtent - 150 &&
+        !_isLoadingMore &&
+        !_isLoading) {
+      _loadMoreCampaigns();
+    }
+  }
+
+  Future<void> _loadInitialCampaigns() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+      _allCampaigns.clear();
+      _pageNumber = 1;
+    });
+
+    try {
+      final payload = await locator<CampaignApi>().getAllCampaigns(page: _pageNumber);
+
+      final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
+      final List<Map<String, dynamic>> campaigns = rawList.cast<Map<String, dynamic>>();
+
+      if (!mounted) return;
+
+      setState(() {
+        _allCampaigns = campaigns;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = "Failed to load events: ${e.toString().split('\n').first}";
+        _isLoading = false;
+      });
+    } finally {
+      _refreshController.refreshCompleted();
+    }
+  }
+
+  Future<void> _loadMoreCampaigns() async {
+    if (_isLoadingMore) return;
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final nextPage = _pageNumber + 1;
+      final payload = await locator<CampaignApi>().getAllCampaigns(page: nextPage);
+
+      final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
+      final List<Map<String, dynamic>> newCampaigns = rawList.cast<Map<String, dynamic>>();
+
+      if (!mounted) return;
+
+      if (newCampaigns.isNotEmpty) {
+        setState(() {
+          _pageNumber = nextPage;
+          _allCampaigns.addAll(newCampaigns);
+        });
+      }
+    } catch (e) {
+      debugPrint("Load more error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoadingMore = false);
+    }
+  }
+
+  // ignore: unused_element
+  Future<void> _onRefresh() async {
+    await _loadInitialCampaigns();
+  }
+
+  Widget _buildTabContent(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF007A74)));
+    }
+
+    if (_errorMessage != null) {
+      return Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Top header (same style as BillScreen collapsed header)
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              color: const Color(0xFF007A74),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Back button (optional - can remove if not needed)
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                    onPressed: () => Get.back(),
-                  ),
+            Icon(Icons.error_outline, size: 80, color: Colors.red[300]),
+            const SizedBox(height: 16),
+            Text(_errorMessage!, style: const TextStyle(fontSize: 16, color: Colors.red)),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loadInitialCampaigns,
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF6B35)),
+              child: const Text("Retry", style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    }
 
-                  // Collapsed tabs: Bill | Charity | Lifestyle
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-  mainAxisAlignment: MainAxisAlignment.center,
-  children: [
-    _headerTabButton('Bill', false, () {
-      Get.offNamed('/bill');  // ← replace current route with Bill
-    }),
-    _headerTabButton('Charity', false, () {
-      Get.toNamed('/charity');  // ← push Charity
-    }),
-    _headerTabButton('Lifestyle', true, null), // active - no action
-  ],
-),
-                    ),
-                  ),
+    final userProvider = Provider.of<UserProvider>(context);
+    final currentUserId = userProvider.userProfileModel?.id?.toString();
 
-                  // Placeholder space (matches BillScreen layout)
-                  const SizedBox(width: 48), // to balance back button
-                ],
+    if (selectedTab == 'Upcoming') {
+      return _buildEmptyTab(
+        icon: Icons.recommend_outlined,
+        title: "No campaigns yet",
+        subtitle: "Campaigns you create will appear here.\nTap the button below to start your first one!",
+        buttonText: "Start a Campaign",
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const EventScreen()),
+        ),
+      );
+    }
+
+    if (selectedTab == 'Past') {
+      return _buildEmptyTab(
+        icon: Icons.people_alt_outlined,
+        title: "No Campaigns from people you follow yet",
+        subtitle: "When someone you follow creates or backs a campaign, it will appear here.",
+      );
+    }
+
+    // Explore tab
+    if (_allCampaigns.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.campaign_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text("No campaigns available yet", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            const Text("Check back later or create your own!", style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const EventScreen()),
+              ),
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text("Start a Campaign"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6B35),
+                foregroundColor: Colors.white,
               ),
             ),
+          ],
+        ),
+      );
+    }
 
-            // Main content (your existing placeholder + improved styling)
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'My Events',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Manage your events and stay updated with the latest news and updates.',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[700],
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      itemCount: _allCampaigns.length + (_isLoadingMore ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index >= _allCampaigns.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator(color: Color(0xFF007A74))),
+          );
+        }
 
-                    // Placeholder content - you can replace this later
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.event_busy_rounded,
-                            size: 80,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No events yet!',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Create your first event to get started.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              // Add your "Create Event" navigation here later
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Create event feature coming soon!')),
-                              );
-                            },
-                            icon: const Icon(Icons.add_circle_outline, color: Colors.white),
-                            label: const Text('Create Event'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF6B35),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+        final campaign = _allCampaigns[index];
+        return EventCard(
+          campaign: campaign,
+          currentUserId: currentUserId,
+          onDonationSuccess: () {
+            _loadInitialCampaigns(); // Refresh after donation
+          },
+        );
+      },
+    );
+  }
 
-                    const SizedBox(height: 60), // extra space at bottom
-                  ],
+  Widget _buildEmptyTab({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    String? buttonText,
+    VoidCallback? onPressed,
+  }) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      children: [
+        Center(
+          child: Column(
+            children: [
+              Icon(icon, size: 64, color: Colors.grey[400]),
+              const SizedBox(height: 16),
+              Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+              const SizedBox(height: 8),
+              Text(subtitle, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+              if (buttonText != null) ...[
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: onPressed,
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: Text(buttonText),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFFF6B35),
+                    foregroundColor: Colors.white,
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
-  // Reusable tab button (same style as BillScreen header)
-  Widget _headerTabButton(String title, bool isActive, VoidCallback? onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: isActive ? Colors.white : Colors.white70,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                fontSize: isActive ? 16 : 14,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              height: 3,
-              width: isActive ? 30 : 0,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ],
-        ),
-      ),
+  @override
+  @override
+Widget build(BuildContext context) {
+  // Status bar styling
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Color(0xFF007A74),
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+  ));
+
+  final userProvider = Provider.of<UserProvider>(context);
+
+  final user = userProvider.userProfileModel;
+
+  if (user == null) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator(color: Color(0xFF007A74))),
     );
   }
+  // If shown standalone (no ancestor BottomNavigationBar), ensure the
+  // provider marks Bills as active so the compact nav highlights it.
+  final bool noAncestorNav = context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
+  if (noAncestorNav && userProvider.selectedIndex != 1) {
+    userProvider.updateSelectedIndex(1);
+  }
+  userProvider.setSuppressAppNav(noAncestorNav);
+
+  return Scaffold(
+    backgroundColor: Colors.grey[100],
+    bottomNavigationBar: noAncestorNav
+        ? Builder(builder: (ctx) {
+            final up = Provider.of<UserProvider>(ctx);
+            int mapTo3(int gi) {
+              if (gi == 0) return 0;
+              if (gi == 1) return 1;
+              if (gi == 4) return 2;
+              return 0;
+            }
+            return BottomNavigationBar(
+              backgroundColor: Colors.white,
+              type: BottomNavigationBarType.fixed,
+              showUnselectedLabels: true,
+              showSelectedLabels: true,
+              elevation: 0,
+              selectedFontSize: 12,
+              unselectedFontSize: 12,
+              unselectedLabelStyle: const TextStyle(
+                color: greyTextColor,
+                fontWeight: FontWeight.w500,
+              ),
+              selectedLabelStyle: const TextStyle(
+                color: appPrimaryColor,
+                fontWeight: FontWeight.w500,
+              ),
+              currentIndex: mapTo3(up.selectedIndex),
+              selectedItemColor: appPrimaryColor,
+              unselectedItemColor: greyTextColor,
+              onTap: (i) {
+                doHepticFeedback();
+                if (i == 0) {
+                  up.updateSelectedIndex(0);
+                  Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const HomeScreen()));
+                  return;
+                }
+                if (i == 1) {
+                  up.updateSelectedIndex(1);
+                  Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const BillScreen()));
+                  return;
+                }
+                if (i == 2) {
+                  up.updateSelectedIndex(4);
+                  Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+                  return;
+                }
+              },
+              items: [
+                BottomNavigationBarItem(
+                  icon: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: SvgPicture.asset(
+                        'assets/svgs/home.svg',
+                        colorFilter: ColorFilter.mode(
+                          mapTo3(up.selectedIndex) == 0 ? appPrimaryColor : greyTextColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                  ),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: SvgPicture.asset(
+                        'assets/svgs/bills.svg',
+                        colorFilter: ColorFilter.mode(
+                          mapTo3(up.selectedIndex) == 1 ? appPrimaryColor : greyTextColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                  ),
+                  label: 'Bills',
+                ),
+                BottomNavigationBarItem(
+                  icon: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: SvgPicture.asset(
+                        'assets/svgs/profile.svg',
+                        colorFilter: ColorFilter.mode(
+                          mapTo3(up.selectedIndex) == 2 ? appPrimaryColor : greyTextColor,
+                          BlendMode.srcIn,
+                        ),
+                      ),
+                    ),
+                  ),
+                  label: 'Profile',
+                ),
+              ],
+            );
+          })
+        : null,
+    body: SafeArea(
+      child: Column(
+        children: [
+          EventHeaderSection(
+            isCollapsed: _isHeaderCollapsed,
+            onStartCampaign: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EventScreen()),
+            ),
+            onSettings: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Settings coming soon!")),
+              );
+            },
+          ),
+          // FeatureIconsRow(
+          //   selectedCategory: _selectedCategory,
+          //   onCategorySelected: (category) {
+          //     setState(() {
+          //       _selectedCategory = category;
+          //       _loadInitialCampaigns();
+          //     });
+          //     WidgetsBinding.instance.addPostFrameCallback((_) {
+          //       if (_scrollController.hasClients) {
+          //         _scrollController.jumpTo(0);
+          //       }
+          //     });
+          //   },
+          // ),
+
+           Gap(20),
+          // HorizontalEventCarousel(isVisible: !_isHeaderCollapsed),
+          TabSelector(
+            selectedTab: selectedTab,
+            onTabChanged: (tab) => setState(() => selectedTab = tab),
+          ),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _buildTabContent(context),
+              transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 }

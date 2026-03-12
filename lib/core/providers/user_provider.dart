@@ -23,6 +23,7 @@ class UserProvider with ChangeNotifier {
 
   // ─── Navigation / UI State ─────────────────────────────────────
   int _selectedIndex = 0;
+  bool _suppressAppNav = false;
 
   // ─── Getters ────────────────────────────────────────────────────
   UserProfileModel? get userProfileModel => _userProfileModel;
@@ -34,10 +35,17 @@ class UserProvider with ChangeNotifier {
   String? get campaignsError => _campaignsError;
 
   int get selectedIndex => _selectedIndex;
+  bool get suppressAppNav => _suppressAppNav;
 
   // ─── Methods ────────────────────────────────────────────────────
   void updateSelectedIndex(int index) {
     _selectedIndex = index;
+    notifyListeners();
+  }
+
+  void setSuppressAppNav(bool value) {
+    if (_suppressAppNav == value) return;
+    _suppressAppNav = value;
     notifyListeners();
   }
 

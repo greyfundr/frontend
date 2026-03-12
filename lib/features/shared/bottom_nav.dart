@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
-import 'package:greyfundr/features/bill/bill_category_shell.dart'; // ← new import
+import 'package:greyfundr/features/bill/bill_screen.dart';
+import 'package:greyfundr/features/charity/charity_screen.dart';
+import 'package:greyfundr/features/event/event_home.dart';
 import 'package:greyfundr/features/home/home_screen.dart';
 import 'package:greyfundr/features/profile/profile_screen.dart';
 import 'package:greyfundr/shared/app_colors.dart';
@@ -17,11 +20,7 @@ class BottomNav extends StatefulWidget {
 }
 
 class _BottomNavState extends State<BottomNav> {
-  final List<Widget> _views = [
-    const HomeScreen(),              // 0: Home
-    const BillCategoryShell(),       // 1: Bill → now uses shell with Charity & Lifestyle inside
-    const ProfileScreen(),           // 2: Profile
-  ];
+  final List<Widget> _views = [HomeScreen(), BillScreen(), CharityScreen(), EventHome(), ProfileScreen()];
 
   @override
   void initState() {
@@ -32,16 +31,29 @@ class _BottomNavState extends State<BottomNav> {
 
       userProvider.fetchUserProfileApi();
       walletProvider.fetchUserWallet();
-       walletProvider.fetchTransactions();
+      walletProvider.fetchTransactions();
     });
   }
+
+  // Maaynr
 
   @override
   Widget build(BuildContext context) {
     var userProvider = Provider.of<UserProvider>(context);
+    int _mapToCompact(int gi) {
+      if (gi == 0) return 0;
+      if (gi == 1) return 1;
+      if (gi == 4) return 2;
+      return 0;
+    }
+
+    final compactIndex = _mapToCompact(userProvider.selectedIndex);
+
     return Scaffold(
-      body: _views.elementAt(userProvider.selectedIndex),
-      bottomNavigationBar: BottomNavigationBar(
+      body: _views.elementAt(compactIndex),
+      bottomNavigationBar: userProvider.suppressAppNav
+          ? null
+          : BottomNavigationBar(
         backgroundColor: Colors.white,
         type: BottomNavigationBarType.fixed,
         showUnselectedLabels: true,
@@ -57,12 +69,15 @@ class _BottomNavState extends State<BottomNav> {
           color: appPrimaryColor,
           fontWeight: FontWeight.w500,
         ),
-        currentIndex: userProvider.selectedIndex,
+        currentIndex: compactIndex,
         selectedItemColor: appPrimaryColor,
         unselectedItemColor: greyTextColor,
         onTap: (index) {
           doHepticFeedback();
-          userProvider.updateSelectedIndex(index);
+          // map compact index back to global indices
+          final map = {0: 0, 1: 1, 2: 4};
+          final target = map[index] ?? 0;
+          userProvider.updateSelectedIndex(target);
         },
         items: [
           BottomNavigationBarItem(
@@ -73,9 +88,7 @@ class _BottomNavState extends State<BottomNav> {
                 width: 20,
                 child: SvgPicture.asset(
                   'assets/svgs/home.svg',
-                  color: userProvider.selectedIndex == 0
-                      ? appPrimaryColor
-                      : greyTextColor,
+                    color: compactIndex == 0 ? appPrimaryColor : greyTextColor,
                 ),
               ),
             ),
@@ -89,9 +102,7 @@ class _BottomNavState extends State<BottomNav> {
                 width: 20,
                 child: SvgPicture.asset(
                   'assets/svgs/bills.svg',
-                  color: userProvider.selectedIndex == 1
-                      ? appPrimaryColor
-                      : greyTextColor,
+                    color: compactIndex == 1 ? appPrimaryColor : greyTextColor,
                 ),
               ),
             ),
@@ -104,10 +115,41 @@ class _BottomNavState extends State<BottomNav> {
                 height: 20,
                 width: 20,
                 child: SvgPicture.asset(
-                  'assets/svgs/profile.svg',
+                  'assets/svgs/bills.svg',
                   color: userProvider.selectedIndex == 2
                       ? appPrimaryColor
                       : greyTextColor,
+                ),
+              ),
+            ),
+            label: 'Charity',
+          ),
+
+          BottomNavigationBarItem(
+            icon: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: SvgPicture.asset(
+                  'assets/svgs/bills.svg',
+                  color: userProvider.selectedIndex == 3
+                      ? appPrimaryColor
+                      : greyTextColor,
+                ),
+              ),
+            ),
+            label: 'Lifestyle',
+          ),
+          BottomNavigationBarItem(
+            icon: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: SizedBox(
+                height: 20,
+                width: 20,
+                child: SvgPicture.asset(
+                  'assets/svgs/profile.svg',
+                    color: compactIndex == 2 ? appPrimaryColor : greyTextColor,
                 ),
               ),
             ),

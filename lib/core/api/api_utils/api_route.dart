@@ -76,7 +76,7 @@ class ApiRoute {
 // ──────────────────────────────────────────────────────────────
   // Split Bill Routes (NEW)
   // ──────────────────────────────────────────────────────────────
-  static final String uploadBillReceiptRoute = "$baseUrl/upload/image";
-  static final String createSplitBillRoute = "$baseUrl/split-bill/create";
+  static final String uploadBillReceiptRoute = "$baseUrl/upload/campaign-image";
+  static final String createSplitBillRoute = "$baseUrl/split-bills";
   static final String updateSplitBillRoute = "$baseUrl/split-bills/:id"; 
 }

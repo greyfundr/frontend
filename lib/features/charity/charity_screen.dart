@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:greyfundr/shared/app_colors.dart';
+import 'package:greyfundr/shared/utils.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
@@ -8,7 +11,8 @@ import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/services/locator.dart';
-import 'package:greyfundr/widgets/reusable_bottom_nav.dart';
+import 'package:greyfundr/features/home/home_screen.dart';
+import 'package:greyfundr/features/profile/profile_screen.dart';
 
 import 'package:greyfundr/features/campaign/createcampaignflow/create_campaign.dart';
 
@@ -46,6 +50,16 @@ class _CharityScreenState extends State<CharityScreen> {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
     _loadInitialCampaigns();
+  }
+
+  // Helper to map global provider index (0..4) into the compact 3-tab index
+  // used by this screen when it renders its own bottom nav.
+  int _mapTo3TabIndex(int globalIndex) {
+    // map global indices: 0 -> Home (0), 1 -> Bills (1), 4 -> Profile (2)
+    if (globalIndex == 0) return 0;
+    if (globalIndex == 1) return 1;
+    if (globalIndex == 4) return 2;
+    return 0; // default to Home
   }
 
   @override
@@ -294,9 +308,117 @@ Widget build(BuildContext context) {
     );
   }
 
+  final bool noAncestorNav = context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
+  userProvider.setSuppressAppNav(noAncestorNav);
+
   return Scaffold(
     backgroundColor: Colors.grey[100],
-    bottomNavigationBar: reusableBottomNav(context), // ← added this
+    // If an ancestor BottomNavigationBar is present (app-level BottomNav),
+    // we should not render another one here. Detect and render a 3-item
+    // bottom nav only when no ancestor BottomNavigationBar exists.
+    bottomNavigationBar: noAncestorNav
+        ? BottomNavigationBar(
+            backgroundColor: Colors.white,
+            type: BottomNavigationBarType.fixed,
+            showUnselectedLabels: true,
+            showSelectedLabels: true,
+            elevation: 0,
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            unselectedLabelStyle: const TextStyle(
+              color: greyTextColor,
+              fontWeight: FontWeight.w500,
+            ),
+            selectedLabelStyle: const TextStyle(
+              color: appPrimaryColor,
+              fontWeight: FontWeight.w500,
+            ),
+            currentIndex: _mapTo3TabIndex(userProvider.selectedIndex),
+            selectedItemColor: appPrimaryColor,
+            unselectedItemColor: greyTextColor,
+            onTap: (i) {
+              doHepticFeedback();
+              // Map 3-tab taps back to global provider indices and
+              // navigate to Home or Profile when this screen is standalone.
+              if (i == 0) {
+                userProvider.updateSelectedIndex(0);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                );
+                return;
+              }
+
+              if (i == 1) {
+                // Bills: update provider to Bills index
+                userProvider.updateSelectedIndex(1);
+                return;
+              }
+
+              if (i == 2) {
+                userProvider.updateSelectedIndex(4);
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                );
+                return;
+              }
+            },
+            items: [
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: SvgPicture.asset(
+                      'assets/svgs/home.svg',
+                      colorFilter: ColorFilter.mode(
+                        _mapTo3TabIndex(userProvider.selectedIndex) == 0 ? appPrimaryColor : greyTextColor,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                ),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: SvgPicture.asset(
+                      'assets/svgs/bills.svg',
+                      colorFilter: ColorFilter.mode(
+                        _mapTo3TabIndex(userProvider.selectedIndex) == 1 ? appPrimaryColor : greyTextColor,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                ),
+                label: 'Bills',
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: SvgPicture.asset(
+                      'assets/svgs/profile.svg',
+                      colorFilter: ColorFilter.mode(
+                        _mapTo3TabIndex(userProvider.selectedIndex) == 2 ? appPrimaryColor : greyTextColor,
+                        BlendMode.srcIn,
+                      ),
+                    ),
+                  ),
+                ),
+                label: 'Profile',
+              ),
+            ],
+          )
+        : null,
     body: SafeArea(
       child: Column(
         children: [

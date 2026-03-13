@@ -41,27 +41,60 @@ class SplitBill {
   });
 
   factory SplitBill.fromJson(Map<String, dynamic> json) {
+    double parseToDouble(dynamic v) {
+      if (v == null) return 0.0;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0.0;
+      return 0.0;
+    }
+
+    int parseToInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? (double.tryParse(v)?.toInt() ?? 0);
+      return 0;
+    }
+
+    String? tryString(List<String> keys) {
+      for (final k in keys) {
+        if (json.containsKey(k) && json[k] != null) return json[k].toString();
+      }
+      return null;
+    }
+
+    final amountValue = tryString(['amount', 'totalAmount', 'total_amount']);
+    final creatorValue = tryString(['creatorId', 'creator_id', 'creator']);
+    final splitMethodValue = tryString(['splitMethod', 'split_method']);
+    final dueDateValue = tryString(['dueDate', 'due_date']);
+    final imageUrlValue = tryString(['imageUrl', 'image_url']);
+    final totalParticipantsValue = tryString(['totalParticipants', 'total_participants']);
+    final totalPaidValue = tryString(['totalPaid', 'total_paid', 'totalCollected', 'totalCollected']);
+    final amountRaisedValue = tryString(['amountRaised', 'amount_raised', 'totalCollected']);
+    final percentageValue = tryString(['percentageComplete', 'percentage_complete']);
+
+    final participantsRaw = json['participants'] ?? json['participant'] ?? [];
+
     return SplitBill(
-      id: json['id'],
-      title: json['title'],
-      description: json['description'],
-      currency: json['currency'],
-      amount: double.parse(json['amount']),
-      creatorId: json['creator_id'],
-      splitMethod: json['split_method'],
-      dueDate: DateTime.parse(json['due_date']),
-      isFinalized: json['is_finalized'],
-      status: json['status'],
-      imageUrl: json['image_url'] ?? '',
-      totalParticipants: json['total_participants'],
-      totalPaid: double.tryParse(json['total_paid'] ?? '0') ?? 0.0,
-      amountRaised: double.tryParse(json['amount_raised'] ?? '0') ?? 0.0,
-      percentageComplete:
-          double.tryParse(json['percentage_complete'] ?? '0') ?? 0.0,
-      isOverdue: json['is_overdue'] ?? false,
-      participants: (json['participants'] as List)
-          .map((p) => Participant.fromJson(p))
-          .toList(),
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      currency: json['currency']?.toString() ?? 'NGN',
+      amount: parseToDouble(amountValue),
+      creatorId: creatorValue ?? '',
+      splitMethod: splitMethodValue ?? '',
+      dueDate: DateTime.tryParse(dueDateValue ?? '') ?? DateTime.now(),
+      isFinalized: json['isFinalized'] as bool? ?? json['is_finalized'] as bool? ?? false,
+      status: json['status']?.toString() ?? '',
+      imageUrl: imageUrlValue ?? '',
+      totalParticipants: parseToInt(totalParticipantsValue),
+      totalPaid: parseToDouble(totalPaidValue),
+      amountRaised: parseToDouble(amountRaisedValue),
+      percentageComplete: parseToDouble(percentageValue),
+      isOverdue: json['isOverdue'] as bool? ?? json['is_overdue'] as bool? ?? false,
+      participants: (participantsRaw is List)
+          ? participantsRaw.map((p) => Participant.fromJson(Map<String, dynamic>.from(p))).toList()
+          : [],
     );
   }
 }
@@ -97,36 +130,42 @@ class Participant {
   });
 
   factory Participant.fromJson(Map<String, dynamic> json) {
-    double parseAmount(String value) {
-      return double.tryParse(value) ?? 0.0;
+    dynamic parseNum(dynamic v) {
+      if (v == null) return 0.0;
+      if (v is num) return v.toDouble();
+      if (v is String) return double.tryParse(v) ?? 0.0;
+      return 0.0;
     }
 
-    final userJson = json['user'] as Map<String, dynamic>?;
+    final userJson = (json['user'] is Map) ? Map<String, dynamic>.from(json['user']) : null;
 
     User? userObject;
     String? pic;
 
     if (userJson != null) {
       userObject = User(
-        id: userJson['id'].toString(),
-        firstName: (userJson['first_name'] as String?) ?? '',
-        lastName: (userJson['last_name'] as String?) ?? '',
-        profilePic: (userJson['profile_pic'] as String?) ?? '',
+        id: userJson['id']?.toString() ?? '',
+        firstName: (userJson['first_name'] ?? userJson['firstName'] ?? '')?.toString() ?? '',
+        lastName: (userJson['last_name'] ?? userJson['lastName'] ?? '')?.toString() ?? '',
+        profilePic: (userJson['profile_pic'] ?? userJson['profilePic'] ?? '')?.toString() ?? '',
       );
-      pic = userJson['profile_pic'] as String?;
+      pic = (userJson['profile_pic'] ?? userJson['profilePic'])?.toString();
     }
 
+    final amountOwedRaw = json['amount_owed'] ?? json['amountOwed'] ?? json['amountOwed'];
+    final amountPaidRaw = json['amount_paid'] ?? json['amountPaid'] ?? json['amountPaid'];
+
     return Participant(
-      id: json['id'] as String,
-      userId: json['user_id']?.toString(),
-      guestName: json['guest_name'] as String?,
-      guestPhone: json['guest_phone'] as String?,
-      guestEmail: json['guest_email'] as String?,
-      amountOwed: parseAmount(json['amount_owed'] as String),
-      amountPaid: parseAmount(json['amount_paid'] as String),
-      status: json['status'] as String? ?? 'UNPAID',
+      id: json['id']?.toString() ?? '',
+      userId: (json['user_id'] ?? json['userId'])?.toString(),
+      guestName: (json['guest_name'] ?? json['guestName'])?.toString(),
+      guestPhone: (json['guest_phone'] ?? json['guestPhone'])?.toString(),
+      guestEmail: (json['guest_email'] ?? json['guestEmail'])?.toString(),
+      amountOwed: parseNum(amountOwedRaw) as double,
+      amountPaid: parseNum(amountPaidRaw) as double,
+      status: (json['status'] as String?)?.toUpperCase() ?? 'UNPAID',
       paid: json['paid'] as bool? ?? false,
-      inviteCode: json['invite_code'] as String? ?? '',
+      inviteCode: (json['invite_code'] ?? json['inviteCode'])?.toString() ?? '',
       profilePic: pic,
       user: userObject,
     );

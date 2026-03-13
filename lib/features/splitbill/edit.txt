@@ -1,0 +1,16 @@
+i want to add that if the 
+bill title is edited/changed and 
+save is clicked let it save the edited title, 
+close the bottomsheet and display the edited bill title, 
+beacuse i noticed i tried to test it i edited the title 
+and clicked saved it brought errors so implement 
+what i asked so it can be error free
+
+
+
+
+
+
+where i have the total bill amount in the 
+container with the progress bar edit the 
+total bill amount with commas

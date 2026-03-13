@@ -25,12 +25,14 @@ class SplitBillApiImpl implements SplitBillApi {
   @override
   Future<Map<String, dynamic>> getSplitBillDetails(String splitBillId) async {
     try {
+      final url = '${ApiRoute.createSplitBillRoute}/$splitBillId';
       final responseBody = await _apiClient.get(
-        '/split-bill/$splitBillId',
+        url,
         requiresToken: true,
       );
 
       final decoded = jsonDecode(responseBody);
+      log('getSplitBillDetails response for $splitBillId: $decoded');
 
       if (decoded is Map<String, dynamic>) {
         return decoded;
@@ -180,29 +182,49 @@ Future<List<AllUsersModel>> getUsers() async {
     required List<splitUser.User> participants,
   }) async {
     try {
-      final amountPerPerson = totalAmount / participants.length;
+      // Ensure integer amounts that sum to totalAmount.toInt()
+      final totalInt = totalAmount.toInt();
+      final count = participants.length;
+      final base = count > 0 ? totalInt ~/ count : 0;
+      final remainder = count > 0 ? totalInt % count : 0;
+
+      final participantList = <Map<String, dynamic>>[];
+      for (var i = 0; i < participants.length; i++) {
+        final user = participants[i];
+        final isGuest = user.id.toString().length < 5 || user.id.toString().length > 10;
+        var name = user.displayName?.trim() ?? '';
+        final phone = user.phoneNumber?.trim() ?? '';
+        if (isGuest) {
+          if (name.length < 2) {
+            // fallback to phone or default 'Guest'
+            name = phone.isNotEmpty ? phone : 'Guest';
+          }
+        }
+
+        final amountForThis = base + (i < remainder ? 1 : 0);
+
+        final entry = <String, dynamic>{
+          "type": isGuest ? "GUEST" : "USER",
+          if (isGuest) ...{
+            "name": name,
+            "phone": phone,
+          } else ...{
+            "userId": user.id,
+          },
+          "amount": amountForThis,
+        };
+        participantList.add(entry);
+      }
 
       final payload = {
         "title": title.trim().isEmpty ? "Even Split Bill" : title.trim(),
         "description": description.trim(),
         "currency": "NGN",
-        "amount": totalAmount.toInt(),
+        "amount": totalInt,
         "imageUrl": imageUrl ?? "",
         "splitMethod": "EVEN",
         "dueDate": dueDateIso8601,
-        "participants": participants.map((user) {
-          final isGuest = user.id.toString().length < 5 || user.id.toString().length > 10;
-          return {
-            "type": isGuest ? "GUEST" : "USER",
-            if (isGuest) ...{
-              "name": user.displayName?.trim() ?? "",
-              "phone": user.phoneNumber?.trim() ?? "",
-            } else ...{
-              "userId": user.id,
-            },
-            "amount": amountPerPerson,
-          };
-        }).toList(),
+        "participants": participantList,
       };
 
       final responseBody = await _apiClient.post(
@@ -238,16 +260,22 @@ Future<List<AllUsersModel>> getUsers() async {
       final participantList = <Map<String, dynamic>>[];
 
       for (final user in participants) {
-        final assignedAmount = userAmounts[user.id.toString()] ?? 0.0;
+        final assignedAmountDouble = userAmounts[user.id.toString()] ?? 0.0;
+        final assignedAmount = assignedAmountDouble.toInt();
         if (assignedAmount <= 0) continue;
 
         final isGuest = user.id.toString().length < 5 || user.id.toString().length > 10;
+        var name = user.displayName?.trim() ?? '';
+        final phone = user.phoneNumber?.trim() ?? '';
+        if (isGuest && name.length < 2) {
+          name = phone.isNotEmpty ? phone : 'Guest';
+        }
 
         participantList.add({
           "type": isGuest ? "GUEST" : "USER",
           if (isGuest) ...{
-            "name": user.displayName?.trim() ?? "",
-            "phone": user.phoneNumber?.trim() ?? "",
+            "name": name,
+            "phone": phone,
           } else ...{
             "userId": user.id,
           },
@@ -299,11 +327,34 @@ Future<List<AllUsersModel>> getUsers() async {
         requiresToken: true,
       );
 
-      final decoded = jsonDecode(responseBody is String ? responseBody : jsonEncode(responseBody));
+      log('updateSplitBill raw response: $responseBody');
 
-      return decoded is Map<String, dynamic> ? decoded : null;
-    } catch (e) {
-      log('updateSplitBill failed: $e');
+      dynamic decoded;
+      try {
+        decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      } catch (e) {
+        // If decoding fails, keep the raw response around
+        decoded = responseBody;
+      }
+
+      log('updateSplitBill decoded response: $decoded');
+
+      if (decoded is Map<String, dynamic>) return decoded;
+
+      // If the server returned a non-empty plain string, return it wrapped
+      if (decoded is String && decoded.trim().isNotEmpty) {
+        return {"raw": decoded};
+      }
+
+      // Fallback: return a simple success marker if something plausible returned
+      return {"raw": responseBody.toString()};
+    } catch (e, stack) {
+      log('updateSplitBill failed: $e', stackTrace: stack);
+      try {
+        if (e is DioException) {
+          log('DioException in updateSplitBill: ${e.type} ${e.message} ${e.response?.statusCode} ${e.response?.data}');
+        }
+      } catch (_) {}
       return null;
     }
   }
@@ -329,6 +380,29 @@ Future<List<AllUsersModel>> getUsers() async {
           .toList();
     } catch (e) {
       log('getMySplitBills failed: $e');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<splitBill.SplitBill>> getAllSplitBills() async {
+    try {
+      // Use the main split-bills route which returns all bills
+      final responseBody = await _apiClient.get(
+        ApiRoute.createSplitBillRoute,
+        requiresToken: true,
+      );
+
+      final decoded = jsonDecode(responseBody is String ? responseBody : jsonEncode(responseBody));
+
+      final List<dynamic> billList = (decoded['data'] as List?) ?? [];
+
+      return billList
+          .whereType<Map<String, dynamic>>()
+          .map((item) => splitBill.SplitBill.fromJson(item))
+          .toList();
+    } catch (e) {
+      log('getAllSplitBills failed: $e');
       rethrow;
     }
   }

@@ -14,6 +14,9 @@ abstract class SplitBillApi {
   /// Get all split bills where current user is a participant
   Future<List<splitBill.SplitBill>> getMySplitBills();
 
+  /// Get all split bills (admin / global view)
+  Future<List<splitBill.SplitBill>> getAllSplitBills();
+
   /// Upload bill receipt image → returns public URL or null on failure
   Future<String?> uploadBillReceipt(File file);
 

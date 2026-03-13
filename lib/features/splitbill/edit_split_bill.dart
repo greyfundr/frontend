@@ -20,15 +20,19 @@ class EditSplitBill extends StatefulWidget {
   State<EditSplitBill> createState() => _EditSplitBillState();
 }
 
-class _EditSplitBillState extends State<EditSplitBill> {
+class _EditSplitBillState extends State<EditSplitBill> with SingleTickerProviderStateMixin {
   late TextEditingController _titleController;
   late TextEditingController _descriptionController;
   late TextEditingController _amountController;
 
   late DateTime _dueDate;
   late String _selectedSplitMethod;
-
+  late String _originalSplitMethod;
+  late bool _manualSplit;
+  late String _imageUrl;
   late List<Participant> _participants;
+  late TabController _tabController;
+  late double _displayAmount;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -56,9 +60,15 @@ class _EditSplitBillState extends State<EditSplitBill> {
       text: bill.amount.toStringAsFixed(0),
     );
 
+    _displayAmount = bill.amount;
+
     _dueDate = bill.dueDate;
-    _selectedSplitMethod = _normalizeSplitMethod(bill.splitMethod);
+    _originalSplitMethod = _normalizeSplitMethod(bill.splitMethod);
+    _selectedSplitMethod = _originalSplitMethod;
+    _manualSplit = false;
     _participants = List.from(bill.participants);
+    _imageUrl = bill.imageUrl;
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   String _normalizeSplitMethod(String? stored) {
@@ -79,6 +89,7 @@ class _EditSplitBillState extends State<EditSplitBill> {
     _titleController.dispose();
     _descriptionController.dispose();
     _amountController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -100,6 +111,156 @@ class _EditSplitBillState extends State<EditSplitBill> {
     if (picked != null && picked != _dueDate && mounted) {
       setState(() => _dueDate = picked);
     }
+  }
+
+  Future<void> _showReceiptBottomSheet() async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setModalState) {
+          return Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(12),
+              height: MediaQuery.of(context).size.height * 0.6,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: _imageUrl.isNotEmpty
+                        ? Image.network(
+                            _imageUrl,
+                            fit: BoxFit.contain,
+                            width: double.infinity,
+                            errorBuilder: (c, e, s) => Container(
+                              color: Colors.grey[200],
+                              child: const Center(child: Icon(Icons.broken_image, size: 64, color: Colors.grey)),
+                            ),
+                          )
+                        : Container(
+                            color: Colors.grey[100],
+                            child: const Center(child: Text('No receipt image')),
+                          ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red),
+                        onPressed: () {
+                          if (!mounted) return;
+                          setState(() => _imageUrl = '');
+                          Navigator.of(ctx).pop();
+                        },
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          final newUrl = await showDialog<String>(
+                            context: context,
+                            builder: (dctx) {
+                              final controller = TextEditingController(text: _imageUrl);
+                              return AlertDialog(
+                                title: const Text('Replace Receipt'),
+                                content: TextField(
+                                  controller: controller,
+                                  decoration: const InputDecoration(hintText: 'Enter image URL'),
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.of(dctx).pop(), child: const Text('Cancel')),
+                                  TextButton(onPressed: () => Navigator.of(dctx).pop(controller.text.trim()), child: const Text('Replace')),
+                                ],
+                              );
+                            },
+                          );
+
+                          if (newUrl != null && newUrl.isNotEmpty && mounted) {
+                            setState(() => _imageUrl = newUrl);
+                            Navigator.of(ctx).pop();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D7377)),
+                        child: const Text('Replace Receipt'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  Future<void> _showEditAmountBottomSheet() async {
+    final controller = TextEditingController(text: _displayAmount.toStringAsFixed(0));
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Edit Total Amount', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                const Text('Be aware that changing the Total Bill Amount will affect all participants.', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Total Amount (₦)',
+                    prefixText: '₦ ',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        final raw = controller.text.trim().replaceAll(',', '');
+                        final val = double.tryParse(raw);
+                        if (val == null || val <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
+                          return;
+                        }
+                        if (!mounted) return;
+                        setState(() {
+                          _displayAmount = val;
+                          _amountController.text = val.toStringAsFixed(0);
+                        });
+                        Navigator.of(ctx).pop();
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D7377)),
+                      child: const Text('Save'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _addParticipant() async {
@@ -265,7 +426,7 @@ class _EditSplitBillState extends State<EditSplitBill> {
   @override
   Widget build(BuildContext context) {
     final bill = widget.initialBill;
-    final progress = bill.amount > 0 ? bill.amountRaised / bill.amount : 0.0;
+    final progress = _displayAmount > 0 ? bill.amountRaised / _displayAmount : 0.0;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -292,7 +453,7 @@ class _EditSplitBillState extends State<EditSplitBill> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 150, // reduced by 15% from 280
             pinned: true,
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -312,9 +473,9 @@ class _EditSplitBillState extends State<EditSplitBill> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  bill.imageUrl.isNotEmpty
+                  _imageUrl.isNotEmpty
                       ? Image.network(
-                          bill.imageUrl,
+                          _imageUrl,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Image.asset(
                             'assets/images/bill_summary_header.png',
@@ -328,6 +489,24 @@ class _EditSplitBillState extends State<EditSplitBill> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [Colors.black54, Colors.transparent],
+                      ),
+                    ),
+                  ),
+                  // image action icon (center-right)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12.0),
+                      child: GestureDetector(
+                        onTap: _showReceiptBottomSheet,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: const Icon(Icons.image, color: Colors.white, size: 20),
+                        ),
                       ),
                     ),
                   ),
@@ -354,12 +533,26 @@ class _EditSplitBillState extends State<EditSplitBill> {
                         ),
                       ],
                     ),
+                    
                     child: Column(
                       children: [
+                        Row( 
+                          children: [
+                             Text(
+                              "Edit Details",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+
+
+                           
+
                             Text(
+                              
                               "₦${bill.amountRaised.toStringAsFixed(0)} raised",
                               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
@@ -387,10 +580,23 @@ class _EditSplitBillState extends State<EditSplitBill> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              "of ₦${bill.amount.toStringAsFixed(0)}",
-                              style: TextStyle(color: Colors.grey[600]),
+                            Row(
+                              children: [
+                                Text(
+                                  // bill amount (formatted with commas)
+                                  "of ₦${NumberFormat.decimalPattern().format(_displayAmount.round())}",
+                                  style: const TextStyle(color: Color.fromARGB(255, 60, 60, 60), fontWeight: FontWeight.w600, fontSize: 17),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, size: 18, color: Color(0xFF0D7377)),
+                                  tooltip: 'Edit total amount',
+                                  onPressed: _showEditAmountBottomSheet,
+                                ),
+                              ],
                             ),
+
+                            // icon to edit amount
                             Text(
                               "${bill.participants.where((p) => p.paid).length} of ${bill.totalParticipants} paid",
                             ),
@@ -403,144 +609,191 @@ class _EditSplitBillState extends State<EditSplitBill> {
 
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "Edit Split Details",
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 24),
-
-                        TextFormField(
-                          controller: _titleController,
-                          decoration: const InputDecoration(
-                            labelText: "Bill Title",
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (v) => v?.trim().isEmpty ?? true ? "Required" : null,
-                        ),
-                        const SizedBox(height: 20),
-
-                        TextFormField(
-                          controller: _descriptionController,
-                          maxLines: 4,
-                          decoration: const InputDecoration(
-                            labelText: "Description",
-                            border: OutlineInputBorder(),
-                            alignLabelWithHint: true,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        TextFormField(
-                          controller: _amountController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(
-                            labelText: "Total Amount (₦)",
-                            border: OutlineInputBorder(),
-                            prefixText: "₦ ",
-                          ),
-                          validator: (v) {
-                            if (v == null || v.isEmpty) return "Required";
-                            final val = double.tryParse(v);
-                            if (val == null || val <= 0) return "Enter valid amount";
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        DropdownButtonFormField<String>(
-                          value: _splitMethods.contains(_selectedSplitMethod)
-                              ? _selectedSplitMethod
-                              : null,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            labelText: "Split Method",
-                            border: OutlineInputBorder(),
-                          ),
-                          hint: const Text('Select split method'),
-                          items: _splitMethods.map((m) {
-                            return DropdownMenuItem<String>(
-                              value: m,
-                              child: Text(_getSplitMethodDisplay(m)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => _selectedSplitMethod = value);
-                            }
-                          },
-                          validator: (value) => value == null ? 'Please select a split method' : null,
-                        ),
-                        const SizedBox(height: 20),
-
-                        InkWell(
-                          onTap: () => _selectDueDate(context),
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: "Due Date",
-                              border: OutlineInputBorder(),
-                            ),
-                            child: Text(_formatDate(_dueDate)),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              "Participants",
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              "Edit Details",
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                             ),
-                            TextButton.icon(
-                              onPressed: _addParticipant,
-                              icon: const Icon(Icons.person_add, size: 18),
-                              label: const Text("Add"),
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFF0D7377),
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                _formatDate(_dueDate),
+                                style: TextStyle(color: Colors.grey[600]),
                               ),
-                            ),
+                              IconButton(
+                                icon: const Icon(Icons.edit, size: 20),
+                                onPressed: () => _selectDueDate(context),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      Container(
+                        color: Colors.white,
+                        child: TabBar(
+                          controller: _tabController,
+                          labelColor: const Color(0xFF0D7377),
+                          unselectedLabelColor: Colors.grey,
+                          indicatorColor: const Color(0xFF0D7377),
+                          tabs: const [
+                            Tab(text: "Title"),
+                            Tab(text: "Description"),
+                            Tab(text: "Participants"),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                      ),
 
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _participants.length,
-                          itemBuilder: (context, index) {
-                            final p = _participants[index];
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: const Color(0xFF0D7377),
-                                  child: Text(
-                                    p.avatarInitial,
-                                    style: const TextStyle(color: Colors.white),
+                      SizedBox(
+                        height: 360,
+                        child: Form(
+                          key: _formKey,
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              // Title tab
+                              Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: TextFormField(
+                                  controller: _titleController,
+                                  decoration: const InputDecoration(
+                                    labelText: "Bill Title",
+                                    border: OutlineInputBorder(),
                                   ),
-                                ),
-                                title: Text(p.displayName),
-                                subtitle: Text(
-                                  p.guestPhone ?? p.guestName ?? p.user?.firstName ?? "No contact",
-                                  style: TextStyle(color: Colors.grey[600]),
-                                ),
-                                trailing: IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  onPressed: () => _removeParticipant(index),
+                                  validator: (v) => v?.trim().isEmpty ?? true ? "Required" : null,
                                 ),
                               ),
-                            );
-                          },
-                        ),
 
-                        const SizedBox(height: 140), // space for FAB
-                      ],
-                    ),
+                              // Description tab
+                              Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: TextFormField(
+                                  controller: _descriptionController,
+                                  maxLines: 6,
+                                  decoration: const InputDecoration(
+                                    labelText: "Description",
+                                    border: OutlineInputBorder(),
+                                    alignLabelWithHint: true,
+                                  ),
+                                ),
+                              ),
+
+                                // (Amount tab removed) editing total amount is available via the pencil icon
+
+                              // Participants tab
+                              Padding(
+                                padding: const EdgeInsets.all(8),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        const Text("Participants", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                                        TextButton.icon(
+                                          onPressed: _addParticipant,
+                                          icon: const Icon(Icons.person_add, size: 18),
+                                          label: const Text("Add"),
+                                          style: TextButton.styleFrom(foregroundColor: const Color(0xFF0D7377)),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Expanded(
+                                      child: ListView.builder(
+                                        itemCount: _participants.length,
+                                        itemBuilder: (context, index) {
+                                          final p = _participants[index];
+                                          final progress = (p.amountOwed > 0) ? (p.amountPaid / p.amountOwed) : 0.0;
+                                          return Container(
+                                            margin: const EdgeInsets.only(bottom: 12),
+                                            padding: const EdgeInsets.all(12),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: Colors.grey.shade200),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    CircleAvatar(
+                                                      radius: 20,
+                                                      backgroundColor: const Color(0xFF0D7377),
+                                                      child: Text(p.avatarInitial, style: const TextStyle(color: Colors.white)),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(p.displayName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                                          if (p.guestPhone != null && p.guestPhone!.isNotEmpty)
+                                                            Text(p.guestPhone!, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                      decoration: BoxDecoration(
+                                                        color: p.paid ? Colors.green.shade100 : Colors.orange.shade100,
+                                                        borderRadius: BorderRadius.circular(20),
+                                                      ),
+                                                      child: Text(p.paid ? "PAID" : "UNPAID", style: TextStyle(color: p.paid ? Colors.green.shade800 : Colors.orange.shade800, fontWeight: FontWeight.bold, fontSize: 12)),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 12),
+                                                Row(
+                                                  children: [
+                                                    Text('₦${p.amountPaid.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                                    const SizedBox(width: 8),
+                                                    Text('of ₦${p.amountOwed.toStringAsFixed(0)}', style: TextStyle(color: const Color.fromARGB(255, 62, 44, 44), fontSize: 14, fontWeight: FontWeight.w600)),
+                                                    const Spacer(),
+                                                    Text('${(progress * 100).toStringAsFixed(0)}%', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D7377), fontSize: 16)),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                ClipRRect(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  child: LinearProgressIndicator(
+                                                    value: progress,
+                                                    backgroundColor: Colors.grey[300],
+                                                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D7377)),
+                                                    minHeight: 10,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Align(
+                                                  alignment: Alignment.centerRight,
+                                                  child: IconButton(
+                                                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                                    onPressed: () => _removeParticipant(index),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
               ],

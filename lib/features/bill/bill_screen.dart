@@ -21,6 +21,8 @@ import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/features/settings/settings_screen.dart';
+import 'package:greyfundr/features/bill/sort_bill_modal.dart';
+import 'package:greyfundr/features/bill/bill_summary.dart';
 import 'package:gap/gap.dart';
 import 'package:greyfundr/services/custom_alert.dart';
 import 'package:greyfundr/shared/utils.dart';
@@ -147,7 +149,8 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
     });
 
     try {
-      final bills = await _splitBillApi.getMySplitBills();
+      // Fetch all bills (global) instead of only the current user's participant bills
+      final bills = await _splitBillApi.getAllSplitBills();
 
       if (mounted) {
         setState(() {
@@ -221,270 +224,28 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
 }
 
 
-  Widget _featureIcon(String label, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
+  Widget _featureIcon(String label, IconData icon, Color color, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 22),
           ),
-          child: Icon(icon, color: color, size: 28),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: txStyle12.copyWith(fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
-  void showSortBillModal(SplitBill bill) {
-    donorController.clear();
-    nickname = null;
-    donorName = null;
-    comment = null;
-
-    final currentUserId = _userProvider.userProfileModel?.id ?? '';
-
-    final participant = bill.participants.firstWhere(
-      (p) => p.userId == currentUserId,
-      orElse: () => Participant(
-        id: 'fallback_${DateTime.now().millisecondsSinceEpoch}',
-        inviteCode: '',
-        amountOwed: 0.0,
-        amountPaid: 0.0,
-        paid: false,
-        status: 'UNKNOWN',
-      ),
-    );
-
-    final progress = bill.amount > 0 ? bill.amountRaised / bill.amount : 0.0;
-    final remainingAmount = participant.amountOwed - bill.amountRaised;
-
-    final formattedPaid = formatter.format(bill.amountRaised);
-    final formattedTotal = formatter.format(bill.amount);
-    final formattedOwed = formatter.format(participant.amountOwed);
-    final formattedRemaining = formatter.format(remainingAmount);
-
-    final championsCount = bill.participants.where((p) => p.paid).length;
-    final backersCount = bill.participants.where((p) => p.amountPaid > 0).length;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => StatefulBuilder(
-        builder: (context, modalSetState) {
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.92,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                Center(
-                  child: Container(
-                    width: 48,
-                    height: 6,
-                    margin: const EdgeInsets.only(top: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    bill.title,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(color: Colors.grey, blurRadius: 12, offset: const Offset(0, 4)),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(fontSize: 16, color: Colors.black87),
-                            children: [
-                              TextSpan(
-                                text: formattedPaid,
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                              ),
-                              const TextSpan(text: " raised of "),
-                              TextSpan(
-                                text: formattedOwed,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: LinearProgressIndicator(
-                            value: progress,
-                            minHeight: 10,
-                            backgroundColor: Colors.grey[200],
-                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF007A74)),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.people, size: 16, color: Colors.grey),
-                                const SizedBox(width: 6),
-                                Text(
-                                  "${bill.totalParticipants} Split${bill.totalParticipants == 1 ? '' : 's'}",
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    "You are supporting ${bill.title}. Your donation will help reach the goal.",
-                    style: const TextStyle(fontSize: 14, height: 1.5),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: TextField(
-                    controller: donorController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    decoration: InputDecoration(
-                      labelText: "Enter Amount",
-                      labelStyle: const TextStyle(color: Colors.grey),
-                      helperText: remainingAmount > 0 ? "Max: ₦${formattedRemaining}" : null,
-                      helperStyle: const TextStyle(color: Color(0xFF007A74), fontSize: 12),
-                      prefixText: "₦ ",
-                      prefixStyle: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 22),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _buildOptionRow(
-                  iconPath: "assets/images/add-circle.png",
-                  defaultText: "Use my Nickname or Be Anonymous",
-                  value: nickname,
-                  onTap: () => _showInputDialog(
-                    title: "Enter Nickname",
-                    hint: "e.g. Davido",
-                    controller: TextEditingController(text: nickname ?? ""),
-                    onSave: (val) => setState(() => nickname = val.isEmpty ? null : val),
-                  ),
-                  onDelete: () => setState(() => nickname = null),
-                ),
-                _buildOptionRow(
-                  iconPath: "assets/images/add-circle.png",
-                  defaultText: "Donating On Behalf Of",
-                  value: donorName,
-                  onTap: () => _showInputDialog(
-                    title: "Donating On Behalf Of",
-                    hint: "e.g. My Mom, Church, Team",
-                    controller: TextEditingController(text: donorName ?? ""),
-                    onSave: (val) => setState(() => donorName = val.isEmpty ? null : val),
-                  ),
-                  onDelete: () => setState(() => donorName = null),
-                ),
-                _buildOptionRow(
-                  iconPath: "assets/images/add-circle.png",
-                  defaultText: "Add Comment",
-                  value: comment,
-                  onTap: () => _showInputDialog(
-                    title: "Add a Comment",
-                    hint: "Your comment will appear publicly",
-                    controller: TextEditingController(text: comment ?? ""),
-                    maxLines: 3,
-                    onSave: (val) => setState(() => comment = val.isEmpty ? null : val),
-                  ),
-                  onDelete: () => setState(() => comment = null),
-                ),
-                const SizedBox(height: 32),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        final amountText = donorController.text.trim();
-                        if (amountText.isEmpty) return;
-
-                        final amount = double.tryParse(amountText.replaceAll(',', ''));
-                        if (amount == null || amount <= 0) return;
-
-                        if (remainingAmount > 0 && amount > remainingAmount) {
-                          CustomMessageModal.show(
-                            context: context,
-                            message: "Amount cannot exceed ₦${formattedRemaining}",
-                            isSuccess: false,
-                          );
-                          return;
-                        }
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => SortBillOptionsScreen(
-                              bill: bill,
-                              amountToPay: amountText,
-                            ),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007A74),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: const Text(
-                        "Continue",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ],
-            ),
-          );
-        },
+          const SizedBox(height: 8),
+          Text(label, style: txStyle12.copyWith(fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }
+
+  // Moved modal into SortBillModal widget (features/bill/sort_bill_modal.dart)
 
   Widget _buildOptionRow({
     required String iconPath,
@@ -585,118 +346,127 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
     required String backers,
     required String progressPercent,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
-                        const SizedBox(width: 6),
-                        Text(
-                          timeLeft,
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ],
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => BillSummaryScreen(bill: bill)),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.grey,
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.access_time, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 6),
+                          Text(
+                            timeLeft,
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              ElevatedButton(
-                onPressed: () => showSortBillModal(bill),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF007A74),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ElevatedButton(
+                  onPressed: () => SortBillModal.show(context, bill),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF007A74),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  child: const Text("Sort Bill", style: TextStyle(fontSize: 13)),
                 ),
-                child: const Text("Sort Bill", style: TextStyle(fontSize: 13)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            "$amountPaid paid of $totalAmount",
-            style: TextStyle(color: Colors.grey[700], fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 10,
-                  backgroundColor: Colors.grey[200],
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF007A74)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "$amountPaid paid of $totalAmount",
+              style: TextStyle(color: Colors.grey[700], fontSize: 14),
+            ),
+            Text(
+              "$remainingAmount remaining",
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 10,
+                    backgroundColor: Colors.grey[200],
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF007A74)),
+                  ),
                 ),
-              ),
-              Positioned.fill(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Text(
-                      progressPercent,
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                Positioned.fill(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Text(
+                        progressPercent,
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.people_outline, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Text(splits, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-                  const SizedBox(width: 16),
-                  Icon(Icons.emoji_events_outlined, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Text(champions, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-                  const SizedBox(width: 16),
-                  Icon(Icons.favorite_outline, size: 16, color: Colors.grey[600]),
-                  const SizedBox(width: 6),
-                  Text(backers, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-                ],
-              ),
-              Text(
-                remainingAmount,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.people_outline, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Text(splits, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                    const SizedBox(width: 16),
+                    Icon(Icons.emoji_events_outlined, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Text(champions, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                    const SizedBox(width: 16),
+                    Icon(Icons.favorite_outline, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Text(backers, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                  ],
+                ),
+                const SizedBox.shrink(),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -774,6 +544,193 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
           ),
         ],
       ),
+    );
+  }
+
+  // Simple card used for Request and History dummy lists
+  Widget _buildSimpleCard({
+    required String title,
+    required String subtitle,
+    required String amountPaid,
+    required String totalAmount,
+    required double progress,
+    required String remaining,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(color: Colors.grey, blurRadius: 12, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 4),
+                      Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => SortBillModal.show(context, widgetKeyForBillPlaceholder()),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF007A74),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  ),
+                  child: const Text("Sort Bill", style: TextStyle(fontSize: 13)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text("$amountPaid paid of $totalAmount", style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+            Text("$remaining remaining", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 10,
+                backgroundColor: Colors.grey[200],
+                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF007A74)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper to satisfy SortBillModal signature when using dummy cards
+  SplitBill widgetKeyForBillPlaceholder() {
+    return SplitBill(
+      id: 'placeholder',
+      title: 'Placeholder',
+      description: '',
+      currency: 'NGN',
+      amount: 1000.0,
+      creatorId: '',
+      splitMethod: 'equal',
+      dueDate: DateTime.now().add(const Duration(days: 7)),
+      isFinalized: false,
+      status: 'OPEN',
+      imageUrl: '',
+      totalParticipants: 1,
+      totalPaid: 0.0,
+      amountRaised: 0.0,
+      percentageComplete: 0.0,
+      isOverdue: false,
+      participants: [],
+    );
+  }
+
+  Widget _buildRequestList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 4,
+      itemBuilder: (context, index) {
+        final paid = (index % 2 == 0) ? 200.0 : 0.0;
+        final total = 500.0;
+        final progress = total > 0 ? (paid / total) : 0.0;
+        return _buildSimpleRequestCard(index, paid, total, progress);
+      },
+    );
+  }
+
+  Widget _buildSimpleRequestCard(int index, double paid, double total, double progress) {
+    final paidFormatted = formatter.format(paid);
+    final totalFormatted = formatter.format(total);
+    final remaining = formatter.format(total - paid);
+    return _buildSimpleCard(
+      title: 'Request #${index + 1}',
+      subtitle: 'Someone requested you to pay this',
+      amountPaid: '₦$paidFormatted',
+      totalAmount: '₦$totalFormatted',
+      progress: progress,
+      remaining: '₦$remaining',
+      onTap: () {},
+    );
+  }
+
+  String _historySubTab = 'Completed';
+
+  Widget _buildHistoryView() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _historySubTab = 'Completed'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _historySubTab == 'Completed' ? Colors.white : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('Completed', textAlign: TextAlign.center, style: TextStyle(fontWeight: _historySubTab == 'Completed' ? FontWeight.bold : FontWeight.normal)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _historySubTab = 'Cancelled'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _historySubTab == 'Cancelled' ? Colors.white : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('Cancelled', textAlign: TextAlign.center, style: TextStyle(fontWeight: _historySubTab == 'Cancelled' ? FontWeight.bold : FontWeight.normal)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _historySubTab == 'Completed'
+              ? ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: 2,
+                  itemBuilder: (context, index) {
+                    final paid = 500.0;
+                    final total = 500.0;
+                    final progress = 1.0;
+                    return _buildSimpleRequestCard(index, paid, total, progress);
+                  },
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: 1,
+                  itemBuilder: (context, index) {
+                    final paid = 0.0;
+                    final total = 400.0;
+                    final progress = 0.0;
+                    return _buildSimpleRequestCard(index, paid, total, progress);
+                  },
+                ),
+        ),
+      ],
     );
   }
 
@@ -1027,22 +984,7 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                         ),
                       ),
 
-                      // AnimatedOpacity(
-                      //   opacity: _isHeaderCollapsed ? 0.0 : 1.0,
-                      //   duration: const Duration(milliseconds: 300),
-                      //   child: Offstage(
-                      //     offstage: _isHeaderCollapsed,
-                      //     child: Padding(
-                      //       padding: const EdgeInsets.only(top: 70, left: 20, right: 20),
-                      //       child: Column(
-                      //         children: [
-                      //           // Points + Trophy, Balance + Add Money
-                      //           // ← add your original expanded content here if needed
-                      //         ],
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ),
+                    
                       AnimatedOpacity(
               opacity: _isHeaderCollapsed ? 0.0 : 1.0,
               duration: const Duration(milliseconds: 300),
@@ -1280,11 +1222,11 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _featureIcon("Pay Bill", Icons.receipt, Colors.amber),
-                  _featureIcon("Transfer Bill", Icons.swap_horiz, Colors.pink),
-                  _featureIcon("Split Bill", Icons.call_split, Colors.green),
-                  _featureIcon("Request Bill", Icons.request_page, Colors.orange),
-                  _featureIcon("Scan Bill", Icons.qr_code_scanner, Colors.blue),
+                  _featureIcon("Pay Bill", Icons.receipt, Colors.amber, onTap: () {}),
+                  _featureIcon("Transfer Bill", Icons.swap_horiz, Colors.pink, onTap: () {}),
+                  _featureIcon("Split Bill", Icons.call_split, Colors.green, onTap: () {}),
+                  _featureIcon("Request Bill", Icons.request_page, Colors.orange, onTap: () {}),
+                  _featureIcon("Scan Bill", Icons.qr_code_scanner, Colors.blue, onTap: () {}),
                 ],
               ),
             ),
@@ -1372,48 +1314,52 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                   Column(
                     children: [
                       Expanded(
-                        child: RefreshIndicator(
-                          onRefresh: _fetchSplitBills,
-                          color: const Color(0xFF007A74),
-                          child: _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : _splitBills.isEmpty
-                                  ? const Center(child: Text("No split bills found", style: TextStyle(fontSize: 16, color: Colors.grey)))
-                                  : ListView.builder(
-                                      controller: _scrollController,
-                                      padding: const EdgeInsets.all(16),
-                                      itemCount: _splitBills.length,
-                                      itemBuilder: (context, index) {
-                                        final bill = _splitBills[index];
-                                        final progress = bill.amount > 0 ? bill.amountRaised / bill.amount : 0.0;
+                        child: selectedTab == 'Bill'
+                            ? RefreshIndicator(
+                                onRefresh: _fetchSplitBills,
+                                color: const Color(0xFF007A74),
+                                child: _isLoading
+                                    ? const Center(child: CircularProgressIndicator())
+                                    : _splitBills.isEmpty
+                                        ? const Center(child: Text("No split bills found", style: TextStyle(fontSize: 16, color: Colors.grey)))
+                                        : ListView.builder(
+                                            controller: _scrollController,
+                                            padding: const EdgeInsets.all(16),
+                                            itemCount: _splitBills.length,
+                                            itemBuilder: (context, index) {
+                                              final bill = _splitBills[index];
+                                              final progress = bill.amount > 0 ? bill.amountRaised / bill.amount : 0.0;
 
-                                        final daysLeft = bill.dueDate.difference(DateTime.now()).inDays;
-                                        final timeLeft = daysLeft > 0 ? "$daysLeft Day${daysLeft == 1 ? '' : 's'} left" : "Overdue";
+                                              final daysLeft = bill.dueDate.difference(DateTime.now()).inDays;
+                                              final timeLeft = daysLeft > 0 ? "$daysLeft Day${daysLeft == 1 ? '' : 's'} left" : "Overdue";
 
-                                        final paidFormatted = formatter.format(bill.amountRaised);
-                                        final totalFormatted = formatter.format(bill.amount);
-                                        final remaining = bill.amount - bill.amountRaised;
-                                        final remainingFormatted = formatter.format(remaining);
+                                              final paidFormatted = formatter.format(bill.amountRaised);
+                                              final totalFormatted = formatter.format(bill.amount);
+                                              final remaining = bill.amount - bill.amountRaised;
+                                              final remainingFormatted = formatter.format(remaining);
 
-                                        final championsCount = bill.participants.where((p) => p.paid).length;
-                                        final backersCount = bill.participants.where((p) => p.amountPaid > 0).length;
+                                              final championsCount = bill.participants.where((p) => p.paid).length;
+                                              final backersCount = bill.participants.where((p) => p.amountPaid > 0).length;
 
-                                        return _buildBillCard(
-                                          bill: bill,
-                                          title: bill.title,
-                                          timeLeft: timeLeft,
-                                          amountPaid: paidFormatted,
-                                          totalAmount: totalFormatted,
-                                          progress: progress,
-                                          remainingAmount: remainingFormatted,
-                                          splits: "${bill.totalParticipants} Split${bill.totalParticipants == 1 ? '' : 's'}",
-                                          champions: "$championsCount Champion${championsCount == 1 ? '' : 's'}",
-                                          backers: "$backersCount Backer${backersCount == 1 ? '' : 's'}",
-                                          progressPercent: "${(progress * 100).toInt()}%",
-                                        );
-                                      },
-                                    ),
-                        ),
+                                              return _buildBillCard(
+                                                bill: bill,
+                                                title: bill.title,
+                                                timeLeft: timeLeft,
+                                                amountPaid: paidFormatted,
+                                                totalAmount: totalFormatted,
+                                                progress: progress,
+                                                remainingAmount: remainingFormatted,
+                                                splits: "${bill.totalParticipants} Split${bill.totalParticipants == 1 ? '' : 's'}",
+                                                champions: "$championsCount Champion${championsCount == 1 ? '' : 's'}",
+                                                backers: "$backersCount Backer${backersCount == 1 ? '' : 's'}",
+                                                progressPercent: "${(progress * 100).toInt()}%",
+                                              );
+                                            },
+                                          ),
+                              )
+                            : selectedTab == 'Request'
+                                ? _buildRequestList()
+                                : _buildHistoryView(),
                       ),
                     ],
                   ),

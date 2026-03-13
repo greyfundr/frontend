@@ -120,12 +120,12 @@ class CampaignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double currentAmount = double.tryParse(campaign['current_amount'].toString()) ?? 0.0;
-    final double goalAmount = double.tryParse(campaign['goal_amount'].toString()) ?? 1.0;
+    final double currentAmount = (double.tryParse((campaign['current_amount'] ?? campaign['currentAmount']).toString()) ?? 0.0) * 100;
+    final double goalAmount = double.tryParse(campaign['target'].toString()) ?? 1.0;
     final double progressValue = goalAmount > 0 ? (currentAmount / goalAmount).clamp(0.0, 1.0) : 0.0;
     final int progressPercent = (progressValue * 100).round();
 
-    final DateTime? endDate = DateTime.tryParse(campaign['end_date'] ?? '');
+    final DateTime? endDate = DateTime.tryParse(campaign['endDate']?.toString() ?? campaign['end_date']?.toString() ?? '');
     final int daysLeft = endDate != null ? endDate.difference(DateTime.now()).inDays : 0;
     final String daysText = daysLeft <= 0
         ? "Expired"
@@ -136,8 +136,15 @@ class CampaignCard extends StatelessWidget {
     final bool isUrgent = daysLeft <= 3 && daysLeft > 0;
 
     // ── Determine if current user owns this campaign ───────────────────────
-    final int? creatorId = campaign['creator_id'] as int?;
-    final bool isOwner = currentUserId != null && currentUserId == creatorId;
+    // The creator ID can be a top-level key or nested in a 'creator' object.
+    // We also ensure both IDs are treated as strings for a safe comparison.
+    final dynamic creator = campaign['creator'];
+    String? creatorId;
+    if (creator is Map) {
+      creatorId = creator['id']?.toString();
+    }
+    creatorId ??= campaign['creator_id']?.toString();
+    final bool isOwner = currentUserId != null && creatorId != null && currentUserId == creatorId;
 
     return InkWell(
       borderRadius: BorderRadius.circular(20),
@@ -170,20 +177,49 @@ class CampaignCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: Image.network(
-                    "https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/${campaign['image']}",
-                    height: 100,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    cacheWidth: 500,
-                    filterQuality: FilterQuality.low,
-                    loadingBuilder: (_, child, progress) =>
-                        progress == null ? child : Container(height: 150, color: Colors.grey[200]),
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 150,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                    ),
+                  child: Builder(
+                    builder: (context) {
+                      // Logic inspired by campaigndetails.dart to handle various image data structures
+                      String? imageUrl;
+                      final rawImages = campaign['images'] ?? campaign['image'];
+
+                      if (rawImages is List && rawImages.isNotEmpty) {
+                        final firstImage = rawImages.first;
+                        if (firstImage is Map<String, dynamic>) {
+                          imageUrl = firstImage['imageUrl']?.toString();
+                        } else if (firstImage is String) {
+                          imageUrl = firstImage;
+                        }
+                      } else if (rawImages is String) {
+                        imageUrl = rawImages;
+                      }
+
+                      final hasImage = imageUrl != null && imageUrl.isNotEmpty && imageUrl != 'null';
+                      const defaultUrl = "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1000&auto=format&fit=crop";
+                      const cdnBaseUrl = "https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/";
+
+                      String finalUrl = defaultUrl;
+                      if (hasImage) {
+                        if (imageUrl!.startsWith('http')) {
+                          finalUrl = imageUrl;
+                        } else {
+                          finalUrl = "$cdnBaseUrl$imageUrl";
+                        }
+                      }
+
+                      return Image.network(
+                        finalUrl,
+                        height: 150,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        cacheWidth: 500,
+                        filterQuality: FilterQuality.low,
+                        loadingBuilder: (_, child, progress) =>
+                            progress == null ? child : Container(height: 150, color: Colors.grey[200]),
+                        errorBuilder: (_, __, ___) =>
+                            Image.network(defaultUrl, height: 150, width: double.infinity, fit: BoxFit.cover),
+                      );
+                    },
                   ),
                 ),
                 Positioned(
@@ -268,7 +304,7 @@ class CampaignCard extends StatelessWidget {
     ),
   );
 } else {
-                            if (currentUserId == null || currentUserId == 0) {
+                            if (currentUserId == null) {
                               CustomMessageModal.show(
                                 context: context,
                                 message: "Please sign in to donate",

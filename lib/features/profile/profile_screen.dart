@@ -26,6 +26,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      // Assuming UserProvider has a method to fetch the user's campaigns
+      userProvider.fetchUserCampaigns();
+    });
   }
 
   @override
@@ -37,7 +42,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _onRefresh() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     await userProvider.fetchUserProfileApi();
-    // TODO: if you add fetchLikedCampaigns() → call it here too
+    // Also refresh the user's campaigns
+    await userProvider.fetchUserCampaigns();
     _refreshController.refreshCompleted();
   }
 
@@ -227,6 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             child: ClipOval(
                               child:  CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
+                              
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -461,16 +468,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       itemCount: campaigns.length,
       itemBuilder: (context, index) {
-        final campaign = campaigns[index];
-        final imageUrl = campaign.imageUrl?.isNotEmpty == true
-            ? campaign.imageUrl!
-            : 'https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/default-campaign.jpg';
+        // The provider returns a list of dynamic, which are Maps from JSON
+        final campaign = campaigns[index] as Map<String, dynamic>;
+
+        // Robust image URL extraction, similar to CampaignCard
+        String? imageUrl;
+        final rawImages = campaign['images'] ?? campaign['image'];
+        if (rawImages is List && rawImages.isNotEmpty) {
+          final firstImage = rawImages.first;
+          if (firstImage is Map<String, dynamic>) {
+            imageUrl = firstImage['imageUrl']?.toString();
+          } else if (firstImage is String) {
+            imageUrl = firstImage;
+          }
+        } else if (rawImages is String) {
+          imageUrl = rawImages;
+        }
+
+        final hasImage = imageUrl != null && imageUrl.isNotEmpty && imageUrl != 'null';
+        const defaultUrl = "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1000&auto=format&fit=crop";
+        const cdnBaseUrl = "https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/";
+
+        String finalUrl = defaultUrl;
+        if (hasImage) {
+          if (imageUrl!.startsWith('http')) {
+            finalUrl = imageUrl;
+          } else {
+            finalUrl = "$cdnBaseUrl$imageUrl";
+          }
+        }
 
         return _buildCampaignCard(
-          image: imageUrl,
-          title: campaign.title ?? "Untitled Campaign",
-          raised: campaign.amountRaised ?? 0.0,
-          goal: campaign.amount ?? 1000000.0,
+          image: finalUrl,
+          title: campaign['title'] as String? ?? "Untitled Campaign",
+          // Use the same logic as other parts of the app for amounts
+          raised: (double.tryParse((campaign['current_amount'] ?? campaign['currentAmount'])?.toString() ?? '0.0') ?? 0.0) * 100,
+          goal: double.tryParse(campaign['target']?.toString() ?? '1.0') ?? 1.0,
           currency: '₦',
           campaign: campaign,
         );
@@ -494,7 +527,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => CampaignDetails(id: campaign.id)),
+          MaterialPageRoute(builder: (_) => CampaignDetails(id: campaign['id'].toString())),
         );
       },
       child: Container(
@@ -511,7 +544,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
+                child: Image.network(
+                  image,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  loadingBuilder: (context, child, progress) =>
+                      progress == null ? child : Container(color: Colors.grey[200]),
+                  errorBuilder: (context, error, stackTrace) =>
+                      Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                ),
               ),
             ),
             Padding(

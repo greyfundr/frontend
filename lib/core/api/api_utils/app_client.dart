@@ -213,13 +213,16 @@ class ApiClient {
     }
     try {
       final isForm = formData != null || body is FormData;
+      final opts = _getOptions(headers, requiresToken: requiresToken);
+      // Let Dio set the Content-Type (and boundary) when sending FormData.
+      if (!isForm) opts.contentType = 'application/json';
+      opts.responseType = ResponseType.plain;
+      opts.method = 'POST';
+
       final response = await _dio.post(
         url,
         data: formData ?? body,
-        options: _getOptions(headers, requiresToken: requiresToken)
-          ..contentType = isForm ? 'multipart/form-data' : 'application/json'
-          ..responseType = ResponseType.plain
-          ..method = 'POST',
+        options: opts,
         cancelToken: cancelToken, // <-- pass through
       );
 

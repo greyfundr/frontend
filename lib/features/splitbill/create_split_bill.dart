@@ -235,16 +235,17 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
           isSuccess: true,
         );
       } else {
-        setState(() => _billImage = null);
+        // Keep local preview so user can retry upload or remove manually
+        setState(() => _billImageUrl = null);
         CustomMessageModal.show(
           context: context,
-          message: "Upload failed.",
+          message: "Upload failed. Preview kept — try again.",
           isSuccess: false,
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      setState(() => _billImage = null);
+      // Keep the picked image so user can retry
       CustomMessageModal.show(
         context: context,
         message: "Error: ${e.toString().split('\n')[0]}",

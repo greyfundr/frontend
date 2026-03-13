@@ -16,8 +16,7 @@ class SplitBillApiImpl implements SplitBillApi {
   final ApiClient _apiClient = ApiClient();
 
   Map<String, String> get header => {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+      'Accept': 'application/json',
       };
 
   // ──────────────────────────────────────────────────────────────
@@ -80,14 +79,24 @@ Future<List<AllUsersModel>> getUsers() async {
   @override
   Future<String?> uploadBillReceipt(File file) async {
     try {
+      // Try common form field names used by different upload endpoints
+      final multipart = await MultipartFile.fromFile(
+        file.path,
+        filename: file.path.split('/').last,
+        contentType: lookupMimeType(file.path) != null
+            ? MediaType.parse(lookupMimeType(file.path)!)
+            : MediaType('image', 'jpeg'),
+      );
+
+      // Use a single field name to avoid duplicate file references which can
+      // confuse content-length calculation on some servers.
+      final fileSize = File(file.path).lengthSync();
+      log('uploadBillReceipt - file size: $fileSize bytes');
+      // For single-file receipt uploads the backend typically expects the
+      // field name `file`. Use that instead of `image` which some endpoints
+      // reject (see server response).
       final formData = FormData.fromMap({
-        'image': await MultipartFile.fromFile(
-          file.path,
-          filename: file.path.split('/').last,
-          contentType: lookupMimeType(file.path) != null
-              ? MediaType.parse(lookupMimeType(file.path)!)
-              : MediaType('image', 'jpeg'),
-        ),
+        'file': multipart,
       });
 
       // Use the dedicated formData parameter to make intent explicit
@@ -108,47 +117,52 @@ Future<List<AllUsersModel>> getUsers() async {
 
       log('uploadBillReceipt response decoded: $decoded');
 
-      if (decoded is Map<String, dynamic>) {
-        // try common keys
-        final candidates = <String>[
-          'url',
-          'imageUrl',
-          'path',
-          'link',
-          'data',
-          'result',
-          'file'
-        ];
-
-        // direct string keys
-        for (final k in ['url', 'imageUrl', 'path', 'link']) {
-          if (decoded.containsKey(k) && decoded[k] is String && (decoded[k] as String).isNotEmpty) {
-            return decoded[k] as String;
-          }
+      // Helper to try extract a URL-ish string from a dynamic response
+      String? extractUrl(dynamic node) {
+        if (node == null) return null;
+        if (node is String) {
+          final s = node.trim();
+          if (s.startsWith('http')) return s;
+          return s.isNotEmpty ? s : null;
         }
-
-        // nested under data/result/file structures
-        for (final parentKey in ['data', 'result', 'file']) {
-          if (decoded.containsKey(parentKey)) {
-            final parent = decoded[parentKey];
-            if (parent is String && parent.isNotEmpty) return parent;
-            if (parent is Map) {
-              for (final k in ['url', 'imageUrl', 'path', 'link']) {
-                if (parent.containsKey(k) && parent[k] is String && (parent[k] as String).isNotEmpty) {
-                  return parent[k] as String;
-                }
-              }
+        if (node is Map<String, dynamic>) {
+          for (final k in ['url', 'imageUrl', 'path', 'link', 'file']) {
+            if (node.containsKey(k)) {
+              final v = node[k];
+              final found = extractUrl(v);
+              if (found != null) return found;
+            }
+          }
+          // try nested data/result
+          for (final k in ['data', 'result', 'file']) {
+            if (node.containsKey(k)) {
+              final v = node[k];
+              final found = extractUrl(v);
+              if (found != null) return found;
             }
           }
         }
+        if (node is List) {
+          for (final item in node) {
+            final found = extractUrl(item);
+            if (found != null) return found;
+          }
+        }
+        return null;
       }
 
-      // If decoded is a plain string, return it (it might already be a URL)
-      if (decoded is String && decoded.isNotEmpty) return decoded;
+      final found = extractUrl(decoded);
+      if (found != null && found.isNotEmpty) return found;
 
       return null;
-    } catch (e) {
-      log('uploadBillReceipt failed: $e');
+    } catch (e, stack) {
+      log('uploadBillReceipt failed: $e', stackTrace: stack);
+      // If it's a DioException, log more details
+      try {
+        if (e is DioException) {
+          log('DioException details: ${e.type} ${e.message} ${e.response?.statusCode} ${e.response?.data}');
+        }
+      } catch (_) {}
       return null;
     }
   }

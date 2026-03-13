@@ -4,7 +4,9 @@ import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
-import 'package:greyfundr/core/providers/wallet_provider.dart';
+import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
+import 'package:greyfundr/core/providers/user_provider.dart';
+import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/custom_message_modal.dart';
 import 'package:greyfundr/shared/moeny_formater.dart';
@@ -13,7 +15,6 @@ import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 import 'package:intl/intl.dart';
 
 import 'campaignprogress.dart'; // your existing progress widget
@@ -507,29 +508,35 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
     setState(() => _isProcessing = true);
 
     try {
-      final walletProvider = Provider.of<WalletProvider>(context, listen: false);
-      final res = await walletProvider.initiateWalletFunding(amount: clean);
-
-      if (res.isNotEmpty) {
-        if (mounted) Navigator.pop(context);
-        showCustomBottomSheet(
-          PaystackUrlSheet(
-            url: res,
-            onSuccess: () {
-              Get.to(
-                () => PaymentSuccessScreen(amount: clean),
-                transition: Transition.rightToLeft,
-              );
-              walletProvider.fetchUserWallet();
-            },
-          ),
-          context,
-        );
-      } else {
-        CustomMessageModal.show(context: context, message: "Failed to initiate donation", isSuccess: false);
+      final campaignId = widget.campaign?['id']?.toString();
+      if (campaignId == null) {
+        throw Exception("Campaign ID is missing.");
       }
+
+      final payload = {
+        'amount': amount.toInt(),
+        if (_nickname.isNotEmpty) 'nickname': _nickname,
+        if (_comments.isNotEmpty) 'comment': _comments,
+        // 'onBehalfOf' logic can be added here if needed
+      };
+
+      await locator<CampaignApi>().donateToCampaign(campaignId, payload);
+
+      // Show success
+      if (mounted) {
+        Navigator.pop(context); // Close the donation sheet
+        showDialog(
+          context: context,
+          builder: (_) => PaymentSuccessScreen(amount: clean),
+        );
+      }
+
     } catch (e) {
-      CustomMessageModal.show(context: context, message: "Error: $e", isSuccess: false);
+      CustomMessageModal.show(
+        context: context,
+        message: "Donation failed: ${e.toString()}",
+        isSuccess: false,
+      );
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -537,83 +544,83 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    // Helper calculation for consistent value
+    final double rawCurrent = double.tryParse((widget.campaign?['current_amount'] ?? widget.campaign?['currentAmount'])?.toString() ?? '0') ?? 0.0;
+    final double adjustedCurrent = rawCurrent * 100;
+    final double target = double.tryParse(widget.campaign?['target']?.toString() ?? widget.campaign?['goal_amount']?.toString() ?? '1') ?? 1.0;
+
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.white, Color(0xFFF5F5F5)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: SvgPicture.asset("assets/svgs/sheet_drag.svg")),
-            Gap(20),
-            Text("Creator's Goal", style: txStyle18Bold),
-            Gap(8),
-            CampaignProgressShowcase(
-              currentAmount: widget.campaign?['current_amount']?.toString() ?? '0',
-              goalAmount: widget.campaign?['goal_amount']?.toString() ?? '0',
-              percentage: widget.campaign != null
-                  ? (double.tryParse(widget.campaign!['current_amount']?.toString() ?? '0') ?? 0) /
-                      (double.tryParse(widget.campaign!['goal_amount']?.toString() ?? '1') ?? 1)
-                  : 0.0,
-              daysLeft: _calculateDaysLeft(),
-              donors: (widget.campaign?['donors'] ?? 0).toString(),
-              champions: (widget.campaign?['champions'] ?? 0).toString(),
-            ),
-            Gap(16),
-            Text("You are supporting ${widget.campaign?['title'] ?? 'this campaign'}", style: TextStyle(color: Colors.grey, fontSize: 14),),
-            Gap(24),
-            CustomTextField(
-              hintText: "₦0.00",
-              textInputType: TextInputType.number,
-              autoFocus: true,
-              formatters: MoneyInputFormatter(),
-              controller: _amountController,
-              onChanged: (value) {
-  setState(() {});
-},
-            ),
-            Gap(16),
-            Text("Minimum donation: ₦500", style: TextStyle(color: Colors.grey, fontSize: 14),),
-            Gap(24),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: SvgPicture.asset("assets/svgs/sheet_drag.svg")),
+              Gap(20),
+              Text("Creator's Goal", style: txStyle18Bold),
+              Gap(8),
+              CampaignProgressShowcase(
+                currentAmount: adjustedCurrent.toString(),
+                goalAmount: widget.campaign?['target']?.toString() ?? '0',
+                percentage: (adjustedCurrent / target).clamp(0.0, 1.0),
+                daysLeft: _calculateDaysLeft(),
+                donors: (widget.campaign?['donors'] ?? 0).toString(),
+                champions: (widget.campaign?['champions'] ?? 0).toString(),
+              ),
+              Gap(16),
+              Text("You are supporting ${widget.campaign?['title'] ?? 'this campaign'}", style: TextStyle(color: Colors.grey, fontSize: 14),),
+              Gap(24),
+              CustomTextField(
+                hintText: "₦0.00",
+                textInputType: TextInputType.number,
+                autoFocus: true,
+                formatters: MoneyInputFormatter(),
+                controller: _amountController,
+                onChanged: (value) {
+                  setState(() {});
+                },
+              ),
+              Gap(16),
+              Text("Minimum donation: ₦500", style: TextStyle(color: Colors.grey, fontSize: 14),),
+              Gap(24),
 
-            // Nickname / Anonymous
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _displayName.isEmpty ? _buildAddNicknameButton() : _buildSelectedDisplayName(),
-            ),
-            Gap(16),
+              // Nickname / Anonymous
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _displayName.isEmpty ? _buildAddNicknameButton() : _buildSelectedDisplayName(),
+              ),
+              Gap(16),
 
-            // On behalf of
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _buildBehalfOfButtonOrView(),
-            ),
-            Gap(16),
+              // On behalf of
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: _buildBehalfOfButtonOrView(),
+              ),
+              Gap(16),
 
-            // Comment
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: !_hasComment ? _buildAddCommentButton() : _buildSavedCommentView(),
-            ),
-            Gap(32),
+              // Comment
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: !_hasComment ? _buildAddCommentButton() : _buildSavedCommentView(),
+              ),
+              Gap(32),
 
-            CustomButton(
-              enabled: _amountSufficient && !_isProcessing,
-              onTap: _onContinue,
-              label: "Continue",
-              backgroundColor: appPrimaryColor,
-            ),
-            Gap(40),
-          ],
+              CustomButton(
+                enabled: _amountSufficient && !_isProcessing,
+                onTap: _onContinue,
+                label: "Continue",
+                backgroundColor: appPrimaryColor,
+              ),
+              Gap(40),
+            ],
+          ),
         ),
       ),
     );
@@ -762,118 +769,6 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
 }
 
 // ────────────────────────────────────────────────
-// Paystack Payment Sheet (same as your working AddMoneySheet)
-// ────────────────────────────────────────────────
-class PaystackUrlSheet extends StatefulWidget {
-  final String url;
-  final VoidCallback? onSuccess;
-  final VoidCallback? onError;
-
-  const PaystackUrlSheet({
-    super.key,
-    required this.url,
-    this.onSuccess,
-    this.onError,
-  });
-
-  @override
-  State<PaystackUrlSheet> createState() => _PaystackUrlSheetState();
-}
-
-class _PaystackUrlSheetState extends State<PaystackUrlSheet> {
-  late WebViewController _webViewController;
-  bool pageIniting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    initializeWebViewController(widget.url);
-  }
-
-  @override
-  void didUpdateWidget(covariant PaystackUrlSheet oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.url != widget.url) {
-      _webViewController.loadRequest(Uri.parse(widget.url));
-    }
-  }
-
-  void initializeWebViewController(String url) {
-    _webViewController = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onProgress: (int progress) {
-            setState(() => pageIniting = progress != 100);
-          },
-          onPageStarted: handleTransactionCheck,
-          onPageFinished: handleTransactionCheck,
-          onNavigationRequest: (NavigationRequest request) {
-            if (request.url.startsWith('https://www.youtube.com/')) {
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(url));
-  }
-
-  void handleTransactionCheck(String url) {
-    if (url.contains("paystack/success")) {
-      Get.close(1);
-      widget.onSuccess?.call();
-    } else if (url.contains("paystack/cancel")) {
-      Get.close(1);
-      widget.onError?.call();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return pageIniting
-        ? SizedBox(
-            height: SizeConfig.heightOf(90),
-            child: Center(
-              child: SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  backgroundColor: appPrimaryColor.withOpacity(.5),
-                  valueColor: const AlwaysStoppedAnimation<Color>(appPrimaryColor),
-                ),
-              ),
-            ),
-          )
-        : SizedBox(
-            height: SizeConfig.heightOf(90),
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: SizeConfig.widthOf(2),
-                    vertical: 20,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Fund wallet", style: txStyle20Bold),
-                      IconButton(
-                        onPressed: () => Get.close(1),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(child: WebViewWidget(controller: _webViewController)),
-              ],
-            ),
-          );
-  }
-}
-
-// ────────────────────────────────────────────────
 // Payment Success Screen (same as your working file)
 // ────────────────────────────────────────────────
 class PaymentSuccessScreen extends StatelessWidget {
@@ -883,8 +778,11 @@ class PaymentSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Lottie.asset(
@@ -920,11 +818,12 @@ class PaymentSuccessScreen extends StatelessWidget {
           ),
           Gap(20),
           CustomButton(
-            onTap: () => Get.close(1),
+            onTap: () => Navigator.of(context).pop(),
             label: "Go Back",
           ),
         ],
-      ).paddingSymmetric(horizontal: SizeConfig.widthOf(5)),
+      ),
+      ),
     );
   }
 }

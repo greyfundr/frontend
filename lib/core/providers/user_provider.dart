@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/user_api/user_api.dart';
+import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
 import 'package:greyfundr/services/locator.dart';
 
@@ -10,6 +11,7 @@ class UserProvider with ChangeNotifier {
   // Services
   final UserApi _userApi = locator<UserApi>();
   final AuthApi _authApi = locator<AuthApi>();
+  final CampaignApi _campaignApi = locator<CampaignApi>();
 
   // ─── Profile Data ──────────────────────────────────────────────
   UserProfileModel? _userProfileModel;
@@ -114,17 +116,9 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Replace with your real campaign API call
-      // Example:
-      // final response = await http.get(Uri.parse('https://api.greyfundr.com/campaigns/mine'), headers: {...});
-      // final data = jsonDecode(response.body);
-      // _userCampaigns = data['campaigns'] ?? [];
-
-      // For now, placeholder data
-      await Future.delayed(const Duration(seconds: 1));
-      _userCampaigns = [
-        {"id": "1", "title": "Sample Campaign", "image": "https://example.com/img.jpg"},
-      ];
+      // Use CampaignApi to fetch the current user's campaigns
+      final List<Map<String, dynamic>> list = await _campaignApi.getMyCampaigns();
+      _userCampaigns = list;
     } catch (e, stack) {
       log("ERROR FETCHING CAMPAIGNS: $e", stackTrace: stack);
       _campaignsError = e.toString();

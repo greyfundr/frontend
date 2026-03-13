@@ -48,8 +48,6 @@ class _CampaignDetailsState extends State<CampaignDetails> {
   double totalExpense = 0.0;
   int documentCount = 0;
 
-  bool get isCampaignLive => campaign != null && campaign!['creator_id'] != null;
-
   @override
   void initState() {
     super.initState();
@@ -77,15 +75,42 @@ class _CampaignDetailsState extends State<CampaignDetails> {
 
     try {
       final payload = await locator<CampaignApi>().getCampaignDetails(widget.id);
-      final campaignData = payload['campaigns'] ?? payload;
 
-      final rawDonors = payload['donors'] ?? [];
+      // Find the core campaign object, which might be nested or in a list.
+      dynamic campaignObject = payload['campaigns'] ?? payload['campaign'] ?? payload;
+      if (campaignObject is List && campaignObject.isNotEmpty) {
+        campaignObject = campaignObject.first;
+      }
+
+      // Ensure we have a map before proceeding.
+      if (campaignObject is! Map<String, dynamic>) {
+        throw Exception("Campaign data could not be parsed as a Map.");
+      }
+      final Map<String, dynamic> campaignData = campaignObject;
+
+      // Donors might be at the top level of the payload or inside the campaign object.
+      final rawDonors = campaignData['donors'] ?? payload['donors'] ?? [];
       final rawImages = campaignData['images'] ?? campaignData['image'] ?? '';
+
+      // Handle budget which can be a JSON string or a direct list
+      final rawBudget = campaignData['budget'];
+      List<dynamic> parsedExpenses = [];
+      if (rawBudget is String && rawBudget.isNotEmpty) {
+        parsedExpenses = jsonDecode(rawBudget).cast<dynamic>();
+      } else if (rawBudget is List) {
+        parsedExpenses = rawBudget.cast<dynamic>();
+      }
 
       List<String> parsedImages = [];
 
       if (rawImages is List) {
-        parsedImages = rawImages.cast<String>().map((e) => e.replaceAll('\\', '/')).toList();
+        // Handle a list of image objects, extracting the 'imageUrl' from each.
+        parsedImages = rawImages
+            .whereType<Map<String, dynamic>>()
+            .map((imageMap) => imageMap['imageUrl']?.toString())
+            .where((url) => url != null && url.isNotEmpty)
+            .map((url) => url!.replaceAll('\\', '/'))
+            .toList();
       } else if (rawImages is String && rawImages.isNotEmpty) {
         try {
           parsedImages = (jsonDecode(rawImages) as List).cast<String>().map((e) => e.replaceAll('\\', '/')).toList();
@@ -99,7 +124,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
         parsedImages.add(campaignData['image'].toString().replaceAll('\\', '/'));
       }
       if (parsedImages.isEmpty) {
-        parsedImages.add('https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/default-campaign.jpg');
+        parsedImages.add('https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1000&auto=format&fit=crop');
       }
 
       setState(() {
@@ -108,7 +133,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
         donations = rawDonors.cast<Map<String, dynamic>>();
         moffer = (campaignData['moffer'] ?? []).cast<dynamic>();
         aoffer = (campaignData['aoffer'] ?? []).cast<dynamic>();
-        expenses = jsonDecode(campaignData['budget'] ?? '[]').cast<dynamic>();
+        expenses = parsedExpenses;
 
         totalExpense = expenses.fold<double>(0.0, (sum, item) => sum + (double.tryParse(item['cost']?.toString() ?? '0') ?? 0));
         documentCount = expenses.where((e) => e['file'] != null && e['file'].toString().isNotEmpty).length;
@@ -131,6 +156,12 @@ class _CampaignDetailsState extends State<CampaignDetails> {
   String _formatCurrency(String? amount) {
     final number = double.tryParse(amount ?? '0') ?? 0.0;
     return NumberFormat("#,##0", "en_US").format(number);
+  }
+
+  // Helper to fix the API returning current amount divided by 100
+  double _getAdjustedCurrentAmount() {
+    final raw = double.tryParse((campaign?['current_amount'] ?? campaign?['currentAmount'])?.toString() ?? '0') ?? 0.0;
+    return raw * 100;
   }
 
   String _formatTimeAgo(String? dateString) {
@@ -232,7 +263,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
             if (_financingSubTabIndex == 0)
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text("Overall budget: ₦${_formatCurrency(campaign?['goal_amount']?.toString())}"),
+                child: Text("Overall budget: ₦${_formatCurrency(campaign?['target']?.toString())}"),
               )
             else
               Padding(
@@ -385,6 +416,18 @@ class _CampaignDetailsState extends State<CampaignDetails> {
     final userProvider = Provider.of<UserProvider>(context);
     final currentUser = userProvider.userProfileModel;
 
+    bool isOwner = false;
+    if (campaign != null && currentUser != null) {
+      final String currentUserId = currentUser.id.toString();
+      final dynamic creator = campaign!['creator'];
+      String? creatorId;
+      if (creator is Map) {
+        creatorId = creator['id']?.toString();
+      }
+      creatorId ??= campaign!['creator_id']?.toString();
+      isOwner = creatorId == currentUserId;
+    }
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator(color: Color(0xFF007A74))),
@@ -425,7 +468,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (isCampaignLive)
+            if (!isOwner)
               Expanded(
                 child: FloatingActionButton.extended(
                   heroTag: "donate",
@@ -466,8 +509,8 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
                       builder: (_) => WithdrawalBottomSheet(
-                        raisedAmount: campaign?['current_amount']?.toString() ?? '0',
-                        goalAmount: campaign?['goal_amount']?.toString() ?? '0',
+                        raisedAmount: _getAdjustedCurrentAmount().toString(),
+                        goalAmount: campaign?['target']?.toString() ?? '0',
                         donors: campaign?['donors']?.toString() ?? '0',
                         champions: campaign?['champions']?.toString() ?? '0',
 
@@ -495,6 +538,10 @@ class _CampaignDetailsState extends State<CampaignDetails> {
               expandedHeight: 300,
               floating: false,
               pinned: true,
+              // The Scaffold's AppBar handles the back button.
+              // This SliverAppBar is made transparent and has no back button of its own.
+              automaticallyImplyLeading: false,
+              backgroundColor: Colors.transparent,
               flexibleSpace: FlexibleSpaceBar(
                 background: Stack(
                   fit: StackFit.expand,
@@ -560,10 +607,10 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                     ),
                     const SizedBox(height: 16),
                     CampaignProgressShowcase(
-                      currentAmount: campaign?['current_amount']?.toString() ?? '0',
-                      goalAmount: campaign?['goal_amount']?.toString() ?? '0',
-                      percentage: (double.tryParse(campaign?['current_amount']?.toString() ?? '0') ?? 0) /
-                          (double.tryParse(campaign?['goal_amount']?.toString() ?? '1') ?? 1),
+                      currentAmount: _getAdjustedCurrentAmount().toString(),
+                      goalAmount: campaign?['target']?.toString() ?? '0',
+                      percentage: _getAdjustedCurrentAmount() /
+                          (double.tryParse(campaign?['target']?.toString() ?? '1') ?? 1),
                      daysLeft: _calculateDaysLeft(),  // ← now using the real calculation
                       donors: campaign?['donors']?.toString() ?? '0',
                       champions: campaign?['champions']?.toString() ?? '0',

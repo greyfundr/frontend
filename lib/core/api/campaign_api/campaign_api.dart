@@ -80,6 +80,14 @@ abstract class CampaignApi {
   Future<dynamic> getCampaignApprovalApi(String campaignId);
 
   // ──────────────────────────────────────────────────────────────
+  // Donate To Campaign (New Endpoint)
+  // ──────────────────────────────────────────────────────────────
+
+  Future<List<Map<String, dynamic>>> getMyCampaigns();
+
+  Future<Map<String, dynamic>> donateToCampaign(String campaignId, Map<String, dynamic> payload);
+
+  // ──────────────────────────────────────────────────────────────
   // Get Campaigns by Category
   // ──────────────────────────────────────────────────────────────
 

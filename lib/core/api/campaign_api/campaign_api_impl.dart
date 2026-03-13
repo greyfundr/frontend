@@ -26,6 +26,16 @@ extension FilePathSafety on File {
 class CampaignApiImpl implements CampaignApi {
   final ApiClient _apiClient = ApiClient();
 
+  @override
+  Future<Map<String, dynamic>> donateToCampaign(String campaignId, Map<String, dynamic> payload) async {
+    final url = ApiRoute.donateToCampaignRoute.replaceAll('{id}', campaignId);
+    final response = await _apiClient.post(url, body: payload, requiresToken: true);
+    if (response is String) {
+      return jsonDecode(response) as Map<String, dynamic>;
+    }
+    return response as Map<String, dynamic>;
+  }
+
   Map<String, String> get header => {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -79,12 +89,12 @@ class CampaignApiImpl implements CampaignApi {
   @override
   Future<Map<String, dynamic>> getCampaignDetails(String campaignId) async {
     try {
-      final responseBody = await _apiClient.get(
-        '/campaigns/$campaignId',
+      final response = await _apiClient.get(
+        '${ApiRoute.createCampaignRoute}/$campaignId',
         requiresToken: true,
       );
 
-      final data = jsonDecode(responseBody);
+      final data = response is String ? jsonDecode(response) : response;
 
       if (data is! Map<String, dynamic>) {
         throw Exception('Invalid campaign response format: expected Map');
@@ -325,11 +335,7 @@ class CampaignApiImpl implements CampaignApi {
         log('Could not resolve category id: $e');
       }
 
-      // Build JSON payload with properly typed fields
-      // Build payload matching backend validation: remove 'id', 'stakeholders',
-      // 'moffers', 'aoffers', and 'sharetitle' which the server rejects.
-      // Map budgets to expected keys: use 'item' and 'image' (server expects 'item' and 'image').
-      // Sanitize budgets: ensure numeric 'cost' and remove invalid keys
+      
       final sanitizedBudgets = <Map<String, dynamic>>[];
       for (final b in campaign.budgets) {
         try {
@@ -347,15 +353,13 @@ class CampaignApiImpl implements CampaignApi {
         }
       }
 
-      // Sanitize and combine offers to match the backend's expected format.
-      // Based on your endpoint, it expects an array of objects with 'type', 'condition', and 'reward'.
+     
       final sanitizedOffers = <Map<String, dynamic>>[];
 
       // Process 'manual' offers (assuming from campaign.moffers)
       if (campaign.savedManualOffers.isNotEmpty) {
         for (final offer in campaign.savedManualOffers) {
-          // NOTE: The Campaign model stores offers as a List<Map<String, String>>.
-          // Backend requires non-null strings for condition and reward.
+          
           final condition = offer['condition'] ?? offer['name'] ?? '';
           final reward = offer['reward'] ?? offer['description'] ?? '';
           if (condition.isNotEmpty) {
@@ -509,6 +513,35 @@ class CampaignApiImpl implements CampaignApi {
       return {'data': []};
     } catch (e, stack) {
       log('getCampaigns failed (page $page, category: $category): $e', stackTrace: stack);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>> getMyCampaigns() async {
+    try {
+      final response = await _apiClient.get(
+        ApiRoute.getMyCampaignsRoute,
+        requiresToken: true,
+      );
+
+      final data = response is String ? jsonDecode(response) : response;
+
+      if (data is Map<String, dynamic>) {
+        final list = data['data'] ?? data['campaigns'] ?? data['payload'];
+        if (list is List) {
+          return list.cast<Map<String, dynamic>>();
+        }
+      }
+
+      if (data is List) {
+        return data.cast<Map<String, dynamic>>();
+      }
+
+      log('Unexpected response format for user campaigns: $data');
+      return []; // Return empty list on unexpected format
+    } catch (e, stack) {
+      log('Error fetching my campaigns: $e', stackTrace: stack);
       rethrow;
     }
   }

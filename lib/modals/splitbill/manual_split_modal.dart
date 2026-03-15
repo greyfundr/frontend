@@ -110,6 +110,7 @@ String _formatNumber(double value, {int decimalDigits = 0}) {
       }
     });
   }
+  
 
   Widget _buildHeader() {
   final remaining = (_totalBillAmount ?? 0) - _totalAssigned;
@@ -402,10 +403,12 @@ String _formatNumber(double value, {int decimalDigits = 0}) {
               height: 54,
               child: ElevatedButton(
                 onPressed: canConfirm
-                    ? () async {
-                        // You can show loading here
-                        await widget.onCreateSplit(_userAmounts, null /* imageUrl if needed */);
+                    ? () {
+                        // Close the modal first so any navigation performed by
+                        // the parent `_createManualSplit` isn't blocked by the
+                        // bottom sheet route. Then call the create handler.
                         if (mounted) Navigator.pop(context);
+                        Future.microtask(() => widget.onCreateSplit(_userAmounts, null));
                       }
                     : null,
                 style: ElevatedButton.styleFrom(

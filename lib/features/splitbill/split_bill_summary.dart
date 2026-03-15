@@ -146,7 +146,7 @@ class _SplitBillSummaryScreenState extends State<SplitBillSummaryScreen>
               slivers: [
                 // Hero Header
                 SliverAppBar(
-                  expandedHeight: 280,
+                  expandedHeight: 196, // reduced by 30% (280 * 0.7)
                   pinned: true,
                   backgroundColor: Colors.transparent,
                   elevation: 0,
@@ -306,7 +306,7 @@ class _SplitBillSummaryScreenState extends State<SplitBillSummaryScreen>
 
         // TabBarView
         SizedBox(
-          height: MediaQuery.of(context).size.height * 0.6,
+          height: 350,
           child: TabBarView(
             controller: _tabController,
             children: [

@@ -265,12 +265,12 @@ Future<List<AllUsersModel>> getUsers() async {
 
       for (final user in participants) {
         final assignedAmountDouble = userAmounts[user.id.toString()] ?? 0.0;
-        // Convert to kobo (backend expects kobo integers for manual)
-        final assignedAmountKobo = (assignedAmountDouble * 100).toInt();
-        // Debug: log mapping from participant -> assigned amount (kobo)
+        // Send integer Naira amounts (to match Even split behavior)
+        final assignedAmountInt = assignedAmountDouble.toInt();
+        // Debug: log mapping from participant -> assigned amount (naira int)
         // ignore: avoid_print
-        print('ManualSplit: participant=${user.id} assignedAmt_kobo=$assignedAmountKobo');
-        if (assignedAmountKobo <= 0) continue;
+        print('ManualSplit: participant=${user.id} assignedAmt_naira=$assignedAmountInt');
+        if (assignedAmountInt <= 0) continue;
 
         // Treat as guest only when id looks like a short temp id (e.g. generated timestamp)
         final isGuest = user.id.toString().length < 5;
@@ -291,7 +291,7 @@ Future<List<AllUsersModel>> getUsers() async {
           } else ...{
             "userId": maybeNumericId ?? user.id,
           },
-          "amount": assignedAmountKobo,
+          "amount": assignedAmountInt,
         };
 
         participantList.add(entry);
@@ -299,13 +299,13 @@ Future<List<AllUsersModel>> getUsers() async {
 
       if (participantList.isEmpty) return null;
 
-      // convert total to kobo
-      final totalKobo = (totalAmount * 100).toInt();
+      // total as integer Naira (match even split behavior)
+      final totalInt = totalAmount.toInt();
       final payload = <String, dynamic>{
         "title": title.trim().isEmpty ? "Manual Split Bill" : title.trim(),
         "description": description.trim(),
         "currency": "NGN",
-        "amount": totalKobo,
+        "amount": totalInt,
         "imageUrl": imageUrl ?? "",
         "splitMethod": "MANUAL",
         "dueDate": dueDateIso8601,

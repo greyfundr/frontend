@@ -1,0 +1,20 @@
+final updatedData = {
+      "title": _titleController.text.trim(),
+      "description": _descriptionController.text.trim(),
+      "amount": double.tryParse(_amountController.text) ?? 0.0,
+      "due_date": _dueDate.toUtc().toIso8601String(),
+      "split_method": _selectedSplitMethod,
+      "participants": _participants.map((p) {
+        final map = {
+          "id": p.id.startsWith("temp_") ? null : p.id,
+          "guestName": p.guestName,
+          "guestPhone": p.guestPhone,
+          "amountOwed": p.amountOwed,
+          "amountPaid": p.amountPaid,
+          "status": p.status,
+          "paid": p.paid,
+        };
+        map.removeWhere((key, value) => key == "id" && value == null);
+        return map;
+      }).toList(),
+    };

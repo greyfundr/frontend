@@ -1,0 +1,12 @@
+in my create split bill page, 
+when i create a bill with split 
+even method it gets created. but when 
+i try to create a bill  the manual 
+split method of which clicking 
+split manually opens the manual 
+split modal for me to enter different 
+amount for each participants, after 
+i enter the amounts and click the 
+'CREATE SPLIT BILL' it says faiiled 
+to create manual split bill and also 
+see the response in my console

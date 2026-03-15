@@ -80,5 +80,6 @@ class ApiRoute {
   // ──────────────────────────────────────────────────────────────
   static final String uploadBillReceiptRoute = "$baseUrl/upload/image";
   static final String createSplitBillRoute = "$baseUrl/split-bills";
-  static final String updateSplitBillRoute = "$baseUrl/split-bills/:id"; 
+  static final String updateSplitBillRoute = "$baseUrl/split-bills/{id}"; 
+  static final String payParticipantRoute = "$baseUrl/split-bills/{id}/participants/{participantId}/pay";
 }

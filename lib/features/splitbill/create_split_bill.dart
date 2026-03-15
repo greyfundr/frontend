@@ -412,16 +412,34 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
     setState(() => _isCreating = true);
 
     try {
-      final Map<String, dynamic>? result = await _splitBillApi
-          .createManualSplitBill(
-            title: _titleController.text.trim(),
-            description: _descriptionController.text.trim(),
-            totalAmount: totalAmount,
-            imageUrl: _billImageUrl,
-            dueDateIso8601: _dueDate!,
-            userAmounts: userAmounts,
-            participants: _selectedUsers,
-          );
+      // Sanitize userAmounts: ensure keys are strings matching participant IDs and values are positive numbers
+      final Map<String, double> sanitized = {};
+      for (final entry in userAmounts.entries) {
+        final key = entry.key.toString();
+        final val = entry.value;
+        if (val <= 0) continue;
+        sanitized[key] = val;
+      }
+
+      if (sanitized.isEmpty) {
+        _showError('No valid participant amounts provided');
+        return;
+      }
+
+      // Debug: print payload summary to console to aid debugging
+      debugPrint('createManualSplit payload: total=$totalAmount, due=$_dueDate, participants=${_selectedUsers.length}, userAmounts=$sanitized');
+
+      final Map<String, dynamic>? result = await _splitBillApi.createManualSplitBill(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        totalAmount: totalAmount,
+        imageUrl: _billImageUrl,
+        dueDateIso8601: _dueDate!,
+        userAmounts: sanitized,
+        participants: _selectedUsers,
+      );
+
+      debugPrint('createManualSplit result: $result');
 
       if (result != null &&
           result['data'] is Map<String, dynamic> &&

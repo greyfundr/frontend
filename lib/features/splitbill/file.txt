@@ -1,0 +1,3 @@
+createManualSplit payload: total=120000.0, due=2026-03-22T10:46:00.000Z, participants=3, userAmounts={2146def2-fee2-4f52-ae73-2c94b10df8fd: 43000.0, 2316f845-e25f-4739-a192-e34f5ed6f4d6: 36000.0, 28364fe3-b7a5-4e5e-ab04-26c4fa682164: 41000.0}
+
+createManualSplit result: null

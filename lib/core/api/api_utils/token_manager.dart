@@ -122,8 +122,8 @@ class TokenManager {
       log(":::::::: TOKEN REFRESH RESPONSE$response");
       // Parse response and extract tokens
       final data = response.data;
-      String newAccessToken = data["data"]['accessToken'];
-      String newRefreshToken = data["data"]['refreshToken'];
+      String newAccessToken = data['accessToken'];
+      String newRefreshToken = data['refreshToken'];
       log("NEW REFRESH TOKEN GOTTEN :::: ${newRefreshToken}");
 
       // Calculate expiry from JWT or from response

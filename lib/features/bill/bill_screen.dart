@@ -9,9 +9,9 @@ import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart'; // �
 import 'package:greyfundr/core/models/split_bill_model.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
-import 'package:greyfundr/features/bill/pathsforbill/sboscreen.dart';
+// import 'package:greyfundr/features/bill/pathsforbill/sboscreen.dart';
 import 'package:greyfundr/features/home/add_money_sheet.dart';
-import 'package:greyfundr/features/charity/charity_screen.dart';
+// import 'package:greyfundr/features/charity/charity_screen.dart';
 import 'package:greyfundr/features/shared/notification.dart';
 import 'package:greyfundr/features/splitbill/create_split_bill.dart';
 import 'package:greyfundr/features/home/home_screen.dart';
@@ -23,8 +23,13 @@ import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/features/settings/settings_screen.dart';
 import 'package:greyfundr/features/bill/sort_bill_modal.dart';
 import 'package:greyfundr/features/bill/bill_summary.dart';
+import 'package:greyfundr/features/bill/bill-stack/transfer_bill.dart';
+import 'package:greyfundr/features/bill/bill-stack/pay_bill.dart';
+import 'package:greyfundr/features/bill/bill-stack/request_bill.dart';
+import 'package:greyfundr/features/bill/bill-stack/split_bill.dart';
+import 'package:greyfundr/features/bill/bill-stack/scan_bill.dart';
 import 'package:gap/gap.dart';
-import 'package:greyfundr/services/custom_alert.dart';
+// import 'package:greyfundr/services/custom_alert.dart';
 import 'package:greyfundr/shared/utils.dart';
 
 
@@ -668,6 +673,37 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
     );
   }
 
+
+  Widget _buildSimpleCompletedCard(int index, double paid, double total, double progress) {
+    final paidFormatted = formatter.format(paid);
+    final totalFormatted = formatter.format(total);
+    final remaining = formatter.format(total - paid);
+    return _buildSimpleCard(
+      title: 'Completed #${index + 1}',
+      subtitle: 'This request has been completed',
+      amountPaid: '₦$paidFormatted',
+      totalAmount: '₦$totalFormatted',
+      progress: progress,
+      remaining: '₦$remaining',
+      onTap: () {},
+    );
+  }
+
+  Widget _buildSimpleCancelledCard(int index, double paid, double total, double progress) {
+    final paidFormatted = formatter.format(paid);
+    final totalFormatted = formatter.format(total);
+    final remaining = formatter.format(total - paid);
+    return _buildSimpleCard(
+      title: 'Cancelled #${index + 1}',
+      subtitle: 'This request has been cancelled',
+      amountPaid: '₦$paidFormatted',
+      totalAmount: '₦$totalFormatted',
+      progress: progress,
+      remaining: '₦$remaining',
+      onTap: () {},
+    );
+  }
+
   String _historySubTab = 'Completed';
 
   Widget _buildHistoryView() {
@@ -716,7 +752,7 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                     final paid = 500.0;
                     final total = 500.0;
                     final progress = 1.0;
-                    return _buildSimpleRequestCard(index, paid, total, progress);
+                    return _buildSimpleCompletedCard(index, paid, total, progress);
                   },
                 )
               : ListView.builder(
@@ -726,7 +762,7 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                     final paid = 0.0;
                     final total = 400.0;
                     final progress = 0.0;
-                    return _buildSimpleRequestCard(index, paid, total, progress);
+                    return _buildSimpleCancelledCard(index, paid, total, progress);
                   },
                 ),
         ),
@@ -1049,20 +1085,6 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
     const Text("Total Balance", style: TextStyle(color: Colors.white70, fontSize: 12)),
     Row(
       children: [
-        // Balance Text (Visible or Hidden)
-        // Text(
-        //   _isBalanceVisible && wallet?['balance'] != null
-        //       ? NumberFormat('#,##0.00').format(double.parse(wallet!['balance']))
-        //       : '••••••',
-        //   style: TextStyle(
-        //     color: Colors.white,
-        //     fontSize: 16,
-        //     fontWeight: FontWeight.bold,
-        //     letterSpacing: _isBalanceVisible ? 0.5 : 2,
-        //   ),
-        // ),
-
-
         Text(
                         "${convertStringToCurrency(walletModel?.balance?.available ?? "0")}",
                         style: txStyle18SemiBold.copyWith(color: Colors.white),
@@ -1222,11 +1244,36 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _featureIcon("Pay Bill", Icons.receipt, Colors.amber, onTap: () {}),
-                  _featureIcon("Transfer Bill", Icons.swap_horiz, Colors.pink, onTap: () {}),
-                  _featureIcon("Split Bill", Icons.call_split, Colors.green, onTap: () {}),
-                  _featureIcon("Request Bill", Icons.request_page, Colors.orange, onTap: () {}),
-                  _featureIcon("Scan Bill", Icons.qr_code_scanner, Colors.blue, onTap: () {}),
+                  _featureIcon("Pay Bill", Icons.receipt, Colors.amber, onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PayBillScreen()),
+                    );
+                  }),
+                  _featureIcon("Transfer Bill", Icons.swap_horiz, Colors.pink, onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const TransferBill()),
+                    );
+                  }),
+                  _featureIcon("Split Bill", Icons.call_split, Colors.green, onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SplittingBill()),
+                    );
+                  }),
+                  _featureIcon("Request Bill", Icons.request_page, Colors.orange, onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const RequestBillScreen()),
+                    );
+                  }),
+                  _featureIcon("Scan Bill", Icons.qr_code_scanner, Colors.blue, onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ScanBill()),
+                    );
+                  }),
                 ],
               ),
             ),
@@ -1364,17 +1411,6 @@ class _BillScreenState extends State<BillScreen> with SingleTickerProviderStateM
                     ],
                   ),
 
-                  // Charity sub-tab
-                  const CharityScreen(),
-
-                  // Lifestyle sub-tab
-                  const Center(
-                    child: Text(
-                      "Lifestyle features\nComing soon...",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 24, color: Colors.grey),
-                    ),
-                  ),
                 ],
               ),
             ),

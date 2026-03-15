@@ -46,6 +46,14 @@ class SplitBillProvider extends BaseNotifier {
     notifyListeners();
   }
 
+  /// Add a custom user object to the selected users list (used for manual/contacts additions).
+  void addCustomSelectedUser(AllUsersModel user) {
+    if (user.id == null || user.id!.isEmpty) return;
+    if (_selectedUsers.any((u) => u.id == user.id)) return;
+    _selectedUsers.add(user);
+    notifyListeners();
+  }
+
   void removeFromSelectedUsers(String? userId) {
     if (userId == null || userId.isEmpty) return;
 

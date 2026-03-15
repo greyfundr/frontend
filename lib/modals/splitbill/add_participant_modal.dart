@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:greyfundr/core/models/split_user_model.dart';
+import 'package:greyfundr/core/models/all_user_model.dart';
+import 'package:flutter/services.dart';
 import 'package:greyfundr/core/models/phone_contact.dart';
 import 'package:greyfundr/features/splitbill/splitbill_provider.dart';
 import 'package:greyfundr/services/custom_alert.dart';
@@ -61,25 +63,36 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
   // }
 
   Future<void> _pickContactFromDevice() async {
-    if (!await FlutterContacts.requestPermission(readonly: true)) {
-      if (!mounted) return;
-      CustomMessageModal.show(
-        context: context,
-        message: "Contact permission denied",
-        isSuccess: false,
-      );
-      return;
-    }
-
     setState(() => _isLoadingContacts = true);
 
     try {
-      final contact = await FlutterContacts.openExternalPick();
-      if (contact == null) return;
+      // Try opening the external picker directly. On some platforms the
+      // external picker may allow selection without full read permission.
+      var contact = await FlutterContacts.openExternalPick();
 
-      final phone = contact.phones.isNotEmpty
-          ? contact.phones.first.number
-          : null;
+      // If external picker failed or returned null, request permission and retry.
+      if (contact == null) {
+        final granted = await FlutterContacts.requestPermission(readonly: true);
+        if (!granted) {
+          if (!mounted) return;
+          await showDialog<void>(
+            context: context,
+            builder: (dctx) => AlertDialog(
+              title: const Text('Contacts Permission'),
+              content: const Text('Contact permission is denied. Please enable Contacts permission in system settings to pick from your device contacts.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.of(dctx).pop(), child: const Text('OK')),
+              ],
+            ),
+          );
+          return;
+        }
+
+        contact = await FlutterContacts.openExternalPick();
+        if (contact == null) return;
+      }
+
+      final phone = contact.phones.isNotEmpty ? contact.phones.first.number : null;
       if (phone == null || phone.trim().isEmpty) {
         CustomMessageModal.show(
           context: context,
@@ -187,9 +200,11 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
               const SizedBox(height: 16),
               TextField(
                 controller: phoneCtrl,
-                keyboardType: TextInputType.phone,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 decoration: const InputDecoration(
                   labelText: "Phone number",
+                  hintText: '+234 800 200 2000',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -197,6 +212,7 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D7377)),
                   onPressed: () {
                     final name = nameCtrl.text.trim();
                     final phone = phoneCtrl.text.trim();
@@ -224,23 +240,21 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
                       username =
                           'guest_${DateTime.now().millisecondsSinceEpoch}';
 
-                    final newUser = User(
+                    final newAllUser = AllUsersModel(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
                       firstName: firstName,
                       lastName: lastName,
                       username: username,
                       phoneNumber: phone,
-                      email: '',
-                      profilePic: "assets/images/personal.png",
-                      // Add other required fields here if errors appear (e.g. role: 'guest')
+                      profile: "assets/images/personal.png",
                     );
 
-                    setState(() {
-                      // widget.selectedUsers.add(newUser);
-                      // widget.onUsersChanged(widget.selectedUsers);
-                    });
+                    // Add to provider-selected users so it shows in the top strip
+                    final splitBillProvider = Provider.of<SplitBillProvider>(context, listen: false);
+                    splitBillProvider.addCustomSelectedUser(newAllUser);
 
                     Navigator.pop(context);
+                    if (mounted) setState(() {});
                     CustomMessageModal.show(
                       context: context,
                       message: "$name added!",
@@ -383,19 +397,7 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-                _buildOptionTile(
-                  Icons.group,
-                  "Select Friends",
-                  "From GreyFundr users",
-                  () {
-                    CustomMessageModal.show(
-                      context: context,
-                      message: "Use search above",
-                      isSuccess: true,
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
+                
                 _buildOptionTile(
                   Icons.person_add,
                   "Add Manually",
@@ -435,15 +437,20 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: appSecondaryColor.withOpacity(.2),
+                          backgroundColor: const Color(0xFF0D7377),
                           child: Text(
                             (user.firstName?.isNotEmpty ?? false)
                                 ? user.firstName![0]
                                 : "U",
-                            style: txStyle20SemiBold,
+                            // style: txStyle20SemiBold
+                            style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                           ),
                         ),
-                        title: Text(user.username ?? "user"),
+                        title: Text(user.username ?? "GreyUser"),
                         subtitle: Text(user.phoneNumber ?? user.email ?? ""),
                         trailing: ElevatedButton(
                           onPressed: () {

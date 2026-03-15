@@ -92,8 +92,15 @@ class _SplitBillSummaryScreenState extends State<SplitBillSummaryScreen>
                   builder: (_) => EditSplitBill(initialBill: bill),
                 ),
               ).then((result) {
-                if (result == true && mounted) {
-                  setState(() {}); // trigger rebuild
+                if (!mounted) return;
+                if (result == true) {
+                  setState(() {}); // trigger rebuild / refetch
+                  return;
+                }
+
+                if (result is Map<String, dynamic>) {
+                  // Updated data returned — trigger refetch so UI reflects changes
+                  setState(() {});
                 }
               });
             },

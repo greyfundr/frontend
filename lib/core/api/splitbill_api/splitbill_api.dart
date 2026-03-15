@@ -46,4 +46,11 @@ abstract class SplitBillApi {
     required String splitBillId,
     required Map<String, dynamic> updatedData,
   });
+
+  /// Pay participant's share for a split bill
+  Future<Map<String, dynamic>?> payParticipant({
+    required String splitBillId,
+    required String participantId,
+    required double amount,
+  });
 }

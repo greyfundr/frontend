@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:greyfundr/core/models/split_bill_model.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/features/bill/pathsforbill/sboscreen.dart';
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
+import 'package:greyfundr/widgets/campaigndetails/donation_bottom_sheet.dart' show PaymentSuccessScreen;
 import 'package:greyfundr/services/custom_alert.dart';
 
 class SortBillModal extends StatefulWidget {
@@ -13,11 +15,134 @@ class SortBillModal extends StatefulWidget {
   const SortBillModal({super.key, required this.bill});
 
   static Future<void> show(BuildContext context, SplitBill bill) async {
+    final formatter = NumberFormat('#,##0.00');
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => SortBillModal(bill: bill),
+      builder: (ctx) {
+        final userProvider = Provider.of<UserProvider>(ctx, listen: false);
+        final currentUserId = userProvider.userProfileModel?.id ?? '';
+        final participant = bill.participants.firstWhere(
+          (p) => p.userId == currentUserId,
+          orElse: () => Participant(
+            id: 'fallback_${DateTime.now().millisecondsSinceEpoch}',
+            inviteCode: '',
+            amountOwed: 0.0,
+            amountPaid: 0.0,
+            paid: false,
+            status: 'UNKNOWN',
+          ),
+        );
+
+        return StatefulBuilder(builder: (ctx, setState) {
+          var _isProcessing = false;
+
+          Future<void> _confirmPay() async {
+            if (_isProcessing) return;
+            setState(() => _isProcessing = true);
+            try {
+              final api = SplitBillApiImpl();
+              final res = await api.payParticipant(
+                splitBillId: bill.id,
+                participantId: participant.id,
+                amount: participant.amountOwed,
+              );
+
+              // if (!mounted) return;
+
+              if (res != null) {
+                Navigator.of(ctx).pop(); // close bottom sheet
+                showDialog(
+                  context: context,
+                  builder: (_) => PaymentSuccessScreen(amount: participant.amountOwed.toStringAsFixed(0)),
+                );
+              } else {
+                CustomMessageModal.show(context: context, message: 'Payment failed', isSuccess: false);
+              }
+            } catch (e) {
+              CustomMessageModal.show(context: context, message: 'Error: ${e.toString()}', isSuccess: false);
+            } finally {
+              // if (mounted) setState(() => _isProcessing = false);
+            }
+          }
+
+          return Container(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(width: 48, height: 6, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(12))),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Confirm Payment', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  Text('You are about to pay your share for "${bill.title}"', style: const TextStyle(fontSize: 14)),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Your Cut', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      Text('₦${formatter.format(participant.amountOwed)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(),
+                  const SizedBox(height: 8),
+                  const Text('Participants', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 120,
+                    child: ListView.builder(
+                      itemCount: bill.participants.length,
+                      itemBuilder: (c, i) {
+                        final p = bill.participants[i];
+                        final name = p.guestName ?? (p.userId ?? 'Guest');
+                        return ListTile(
+                          dense: true,
+                          title: Text(name),
+                          trailing: Text('₦${formatter.format(p.amountOwed)}'),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _isProcessing ? null : () => Navigator.of(ctx).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _isProcessing ? null : _confirmPay,
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007A74)),
+                          child: _isProcessing
+                              ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('Confirm & Pay'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+          );
+        });
+      },
     );
   }
 

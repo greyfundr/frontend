@@ -22,10 +22,13 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
     with SingleTickerProviderStateMixin {
   late RefreshController _refreshController;
   late TabController _tabController;
+  late SplitBill _bill;
 
   @override
   void initState() {
     super.initState();
+    // Make a local mutable copy of the bill so we can update UI after edits
+    _bill = widget.bill;
     _refreshController = RefreshController(initialRefresh: false);
     _tabController = TabController(length: 4, vsync: this);
   }
@@ -39,7 +42,7 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
 
   @override
   Widget build(BuildContext context) {
-    final bill = widget.bill;
+    final bill = _bill;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -57,11 +60,23 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => EditSplitBill(initialBill: bill),
+                    builder: (_) => EditSplitBill(initialBill: _bill),
                   ),
                 ).then((result) {
-                  if (result == true && mounted) {
+                  // The editor now returns either `true` or the updated bill `data` map.
+                  if (!mounted) return;
+                  if (result == true) {
                     setState(() {});
+                    return;
+                  }
+
+                  if (result is Map<String, dynamic>) {
+                    try {
+                      final updated = SplitBill.fromJson(result);
+                      setState(() => _bill = updated);
+                    } catch (_) {
+                      setState(() {});
+                    }
                   }
                 });
               },
@@ -244,17 +259,20 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
         Container(
           color: Colors.white,
           child: TabBar(
-            controller: _tabController,
-            labelColor: const Color(0xFF0D7377),
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: const Color(0xFF0D7377),
-            tabs: const [
-              Tab(text: "About"),
-              Tab(text: "Financing"),
-              Tab(text: "Participants"),
-              Tab(text: "Comments"),
-            ],
-          ),
+              controller: _tabController,
+              isScrollable: true,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+              indicatorPadding: EdgeInsets.zero,
+              labelColor: const Color(0xFF0D7377),
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: const Color(0xFF0D7377),
+              tabs: const [
+                Tab(text: "About"),
+                Tab(text: "Financing"),
+                Tab(text: "Participants"),
+                Tab(text: "Comments"),
+              ],
+            ),
         ),
 
         SizedBox(
@@ -265,7 +283,7 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
               _buildAboutTab(bill),
               _buildFinancingTab(bill),
               _buildParticipantsTab(bill.participants),
-              const Center(child: Text("Comments section coming soon")),
+              const Center(child: Text("No comment so far")),
             ],
           ),
         ),

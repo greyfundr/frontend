@@ -191,7 +191,8 @@ Future<List<AllUsersModel>> getUsers() async {
       final participantList = <Map<String, dynamic>>[];
       for (var i = 0; i < participants.length; i++) {
         final user = participants[i];
-        final isGuest = user.id.toString().length < 5 || user.id.toString().length > 10;
+        // Treat as guest only when id looks like a short temp id (e.g. generated timestamp)
+        final isGuest = user.id.toString().length < 5;
         var name = user.displayName?.trim() ?? '';
         final phone = user.phoneNumber?.trim() ?? '';
         if (isGuest) {
@@ -206,11 +207,12 @@ Future<List<AllUsersModel>> getUsers() async {
         final entry = <String, dynamic>{
           "type": isGuest ? "GUEST" : "USER",
           if (isGuest) ...{
-            "name": name,
-            "phone": phone,
-          } else ...{
-            "userId": user.id,
-          },
+              "name": name,
+              "phone": phone,
+            } else ...{
+              // Some backends accept numeric userId. Send int when possible.
+              "userId": int.tryParse(user.id.toString()) ?? user.id,
+            },
           "amount": amountForThis,
         };
         participantList.add(entry);
@@ -261,40 +263,65 @@ Future<List<AllUsersModel>> getUsers() async {
 
       for (final user in participants) {
         final assignedAmountDouble = userAmounts[user.id.toString()] ?? 0.0;
-        final assignedAmount = assignedAmountDouble.toInt();
-        if (assignedAmount <= 0) continue;
+        // Convert to kobo (backend expects kobo integers)
+        final assignedAmountKobo = (assignedAmountDouble * 100).toInt();
+        // Debug: log mapping from participant -> assigned amount (kobo)
+        // ignore: avoid_print
+        print('ManualSplit: participant=${user.id} assignedAmt_kobo=$assignedAmountKobo');
+        if (assignedAmountKobo <= 0) continue;
 
-        final isGuest = user.id.toString().length < 5 || user.id.toString().length > 10;
+        // Treat as guest only when id looks like a short temp id (e.g. generated timestamp)
+        final isGuest = user.id.toString().length < 5;
         var name = user.displayName?.trim() ?? '';
         final phone = user.phoneNumber?.trim() ?? '';
         if (isGuest && name.length < 2) {
           name = phone.isNotEmpty ? phone : 'Guest';
         }
 
-        participantList.add({
+        // Try to send numeric userId when possible (some backends accept ints)
+        final maybeNumericId = int.tryParse(user.id.toString());
+
+        final entry = <String, dynamic>{
           "type": isGuest ? "GUEST" : "USER",
           if (isGuest) ...{
             "name": name,
             "phone": phone,
           } else ...{
-            "userId": user.id,
+            "userId": maybeNumericId ?? user.id,
           },
-          "amount": assignedAmount,
-        });
+          "amount": assignedAmountKobo,
+        };
+
+        participantList.add(entry);
       }
 
       if (participantList.isEmpty) return null;
 
-      final payload = {
+      // convert total to kobo
+      final totalKobo = (totalAmount * 100).toInt();
+      final payload = <String, dynamic>{
         "title": title.trim().isEmpty ? "Manual Split Bill" : title.trim(),
         "description": description.trim(),
         "currency": "NGN",
-        "amount": totalAmount.toInt(),
+        "amount": totalKobo,
         "imageUrl": imageUrl ?? "",
         "splitMethod": "MANUAL",
         "dueDate": dueDateIso8601,
         "participants": participantList,
+        // sensible defaults the backend accepts
+        "visibility": "public",
+        "allowPartialPayment": false,
+        "minPaymentAmount": 0,
       };
+
+      // Debug: print payload summary as compact JSON
+      // ignore: avoid_print
+      try {
+        final pretty = jsonEncode(payload);
+        print('ManualSplit payload JSON: $pretty');
+      } catch (_) {
+        print('ManualSplit payload (toString): $payload');
+      }
 
       final responseBody = await _apiClient.post(
         ApiRoute.createSplitBillRoute,
@@ -302,6 +329,10 @@ Future<List<AllUsersModel>> getUsers() async {
         body: payload,
         requiresToken: true,
       );
+
+      // Debug: show raw response
+      // ignore: avoid_print
+      print('ManualSplit responseBody: $responseBody');
 
       final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
 
@@ -321,8 +352,13 @@ Future<List<AllUsersModel>> getUsers() async {
     required Map<String, dynamic> updatedData,
   }) async {
     try {
-      final responseBody = await _apiClient.put(
-        '/split-bills/$splitBillId',
+      // Use the canonical route so the full base URL from ApiRoute is used.
+      final url = '${ApiRoute.createSplitBillRoute}/$splitBillId';
+      // Some backends prefer PATCH for partial updates; switch to PATCH to
+      // match the server behavior which rejects PUT for this route.
+      final responseBody = await _apiClient.patch(
+        url,
+        headers: header,
         body: updatedData,
         requiresToken: true,
       );
@@ -355,6 +391,38 @@ Future<List<AllUsersModel>> getUsers() async {
           log('DioException in updateSplitBill: ${e.type} ${e.message} ${e.response?.statusCode} ${e.response?.data}');
         }
       } catch (_) {}
+      return null;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Pay participant share
+  // ──────────────────────────────────────────────────────────────
+  @override
+  Future<Map<String, dynamic>?> payParticipant({
+    required String splitBillId,
+    required String participantId,
+    required double amount,
+  }) async {
+    try {
+      final url = '${ApiRoute.createSplitBillRoute}/$splitBillId/participants/$participantId/pay';
+
+      final body = {
+        'amount': amount.toInt(),
+      };
+
+      final responseBody = await _apiClient.post(
+        url,
+        headers: header,
+        body: body,
+        requiresToken: true,
+      );
+
+      final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      if (decoded is Map<String, dynamic>) return decoded;
+      return {'raw': decoded};
+    } catch (e, stack) {
+      log('payParticipant failed: $e', stackTrace: stack);
       return null;
     }
   }

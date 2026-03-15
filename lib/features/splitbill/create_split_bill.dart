@@ -437,6 +437,8 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
         dueDateIso8601: _dueDate!,
         userAmounts: sanitized,
         participants: _selectedUsers,
+        recipientUserId: _currentUser?.id,
+        billReceipt: _billImageUrl,
       );
 
       debugPrint('createManualSplit result: $result');

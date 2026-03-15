@@ -39,6 +39,8 @@ abstract class SplitBillApi {
     required String dueDateIso8601,
     required Map<String, double> userAmounts, // user ID as string key
     required List<splitUser.User> participants,
+    String? recipientUserId,
+    String? billReceipt,
   });
 
   /// Update an existing split bill

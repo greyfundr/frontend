@@ -257,13 +257,15 @@ Future<List<AllUsersModel>> getUsers() async {
     required String dueDateIso8601,
     required Map<String, double> userAmounts,
     required List<splitUser.User> participants,
+    String? recipientUserId,
+    String? billReceipt,
   }) async {
     try {
       final participantList = <Map<String, dynamic>>[];
 
       for (final user in participants) {
         final assignedAmountDouble = userAmounts[user.id.toString()] ?? 0.0;
-        // Convert to kobo (backend expects kobo integers)
+        // Convert to kobo (backend expects kobo integers for manual)
         final assignedAmountKobo = (assignedAmountDouble * 100).toInt();
         // Debug: log mapping from participant -> assigned amount (kobo)
         // ignore: avoid_print
@@ -308,10 +310,12 @@ Future<List<AllUsersModel>> getUsers() async {
         "splitMethod": "MANUAL",
         "dueDate": dueDateIso8601,
         "participants": participantList,
-        // sensible defaults the backend accepts
-        "visibility": "public",
-        "allowPartialPayment": false,
-        "minPaymentAmount": 0,
+        // use same defaults as even-split creation
+        "visibility": "private",
+        "allowPartialPayment": true,
+        "minPaymentAmount": null,
+        if (billReceipt != null) "billReceipt": billReceipt,
+        if (recipientUserId != null) "recipientUserId": recipientUserId,
       };
 
       // Debug: print payload summary as compact JSON

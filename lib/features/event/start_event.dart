@@ -5,15 +5,13 @@ import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 
-import 'package:greyfundr/features/splitbill/create_split_bill.dart';
-import 'package:greyfundr/features/fundpool/fund_pool_screen.dart';
-import 'package:greyfundr/features/invoice/invoice_screen.dart';
-import 'package:greyfundr/features/event/start_event.dart';
-import 'package:greyfundr/features/giveaway/give_away_screen.dart';
-import 'package:greyfundr/features/campaign/campaign_option_screen.dart';
+import 'package:greyfundr/features/event/start_event_one.dart';
 
-class CreateNewScreen extends StatelessWidget {
-  const CreateNewScreen({super.key});
+import 'package:greyfundr/features/campaign/createcampaignflow/create_campaign.dart';
+import 'package:greyfundr/features/fundpool/fund_pool_screen.dart';
+
+class StartEvent extends StatelessWidget {
+  const StartEvent({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +25,7 @@ class CreateNewScreen extends StatelessWidget {
           onPressed: () => Get.back(),
         ),
         title: const Text(
-          'Create New',
+          'Start Event',
           style: TextStyle(
             color: Colors.black87,
             fontSize: 18,
@@ -47,22 +45,23 @@ class CreateNewScreen extends StatelessWidget {
             children: [
               // Intro text
               Text(
-                'Start something new — just fill in a few details to get going.',
+                'Who are you starting this Event for ?',
                 style: txStyle12?.copyWith(   // adjust to your actual small text style
                   color: Colors.grey.shade700,
                   fontWeight: FontWeight.w500,
+                  fontSize: 18,
                 ),
               ),
               Gap(24),
 
               // Cards
               _buildOptionCard(
-                iconPath: 'assets/images/split.png',
+                iconPath: 'assets/images/personal.png',
                 iconBg: const Color(0xFFE3F2FD),
-                title: 'Split A Bill',
-                description: 'Enter the bill amount and choose how to split it with others.',
+                title: 'Myself',
+                description: 'Set up an event for your own cause, goal, or project. Share your story and let others support you',
                 onTap: () => Get.to(
-                  () => CreateSplitBillScreen(),
+                  () => const StartEventOne(),
                   transition: Transition.rightToLeft,
                 ),
               ),
@@ -71,8 +70,8 @@ class CreateNewScreen extends StatelessWidget {
               _buildOptionCard(
                 iconPath: 'assets/images/porsh.png',
                 iconBg: const Color(0xFFE1F5FE),
-                title: 'Start A Fund Pool',
-                description: 'Pool money together with friends, community or the public.',
+                title: 'Someone else',
+                description: 'Launch an event on behalf of a person or group you care about. Explain their need and why you’re organizing this event for them.',
                 onTap: () => Get.to(
                   () => const FundPoolScreen(),
                   transition: Transition.rightToLeft,
@@ -80,52 +79,11 @@ class CreateNewScreen extends StatelessWidget {
               ),
               Gap(16),
 
-              _buildOptionCard(
-                iconPath: 'assets/images/porsh.png',
-                iconBg: const Color(0xFFE1F5FE),
-                title: 'Create An Invoice',
-                description: 'Create a detailed invoice for your records or clients.',
-                onTap: () => Get.to(
-                  () => const InvoiceScreen(),
-                  transition: Transition.rightToLeft,
-                ),
-              ),
-              Gap(16),
+              
 
-              _buildOptionCard(
-                iconPath: 'assets/images/giveaway.png',
-                iconBg: const Color(0xFFFFEBEE),
-                title: 'Start A Campaign',
-                description: 'Set up your campaign, tell your story, and raise funds.',
-                onTap: () => Get.to(
-                  () => const CampaignOptionScreen(),
-                  transition: Transition.rightToLeft,
-                ),
-              ),
-              Gap(16),
+             
 
-              _buildOptionCard(
-                iconPath: 'assets/images/giveaway.png',
-                iconBg: const Color(0xFFFFEBEE),
-                title: 'Create An Event',
-                description: 'Create an event and let guests donate toward your goal.',
-                onTap: () => Get.to(
-                  () => StartEvent(),
-                  transition: Transition.rightToLeft,
-                ),
-              ),
-              Gap(16),
 
-              _buildOptionCard(
-                iconPath: 'assets/images/giveaway.png',
-                iconBg: const Color(0xFFFFEBEE),
-                title: 'Start A Giveaway',
-                description: 'Set up a giveaway to thank supporters or engage your community.',
-               onTap: () => Get.to(
-                  () => GiveAwayScreen(),
-                  transition: Transition.rightToLeft,
-                ),
-              ),
 
               Gap(32), // breathing room at bottom
             ],

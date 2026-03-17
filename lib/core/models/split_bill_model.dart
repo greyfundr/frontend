@@ -1,234 +1,189 @@
-// === MODELS (unchanged) ===
 import 'dart:convert';
 
-class SplitBill {
-  final String id;
-  final String title;
-  final String description;
-  final String currency;
-  final double amount;
-  final String creatorId;
-  final String splitMethod;
-  final DateTime dueDate;
-  final bool isFinalized;
-  final String status;
-  final String imageUrl;
-  final int totalParticipants;
-  final double totalPaid;
-  final double amountRaised;
-  final double percentageComplete;
-  final bool isOverdue;
-  final List<Participant> participants;
+MySplitBillModel mySplitBillModelFromJson(String str) => MySplitBillModel.fromJson(json.decode(str));
 
-  SplitBill({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.currency,
-    required this.amount,
-    required this.creatorId,
-    required this.splitMethod,
-    required this.dueDate,
-    required this.isFinalized,
-    required this.status,
-    required this.imageUrl,
-    required this.totalParticipants,
-    required this.totalPaid,
-    required this.amountRaised,
-    required this.percentageComplete,
-    required this.isOverdue,
-    required this.participants,
-  });
+String mySplitBillModelToJson(MySplitBillModel data) => json.encode(data.toJson());
 
-  factory SplitBill.fromJson(Map<String, dynamic> json) {
-    double parseToDouble(dynamic v) {
-      if (v == null) return 0.0;
-      if (v is num) return v.toDouble();
-      if (v is String) return double.tryParse(v) ?? 0.0;
-      return 0.0;
-    }
+class MySplitBillModel {
+    bool? success;
+    String? message;
+    Data? data;
 
-    int parseToInt(dynamic v) {
-      if (v == null) return 0;
-      if (v is int) return v;
-      if (v is num) return v.toInt();
-      if (v is String) return int.tryParse(v) ?? (double.tryParse(v)?.toInt() ?? 0);
-      return 0;
-    }
+    MySplitBillModel({
+        this.success,
+        this.message,
+        this.data,
+    });
 
-    String? tryString(List<String> keys) {
-      for (final k in keys) {
-        if (json.containsKey(k) && json[k] != null) return json[k].toString();
-      }
-      return null;
-    }
-
-    final amountValue = tryString(['amount', 'totalAmount', 'total_amount']);
-    final creatorValue = tryString(['creatorId', 'creator_id', 'creator']);
-    final splitMethodValue = tryString(['splitMethod', 'split_method']);
-    final dueDateValue = tryString(['dueDate', 'due_date']);
-    final imageUrlValue = tryString(['imageUrl', 'image_url']);
-    final totalParticipantsValue = tryString(['totalParticipants', 'total_participants']);
-    final totalPaidValue = tryString(['totalPaid', 'total_paid', 'totalCollected', 'totalCollected']);
-    final amountRaisedValue = tryString(['amountRaised', 'amount_raised', 'totalCollected']);
-    final percentageValue = tryString(['percentageComplete', 'percentage_complete']);
-
-    final participantsRaw = json['participants'] ?? json['participant'] ?? [];
-
-    return SplitBill(
-      id: json['id']?.toString() ?? '',
-      title: json['title']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      currency: json['currency']?.toString() ?? 'NGN',
-      amount: parseToDouble(amountValue),
-      creatorId: creatorValue ?? '',
-      splitMethod: splitMethodValue ?? '',
-      dueDate: DateTime.tryParse(dueDateValue ?? '') ?? DateTime.now(),
-      isFinalized: json['isFinalized'] as bool? ?? json['is_finalized'] as bool? ?? false,
-      status: json['status']?.toString() ?? '',
-      imageUrl: imageUrlValue ?? '',
-      totalParticipants: parseToInt(totalParticipantsValue),
-      totalPaid: parseToDouble(totalPaidValue),
-      amountRaised: parseToDouble(amountRaisedValue),
-      percentageComplete: parseToDouble(percentageValue),
-      isOverdue: json['isOverdue'] as bool? ?? json['is_overdue'] as bool? ?? false,
-      participants: (participantsRaw is List)
-          ? participantsRaw.map((p) => Participant.fromJson(Map<String, dynamic>.from(p))).toList()
-          : [],
+    factory MySplitBillModel.fromJson(Map<String, dynamic> json) => MySplitBillModel(
+        success: json["success"],
+        message: json["message"],
+        data: json["data"] == null ? null : Data.fromJson(json["data"]),
     );
-  }
+
+    Map<String, dynamic> toJson() => {
+        "success": success,
+        "message": message,
+        "data": data?.toJson(),
+    };
 }
 
+class Data {
+    List<Bill>? bills;
+    int? total;
+    int? page;
+    int? totalPages;
 
-class Participant {
-  final String id;
-  final String? userId;
-  final String? guestName;
-  final String? guestPhone;
-  final String? guestEmail;
-  final double amountOwed;
-  final double amountPaid;
-  final String status;
-  final bool paid;
-  final String inviteCode;
-  final String? profilePic; // From user.profile_pic
-  final User? user;         // Full User object if registered
+    Data({
+        this.bills,
+        this.total,
+        this.page,
+        this.totalPages,
+    });
 
-  Participant({
-    required this.id,
-    this.userId,
-    this.guestName,
-    this.guestPhone,
-    this.guestEmail,
-    required this.amountOwed,
-    required this.amountPaid,
-    required this.status,
-    required this.paid,
-    required this.inviteCode,
-    this.profilePic,
-    this.user,
-  });
-
-  factory Participant.fromJson(Map<String, dynamic> json) {
-    dynamic parseNum(dynamic v) {
-      if (v == null) return 0.0;
-      if (v is num) return v.toDouble();
-      if (v is String) return double.tryParse(v) ?? 0.0;
-      return 0.0;
-    }
-
-    final userJson = (json['user'] is Map) ? Map<String, dynamic>.from(json['user']) : null;
-
-    User? userObject;
-    String? pic;
-
-    if (userJson != null) {
-      userObject = User(
-        id: userJson['id']?.toString() ?? '',
-        firstName: (userJson['first_name'] ?? userJson['firstName'] ?? '')?.toString() ?? '',
-        lastName: (userJson['last_name'] ?? userJson['lastName'] ?? '')?.toString() ?? '',
-        profilePic: (userJson['profile_pic'] ?? userJson['profilePic'] ?? '')?.toString() ?? '',
-      );
-      pic = (userJson['profile_pic'] ?? userJson['profilePic'])?.toString();
-    }
-
-    final amountOwedRaw = json['amount_owed'] ?? json['amountOwed'] ?? json['amountOwed'];
-    final amountPaidRaw = json['amount_paid'] ?? json['amountPaid'] ?? json['amountPaid'];
-
-    return Participant(
-      id: json['id']?.toString() ?? '',
-      userId: (json['user_id'] ?? json['userId'])?.toString(),
-      guestName: (json['guest_name'] ?? json['guestName'])?.toString(),
-      guestPhone: (json['guest_phone'] ?? json['guestPhone'])?.toString(),
-      guestEmail: (json['guest_email'] ?? json['guestEmail'])?.toString(),
-      amountOwed: parseNum(amountOwedRaw) as double,
-      amountPaid: parseNum(amountPaidRaw) as double,
-      status: (json['status'] as String?)?.toUpperCase() ?? 'UNPAID',
-      paid: json['paid'] as bool? ?? false,
-      inviteCode: (json['invite_code'] ?? json['inviteCode'])?.toString() ?? '',
-      profilePic: pic,
-      user: userObject,
+    factory Data.fromJson(Map<String, dynamic> json) => Data(
+        bills: json["bills"] == null ? [] : List<Bill>.from(json["bills"]!.map((x) => Bill.fromJson(x))),
+        total: json["total"],
+        page: json["page"],
+        totalPages: json["totalPages"],
     );
-  }
 
-  // Smart display name
-  String get displayName {
-    // Guest name has priority
-    if (guestName != null && guestName!.trim().isNotEmpty) {
-      return guestName!.trim();
-    }
-
-    // Registered user — use first name
-    if (user != null && user!.firstName.trim().isNotEmpty) {
-      return user!.firstName.trim();
-    }
-
-    // Fallback to phone
-    if (guestPhone != null && guestPhone!.trim().isNotEmpty) {
-      return guestPhone!.trim();
-    }
-
-    return 'Guest';
-  }
-
-  // Avatar initial — EXACTLY what you wanted
-  String get avatarInitial {
-    if (guestName != null && guestName!.trim().isNotEmpty) {
-      return guestName!.trim()[0].toUpperCase();
-    }
-
-    if (user != null && user!.firstName.trim().isNotEmpty) {
-      return user!.firstName.trim()[0].toUpperCase();
-    }
-
-    if (guestPhone != null && guestPhone!.trim().isNotEmpty) {
-      final digits = guestPhone!.replaceAll(RegExp(r'[^0-9]'), '');
-      if (digits.isNotEmpty) return digits[0];
-    }
-
-    return 'G';
-  }
-
-  // Profile pic path with fallback
-  String get avatarPath {
-    if (profilePic != null && profilePic!.isNotEmpty) {
-      if (profilePic!.startsWith('http')) return profilePic!;
-      if (profilePic!.startsWith('assets/')) return profilePic!;
-    }
-    return 'assets/images/default_avatar.png';
-  }
+    Map<String, dynamic> toJson() => {
+        "bills": bills == null ? [] : List<dynamic>.from(bills!.map((x) => x.toJson())),
+        "total": total,
+        "page": page,
+        "totalPages": totalPages,
+    };
 }
 
-class User {
-  final String id;
-  final String firstName;
-  final String lastName;
-  final String profilePic;
+class Bill {
+    String? id;
+    String? title;
+    String? description;
+    String? imageUrl;
+    String? billReceipt;
+    int? totalAmount;
+    int? totalCollected;
+    String? currency;
+    String? splitMethod;
+    String? status;
+    DateTime? dueDate;
+    int? totalParticipants;
+    int? totalPaidParticipants;
+    bool? isFinalized;
+    String? creatorId;
+    String? creatorName;
+    String? visibility;
+    DateTime? createdAt;
+    MyShare? myShare;
 
-  User({
-    required this.id,
-    required this.firstName,
-    required this.lastName,
-    required this.profilePic,
-  });
+    Bill({
+        this.id,
+        this.title,
+        this.description,
+        this.imageUrl,
+        this.billReceipt,
+        this.totalAmount,
+        this.totalCollected,
+        this.currency,
+        this.splitMethod,
+        this.status,
+        this.dueDate,
+        this.totalParticipants,
+        this.totalPaidParticipants,
+        this.isFinalized,
+        this.creatorId,
+        this.creatorName,
+        this.visibility,
+        this.createdAt,
+        this.myShare,
+    });
+
+    factory Bill.fromJson(Map<String, dynamic> json) => Bill(
+        id: json["id"],
+        title: json["title"],
+        description: json["description"],
+        imageUrl: json["imageUrl"],
+        billReceipt: json["billReceipt"],
+        totalAmount: json["totalAmount"],
+        totalCollected: json["totalCollected"],
+        currency: json["currency"],
+        splitMethod: json["splitMethod"],
+        status: json["status"],
+        dueDate: json["dueDate"] == null ? null : DateTime.parse(json["dueDate"]),
+        totalParticipants: json["totalParticipants"],
+        totalPaidParticipants: json["totalPaidParticipants"],
+        isFinalized: json["isFinalized"],
+        creatorId: json["creatorId"],
+        creatorName: json["creatorName"],
+        visibility: json["visibility"],
+        createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
+        myShare: json["myShare"] == null ? null : MyShare.fromJson(json["myShare"]),
+    );
+
+    Map<String, dynamic> toJson() => {
+        "id": id,
+        "title": title,
+        "description": description,
+        "imageUrl": imageUrl,
+        "billReceipt": billReceipt,
+        "totalAmount": totalAmount,
+        "totalCollected": totalCollected,
+        "currency": currency,
+        "splitMethod": splitMethod,
+        "status": status,
+        "dueDate": dueDate?.toIso8601String(),
+        "totalParticipants": totalParticipants,
+        "totalPaidParticipants": totalPaidParticipants,
+        "isFinalized": isFinalized,
+        "creatorId": creatorId,
+        "creatorName": creatorName,
+        "visibility": visibility,
+        "createdAt": createdAt?.toIso8601String(),
+        "myShare": myShare?.toJson(),
+    };
+}
+
+class MyShare {
+    String? participantId;
+    String? role;
+    int? amountOwed;
+    int? amountPaid;
+    int? amountRemaining;
+    String? status;
+    String? inviteCode;
+    dynamic paymentLink;
+
+    MyShare({
+        this.participantId,
+        this.role,
+        this.amountOwed,
+        this.amountPaid,
+        this.amountRemaining,
+        this.status,
+        this.inviteCode,
+        this.paymentLink,
+    });
+
+    factory MyShare.fromJson(Map<String, dynamic> json) => MyShare(
+        participantId: json["participantId"],
+        role: json["role"],
+        amountOwed: json["amountOwed"],
+        amountPaid: json["amountPaid"],
+        amountRemaining: json["amountRemaining"],
+        status: json["status"],
+        inviteCode: json["inviteCode"],
+        paymentLink: json["paymentLink"],
+    );
+
+    Map<String, dynamic> toJson() => {
+        "participantId": participantId,
+        "role": role,
+        "amountOwed": amountOwed,
+        "amountPaid": amountPaid,
+        "amountRemaining": amountRemaining,
+        "status": status,
+        "inviteCode": inviteCode,
+        "paymentLink": paymentLink,
+    };
 }

@@ -171,7 +171,11 @@ class EventCard extends StatelessWidget {
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                   child: Image.network(
-                    "https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/${campaign['image']}",
+                    // "https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/${campaign['image']}",
+
+                    "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1000&auto=format&fit=crop",
+
+
                     height: 100,
                     width: double.infinity,
                     fit: BoxFit.cover,
@@ -320,7 +324,7 @@ class EventCard extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         ),
                         child: Text(
-                          isOwner ? 'Manage' : 'Donate',
+                          isOwner ? 'Manage' : 'Send Gift',
                           style: const TextStyle(fontSize: 13, color: Colors.white),
                         ),
                       ),
@@ -342,14 +346,14 @@ class EventCard extends StatelessWidget {
                       const Icon(Icons.people, size: 16, color: Colors.grey),
                       const SizedBox(width: 4),
                       Text(
-                        '${campaign['donors'] ?? 0} Donors',
+                        '${campaign['donors'] ?? 0} Guests',
                         style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),
                       const SizedBox(width: 16),
                       const Icon(Icons.emoji_events, size: 16, color: Colors.amber),
                       const SizedBox(width: 4),
                       Text(
-                        '${campaign['champions'] ?? 0} Champions',
+                        '${campaign['champions'] ?? 0} Gifts',
                         style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),
                       const Spacer(),

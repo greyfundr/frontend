@@ -11,6 +11,7 @@ import 'package:get/state_manager.dart';
 
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/features/createnew/create_new_screen.dart';
+import 'package:greyfundr/features/event/event_home.dart';
 import 'package:greyfundr/features/event/event_screen.dart';
 import 'package:greyfundr/features/invoice/invoice_screen.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
@@ -207,7 +208,7 @@ class HomeScreen extends StatelessWidget {
                          CustomOnTap(
   onTap: () {
     Get.to(
-      () => EventScreen(), // ← replace with your actual screen/widget
+      () => EventHome(), // ← replace with your actual screen/widget
       transition: Transition.rightToLeft,
     );
   },

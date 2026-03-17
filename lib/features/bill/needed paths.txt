@@ -1,9 +1,0 @@
- List<Map<String, dynamic>> _allCampaigns = [];
-  List<Map<String, dynamic>> _campaignCategory = [];
-  List<Map<String, dynamic>> get _filteredCampaigns 
-   Future<void> _loadCampaignByCategory(String category) async
-   final response = await ApiService().getCampaignByCategory(pageNumber, category);
-   final List<Map<String, dynamic>> campaigns
-   _allCampaigns = campaigns;
-   _loadmoreCampaignByCategory
-

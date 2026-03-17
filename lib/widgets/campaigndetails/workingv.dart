@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
@@ -49,7 +48,6 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
   String? _externalName;
   String? _externalPhone;
   String? _currentUserId;
-  String? _taggedUserId;
 
   bool _hasBehalfOf = false;
   String? _behalfDisplay = '';
@@ -264,15 +262,6 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
               
               ListTile(
                 leading: const Icon(Icons.person_add_alt_1, color: Colors.teal),
-                title: const Text("Tag a Greyfundr user"),
-                subtitle: const Text("Search by username or @mention"),
-                onTap: () {
-                  Navigator.pop(context);
-                  _openTagUserInput();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.person_add_alt_1, color: Colors.teal),
                 title: const Text("Add someone not on Greyfundr"),
                 subtitle: const Text("Enter name and phone"),
                 onTap: () {
@@ -366,143 +355,6 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
           ],
         ),
       ),
-    );
-  }
-
-  void _openTagUserInput() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        final tagController = TextEditingController();
-        String? selectedUserId;
-        String? selectedUsername;
-
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            left: 24,
-            right: 24,
-            top: 32,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("Tag a Greyfundr user", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              const Text("Start typing username (e.g. @bella)", style: TextStyle(color: Colors.grey, fontSize: 14)),
-              const SizedBox(height: 12),
-
-              TypeAheadField<Map<String, dynamic>>(
-                controller: tagController,
-                builder: (context, textEditingController, focusNode) {
-                  return TextField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    autofocus: true,
-                    decoration: InputDecoration(
-                      hintText: "@username",
-                      prefixIcon: const Icon(Icons.alternate_email),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                    ),
-                  );
-                },
-                debounceDuration: const Duration(milliseconds: 300),
-                suggestionsCallback: (pattern) async {
-                  if (pattern.trim().length < 2) return <Map<String, dynamic>>[];
-                  try {
-                    final users = await locator<CampaignApi>().getUsers();
-                    return users
-                        .where((u) => (u.username ?? '').toLowerCase().contains(pattern.replaceAll('@', '').toLowerCase()) || (u.name ?? '').toLowerCase().contains(pattern.replaceAll('@', '').toLowerCase()))
-                        .map((u) => {
-                              'id': u.id,
-                              'username': u.username,
-                              'name': u.name,
-                              'profile_pic': u.imageUrl,
-                            })
-                        .toList();
-                  } catch (e) {
-                    debugPrint('User search error: $e');
-                    return <Map<String, dynamic>>[];
-                  }
-                },
-                itemBuilder: (context, Map<String, dynamic> user) {
-                  final username = (user['username'] ?? '').toString();
-                  final fullName = (user['name'] ?? '').toString();
-                  final avatar = (user['profile_pic'] ?? '').toString();
-                  return ListTile(
-                    leading: CircleAvatar(
-                      radius: 20,
-                      backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-                      child: avatar.isEmpty ? const Icon(Icons.person) : null,
-                    ),
-                    title: Text('@$username', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(fullName),
-                  );
-                },
-                emptyBuilder: (context) => const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text("No users found", style: TextStyle(color: Colors.grey)),
-                ),
-                onSelected: (Map<String, dynamic> suggestion) {
-                  selectedUserId = suggestion['id']?.toString();
-                  selectedUsername = (suggestion['username'] ?? '').toString();
-                  tagController.text = '@${selectedUsername ?? ''}';
-                },
-              ),
-
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Cancel"),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    ),
-                    onPressed: () {
-                      if (selectedUserId != null && selectedUsername != null) {
-                        setState(() {
-                          _hasBehalfOf = true;
-                          _taggedUserId = selectedUserId;
-                          _externalName = null;
-                          _externalPhone = null;
-                          _behalfDisplay = '@${selectedUsername}';
-                        });
-                        Navigator.pop(context);
-                        return;
-                      }
-
-                      final input = tagController.text.trim();
-                      if (input.isNotEmpty && input.startsWith('@')) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text("Please select a user from suggestions (ID required)"),
-                          backgroundColor: Colors.orange,
-                        ));
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a valid @username")));
-                      }
-                    },
-                    child: const Text("Save"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -724,9 +576,7 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
         amount: intAmount,
         nickname: _username.isNotEmpty ? _username : null,
         comments: _comments.isNotEmpty ? _comments : null,
-        // If we tagged an internal user, send their id as behalfUserId so backend
-        // maps it to `onBehalfOfUserId`.
-        behalfUserId: (_hasBehalfOf && _taggedUserId != null) ? _taggedUserId : null,
+        behalfUserId: (_hasBehalfOf && _externalName == null) ? callerUserId : null,
         externalName: _externalName,
         externalContact: _externalPhone,
       );

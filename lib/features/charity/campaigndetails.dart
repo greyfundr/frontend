@@ -10,7 +10,10 @@ import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/widgets/campaigndetails/withdrawal_bottom_sheet.dart';
+
+
 import 'package:greyfundr/widgets/campaigndetails/manage_campaign_bottom_sheet.dart';
+
 import 'package:greyfundr/widgets/campaigndetails/campaignprogress.dart';
 
 import 'package:greyfundr/widgets/campaigndetails/donation_bottom_sheet.dart';
@@ -131,8 +134,22 @@ class _CampaignDetailsState extends State<CampaignDetails> {
         campaign = campaignData;
         campaignImages = parsedImages;
         donations = rawDonors.cast<Map<String, dynamic>>();
-        moffer = (campaignData['moffer'] ?? []).cast<dynamic>();
-        aoffer = (campaignData['aoffer'] ?? []).cast<dynamic>();
+
+        // Normalize offers: backend may return a single `offers` array.
+        List<dynamic> rawOffers = [];
+        final offersField = campaignData['offers'] ?? payload['offers'] ?? campaignData['offer'] ?? '';
+        if (offersField is String && offersField.isNotEmpty) {
+          try {
+            rawOffers = jsonDecode(offersField) as List<dynamic>;
+          } catch (_) {
+            rawOffers = [];
+          }
+        } else if (offersField is List) {
+          rawOffers = offersField.cast<dynamic>();
+        }
+
+        moffer = rawOffers.where((o) => (o is Map && (o['type']?.toString().toLowerCase() ?? '') == 'manual')).toList();
+        aoffer = rawOffers.where((o) => (o is Map && (o['type']?.toString().toLowerCase() ?? '') == 'auto')).toList();
         expenses = parsedExpenses;
 
         totalExpense = expenses.fold<double>(0.0, (sum, item) => sum + (double.tryParse(item['cost']?.toString() ?? '0') ?? 0));
@@ -232,6 +249,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
     backgroundColor: Colors.transparent,
     builder: (_) => DonationBottomSheet(
       campaign: campaign,  // pass campaign map for title/progress/days left display
+      onDonationSuccess: _loadCampaign,
     ),
   );
 }
@@ -284,9 +302,9 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           child: Row(
                             children: [
-                              Expanded(flex: 2, child: Text(item['name'] ?? '')),
+                              Expanded(flex: 2, child: Text(item['item'] ?? '')),
                               Expanded(child: Text("₦${_formatCurrency(item['cost']?.toString())}")),
-                              Expanded(child: Text(item['file'] != null ? "View" : "None")),
+                              Expanded(child: Text(item['image'] != null ? "View" : "None")),
                             ],
                           ),
                         )),
@@ -304,13 +322,13 @@ class _CampaignDetailsState extends State<CampaignDetails> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Manual Offers", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              // const Text("Manual Offers", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ...moffer.map((o) => ListTile(
                     title: Text(o['condition'] ?? 'N/A'),
                     subtitle: Text(o['reward'] ?? 'N/A'),
                   )),
-              const SizedBox(height: 16),
-              const Text("Auto Offers", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 8),
+              // const Text("Auto Offers", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ...aoffer.map((o) => ListTile(
                     title: Text(o['condition'] ?? 'N/A'),
                     subtitle: Text(o['reward'] ?? 'N/A'),
@@ -473,6 +491,8 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                 child: FloatingActionButton.extended(
                   heroTag: "donate",
                   backgroundColor: const Color(0xFF007A74),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 2,
                   label: const Text("DONATE"),
                   onPressed: _showDonateMoneyModal,
                 ),
@@ -482,7 +502,9 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                 child: FloatingActionButton.extended(
                   heroTag: "manage",
                   backgroundColor: const Color(0xFFFF6B35),
-                  label: const Text("MANAGE CAMPAIGN"),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 2,
+                  label: const Text("MANAGE", style: TextStyle(fontWeight: FontWeight.bold),),
                   onPressed: () {
                     showModalBottomSheet(
                       context: context,
@@ -502,7 +524,9 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                 child: FloatingActionButton.extended(
                   heroTag: "withdraw",
                   backgroundColor: const Color(0xFF007A74),
-                  label: const Text("WITHDRAW"),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 2,
+                  label: const Text("WITHDRAW", style: TextStyle(fontWeight: FontWeight.bold)),
                   onPressed: () {
                     showModalBottomSheet(
                       context: context,
@@ -535,7 +559,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
         child: CustomScrollView(
           slivers: [
             SliverAppBar(
-              expandedHeight: 300,
+              expandedHeight: 200,
               floating: false,
               pinned: true,
               // The Scaffold's AppBar handles the back button.
@@ -618,7 +642,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                     const SizedBox(height: 24),
                     // Main Tabs
                     SizedBox(
-                      height: 50,
+                      height: 25,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: ['About', 'Financing', 'Offers', 'Donations', 'Comments'].length,
@@ -626,7 +650,7 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                           final titles = ['About', 'Financing', 'Offers', 'Donations', 'Comments'];
                           final isSelected = _selectedTabIndex == index;
                           return Padding(
-                            padding: const EdgeInsets.only(right: 24),
+                            padding: const EdgeInsets.only(right: 12),
                             child: GestureDetector(
                               onTap: () => setState(() => _selectedTabIndex = index),
                               child: Column(
@@ -634,8 +658,8 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                                   Text(
                                     titles[index],
                                     style: TextStyle(
-                                      color: isSelected ? const Color(0xFF007A74) : Colors.grey,
-                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                      color: isSelected ? const Color(0xFF007A74) : const Color.fromARGB(255, 43, 43, 43),
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.bold,
                                     ),
                                   ),
                                   if (isSelected)
@@ -652,9 +676,23 @@ class _CampaignDetailsState extends State<CampaignDetails> {
                         },
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildTabContent(),
-                    const SizedBox(height: 80), // space for FAB
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.all(12),
+                      child: SizedBox(
+                        height: 250,
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: _buildTabContent(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 44), // space for FAB
                   ],
                 ),
               ),

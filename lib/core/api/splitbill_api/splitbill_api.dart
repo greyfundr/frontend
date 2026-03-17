@@ -55,4 +55,23 @@ abstract class SplitBillApi {
     required String participantId,
     required double amount,
   });
+
+  /// Add one or more participants to an existing split bill
+  Future<List<Map<String, dynamic>>?> addParticipants({
+    required String splitBillId,
+    required List<Map<String, dynamic>> participants,
+  });
+
+  /// Remove a participant from a split bill
+  Future<bool> removeParticipant({
+    required String splitBillId,
+    required String participantId,
+  });
+
+  /// Cancel a split bill with a reason/description
+  Future<bool> cancelSplitBill({
+    required String splitBillId,
+    required String reason,
+    String? description,
+  });
 }

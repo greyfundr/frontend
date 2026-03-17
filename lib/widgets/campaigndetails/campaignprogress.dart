@@ -54,7 +54,7 @@ class CampaignProgressShowcase extends StatelessWidget {
               Text(
                 "₦${_formatCurrency(currentAmount)} raised of ₦${_formatCurrency(goalAmount)}",
                 style: const TextStyle(
-                  fontSize: 10,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
               ),

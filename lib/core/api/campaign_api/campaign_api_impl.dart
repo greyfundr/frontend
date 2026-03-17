@@ -113,8 +113,9 @@ class CampaignApiImpl implements CampaignApi {
   @override
   Future<Map<String, dynamic>> updateCampaign(String campaignId, Map<String, dynamic> payload) async {
     try {
-      final responseBody = await _apiClient.put(
-        '/campaign/update/$campaignId',
+      final url = ApiRoute.updateCampaignRoute.replaceAll('{id}', campaignId);
+      final responseBody = await _apiClient.patch(
+        url,
         body: payload,
         requiresToken: true,
       );
@@ -198,27 +199,108 @@ class CampaignApiImpl implements CampaignApi {
     String? externalContact,
   }) async {
     try {
-      final payload = {
-        'user_id': userId,
-        'creator_id': creatorId,
-        'campaign_id': campaignId,
+      // Build payload using the backend's expected field names.
+      final Map<String, dynamic> payload = {
         'amount': amount,
-        if (nickname != null && nickname.isNotEmpty) 'nickname': nickname,
-        if (comments != null && comments.isNotEmpty) 'comments': comments,
-        if (behalfUserId != null && behalfUserId.isNotEmpty) 'behalf_user_id': behalfUserId,
-        if (externalName != null && externalName.isNotEmpty) 'external_name': externalName,
-        if (externalContact != null && externalContact.isNotEmpty) 'external_contact': externalContact,
+        // isAnonymous will be set by caller via nickname/anonymous logic; default false
       };
 
-      final responseBody = await _apiClient.post(
-        '/donations',
-        headers: header,
-        body: payload,
-        requiresToken: true,
-      );
+      // include username field when nickname provided
+      if (nickname != null && nickname.isNotEmpty) {
+        payload['username'] = nickname;
+        payload['isAnonymous'] = false;
+      } else {
+        // if no nickname passed, mark anonymous
+        payload['isAnonymous'] = true;
+        // backend may still expect a generated username, but leave it absent
+      }
 
-      final decoded = jsonDecode(responseBody);
-      return responseBody != null && !decoded.toString().contains('error');
+      // onBehalfOf and related fields
+      if (behalfUserId != null && behalfUserId.isNotEmpty) {
+        // donating on behalf of a registered user
+        // mark as a user-based on-behalf so backend uses the provided user id
+        payload['onBehalfOf'] = 'user';
+        payload['onBehalfOfUserId'] = behalfUserId;
+      } else if (externalName != null && externalName.isNotEmpty) {
+        // donating on behalf of an external person
+        payload['onBehalfOf'] = 'external';
+        payload['onBehalfOfExternal'] = {
+          'fullName': externalName,
+          'phoneNumber': externalContact ?? '',
+        };
+      } else {
+        // default: donating for self (the authenticated user)
+        payload['onBehalfOf'] = 'self';
+        payload['onBehalfOfUserId'] = userId;
+      }
+
+      if (comments != null && comments.isNotEmpty) {
+        payload['comment'] = comments;
+      }
+
+      // include linkage fields so backend can attribute donation
+      payload['user_id'] = userId;
+      payload['creator_id'] = creatorId;
+      payload['campaign_id'] = campaignId;
+
+      final donationsUrl = '${ApiRoute.baseUrl}/donations';
+      try {
+        final responseBody = await _apiClient.post(
+          donationsUrl,
+          headers: header,
+          body: payload,
+          requiresToken: true,
+        );
+
+        final decoded = jsonDecode(responseBody);
+        if (responseBody != null && !decoded.toString().contains('error')) {
+          return true;
+        }
+      } catch (e) {
+        // If donations endpoint is not found (404) or fails, we'll attempt
+        // to use the campaign-specific donate endpoint as a fallback.
+        log('donations endpoint failed, attempting campaign-specific donate: $e');
+      }
+
+      // Fallback to campaign-specific donate endpoint (avoid sending username)
+      try {
+        final donateUrl = ApiRoute.donateToCampaignRoute.replaceAll('{id}', campaignId);
+        // Build a conservative payload that avoids `username` to prevent
+        // server-side validation errors on the campaign donate endpoint.
+        final Map<String, dynamic> fallback = {
+          'amount': amount,
+        };
+
+        if (comments != null && comments.isNotEmpty) fallback['comment'] = comments;
+
+        if (behalfUserId != null && behalfUserId.isNotEmpty) {
+          // Same as above: indicate this is on behalf of another registered user
+          fallback['onBehalfOf'] = 'user';
+          fallback['onBehalfOfUserId'] = behalfUserId;
+        } else if (externalName != null && externalName.isNotEmpty) {
+          fallback['onBehalfOf'] = 'external';
+          fallback['onBehalfOfExternal'] = {
+            'fullName': externalName,
+            'phoneNumber': externalContact ?? '',
+          };
+        } else {
+          fallback['onBehalfOf'] = 'self';
+          fallback['onBehalfOfUserId'] = userId;
+        }
+
+        final resp = await _apiClient.post(
+          donateUrl,
+          headers: header,
+          body: fallback,
+          requiresToken: true,
+        );
+
+        final decoded2 = jsonDecode(resp);
+        return resp != null && !decoded2.toString().contains('error');
+      } catch (e, st) {
+        log('Fallback donateToCampaign failed: $e', stackTrace: st);
+        return false;
+      }
     } catch (e, stack) {
       log('createDonation failed: $e', stackTrace: stack);
       return false;
@@ -356,6 +438,12 @@ class CampaignApiImpl implements CampaignApi {
      
       final sanitizedOffers = <Map<String, dynamic>>[];
 
+      // DEBUG: log offers received on Campaign model before sanitization
+      try {
+        log('createCampaignApi - campaign.savedManualOffers: ${campaign.savedManualOffers}');
+        log('createCampaignApi - campaign.savedAutoOffers: ${campaign.savedAutoOffers}');
+      } catch (_) {}
+
       // Process 'manual' offers (assuming from campaign.moffers)
       if (campaign.savedManualOffers.isNotEmpty) {
         for (final offer in campaign.savedManualOffers) {
@@ -383,6 +471,11 @@ class CampaignApiImpl implements CampaignApi {
           }
         }
       }
+
+      // DEBUG: log sanitizedOffers before sending
+      try {
+        log('createCampaignApi - sanitizedOffers: $sanitizedOffers');
+      } catch (_) {}
 
       final payload = <String, dynamic>{
         'title': campaign.title,

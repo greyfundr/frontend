@@ -8,6 +8,7 @@ import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
 import 'package:greyfundr/core/models/all_user_model.dart';
 import 'package:greyfundr/core/models/split_bill_model.dart' as splitBill;
+import 'package:greyfundr/core/models/split_bill_model.dart';
 import 'package:greyfundr/core/models/split_user_model.dart' as splitUser;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
@@ -29,6 +30,7 @@ class SplitBillApiImpl implements SplitBillApi {
       final responseBody = await _apiClient.get(
         url,
         requiresToken: true,
+        hideLog: false,
       );
 
       final decoded = jsonDecode(responseBody);
@@ -432,19 +434,188 @@ Future<List<AllUsersModel>> getUsers() async {
   }
 
   // ──────────────────────────────────────────────────────────────
-  // Get My Split Bills
+  // Add participants to an existing split bill
   // ──────────────────────────────────────────────────────────────
   @override
-  Future<List<splitBill.SplitBill>> getMySplitBills() async {
+  Future<List<Map<String, dynamic>>?> addParticipants({
+    required String splitBillId,
+    required List<Map<String, dynamic>> participants,
+  }) async {
     try {
-      final responseBody = await _apiClient.get(
-        '/split-bill?role=participant',
+      final url = '${ApiRoute.createSplitBillRoute}/$splitBillId/participants';
+
+      final created = <Map<String, dynamic>>[];
+
+      // Some backends accept batch arrays; attempt a batch POST first
+      try {
+        final responseBody = await _apiClient.post(
+          url,
+          headers: header,
+          body: {'participants': participants},
+          requiresToken: true,
+        );
+
+        final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+        if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+          final data = decoded['data'];
+          if (data is List) {
+            for (final item in data) {
+              if (item is Map<String, dynamic>) created.add(item);
+            }
+            return created;
+          }
+        }
+      } catch (_) {
+        // fall through to per-item POST
+      }
+
+      // Fallback: post participants one-by-one
+      for (final p in participants) {
+        try {
+          final responseBody = await _apiClient.post(
+            url,
+            headers: header,
+            body: p,
+            requiresToken: true,
+          );
+          final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+          if (decoded is Map<String, dynamic>) {
+            // try extract created participant from data or raw map
+            if (decoded.containsKey('data')) {
+              final d = decoded['data'];
+              if (d is Map<String, dynamic>) created.add(d);
+              else if (d is List) {
+                for (final it in d) if (it is Map<String, dynamic>) created.add(it);
+              }
+            } else {
+              created.add(decoded);
+            }
+          }
+        } catch (e) {
+          log('addParticipants per-item post failed for $p: $e');
+        }
+      }
+
+      return created.isEmpty ? null : created;
+    } catch (e, stack) {
+      log('addParticipants failed: $e', stackTrace: stack);
+      return null;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Remove a participant from a split bill
+  // ──────────────────────────────────────────────────────────────
+  @override
+  Future<bool> removeParticipant({
+    required String splitBillId,
+    required String participantId,
+  }) async {
+    try {
+      final url = '${ApiRoute.createSplitBillRoute}/$splitBillId/participants/$participantId';
+      final responseBody = await _apiClient.delete(
+        url,
+        headers: header,
         requiresToken: true,
       );
 
-      final decoded = jsonDecode(responseBody is String ? responseBody : jsonEncode(responseBody));
+      // If server returned JSON with success marker, consider it success
+      try {
+        final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+        if (decoded is Map<String, dynamic> && (decoded['success'] == true || decoded['status'] == 'success')) {
+          return true;
+        }
+      } catch (_) {}
 
-      final List<dynamic> billList = (decoded['data'] as List?) ?? [];
+      // Default to true when server responded without throwing
+      return true;
+    } catch (e, stack) {
+      log('removeParticipant failed: $e', stackTrace: stack);
+      return false;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Cancel a split bill
+  // ──────────────────────────────────────────────────────────────
+  @override
+  Future<bool> cancelSplitBill({
+    required String splitBillId,
+    required String reason,
+    String? description,
+  }) async {
+    try {
+      final url = '${ApiRoute.getSplitBillRoute}/$splitBillId/cancel';
+      final body = <String, dynamic>{'reason': reason};
+      if (description != null && description.isNotEmpty) body['description'] = description;
+
+      final responseBody = await _apiClient.post(
+        url,
+        headers: header,
+        body: body,
+        requiresToken: true,
+      );
+
+      // Try decode and check for success markers
+      try {
+        final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+        if (decoded is Map<String, dynamic>) {
+          if (decoded['success'] == true) return true;
+          if (decoded['status'] == 'success') return true;
+        }
+      } catch (_) {}
+
+      // If request didn't throw, assume success
+      return true;
+    } catch (e, stack) {
+      log('cancelSplitBill failed: $e', stackTrace: stack);
+      return false;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Get My Split Bills
+  // ──────────────────────────────────────────────────────────────
+  @override
+  Future<MySplitBillModel> getMySplitBills() async {
+    try {
+      final url = '${ApiRoute.createSplitBillRoute}/my-bills';
+      final responseBody = await _apiClient.get(
+        url,
+        requiresToken: true,
+      );
+
+      // Decode safely
+      dynamic decoded;
+      try {
+        decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      } catch (e) {
+        // fallback to trying jsonEncode -> decode
+        decoded = jsonDecode(jsonEncode(responseBody));
+      }
+
+      // The server may return different shapes. Common shapes:
+      // 1) { data: [ ... ] }
+      // 2) { data: { bills: [ ... ], ... } }
+      // 3) { bills: [ ... ] }
+      // 4) [ ... ]
+      List<dynamic> billList = [];
+
+      if (decoded is Map<String, dynamic>) {
+        final dataNode = decoded['data'];
+        if (dataNode is List) {
+          billList = dataNode;
+        } else if (dataNode is Map && dataNode['bills'] is List) {
+          billList = dataNode['bills'];
+        } else if (decoded['bills'] is List) {
+          billList = decoded['bills'];
+        }
+      } else if (decoded is List) {
+        billList = decoded;
+      }
+
+      // Log decoded for easier debugging when shapes differ
+      log('getMySplitBills decoded shape: ${decoded.runtimeType}');
 
       return billList
           .whereType<Map<String, dynamic>>()
@@ -461,7 +632,7 @@ Future<List<AllUsersModel>> getUsers() async {
     try {
       // Use the main split-bills route which returns all bills
       final responseBody = await _apiClient.get(
-        ApiRoute.createSplitBillRoute,
+        ApiRoute.getSplitBillRoute,
         requiresToken: true,
       );
 

@@ -47,6 +47,10 @@ class _ReviewCampaignScreenState extends State<ReviewCampaignScreen> {
       ...widget.campaign.savedAutoOffers,
       ...widget.campaign.savedManualOffers,
     ];
+    // Debug: log offers passed into the review screen
+    debugPrint('ReviewCampaignScreen.init - savedAutoOffers: ${widget.campaign.savedAutoOffers}');
+    debugPrint('ReviewCampaignScreen.init - savedManualOffers: ${widget.campaign.savedManualOffers}');
+    debugPrint('ReviewCampaignScreen.init - merged offers: $offers');
     _loadCurrentUser();
   }
 
@@ -130,6 +134,9 @@ class _ReviewCampaignScreenState extends State<ReviewCampaignScreen> {
     }
 
     final daysLeft = _calculateDaysLeft();
+
+    // Debug: ensure offers still present before building UI
+    debugPrint('ReviewCampaignScreen.build - offers: $offers');
 
     return Scaffold(
       extendBodyBehindAppBar: true,

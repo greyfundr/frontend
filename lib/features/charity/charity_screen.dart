@@ -85,6 +85,67 @@ class _CharityScreenState extends State<CharityScreen> {
     }
   }
 
+  bool _campaignMatchesCategory(Map<String, dynamic> campaign, String selectedCategory) {
+    final lower = selectedCategory.toLowerCase();
+
+    // Common direct string fields
+    final possibleStringKeys = ['category', 'category_name', 'categoryName', 'category_title', 'categoryTitle'];
+    for (final k in possibleStringKeys) {
+      final v = campaign[k];
+      if (v is String && v.toLowerCase() == lower) return true;
+    }
+
+    // If category is an object/map with a name/title
+    final catObj = campaign['category'];
+    if (catObj is Map<String, dynamic>) {
+      final name = (catObj['name'] ?? catObj['title'] ?? catObj['label'])?.toString() ?? '';
+      if (name.toLowerCase() == lower) return true;
+    }
+
+    // If categories is a list of objects
+    final cats = campaign['categories'];
+    if (cats is List) {
+      for (final item in cats) {
+        if (item is Map) {
+          final name = (item['name'] ?? item['title'] ?? item['label'])?.toString() ?? '';
+          if (name.toLowerCase() == lower) return true;
+        } else if (item is String && item.toLowerCase() == lower) {
+          return true;
+        }
+      }
+    }
+
+    // No match found
+    // Keyword-based heuristics per category to improve matches when backend omits metadata
+    final Map<String, List<String>> categoryKeywords = {
+      'medical': ['medical', 'hospital', 'surgery', 'health', 'doctor', 'nurse', 'clinic', 'treatment'],
+      'education': ['education', 'school', 'tuition', 'teacher', 'student', 'students', 'scholarship', 'learning'],
+      'travel': ['travel', 'trip', 'flight', 'journey', 'transport'],
+      'nature': ['nature', 'environment', 'tree', 'farming', 'farm', 'conservation'],
+      'animal': ['animal', 'pet', 'dog', 'cat', 'rescue', 'vet'],
+      'social': ['community', 'social', 'group', 'people'],
+      'disaster': ['disaster', 'flood', 'earthquake', 'storm', 'relief', 'emergency'],
+      'religion': ['church', 'mosque', 'temple', 'religion', 'faith'],
+      'business': ['business', 'company', 'enterprise', 'shop', 'trade'],
+      'all': [],
+    };
+
+    final title = (campaign['title'] ?? campaign['name'] ?? '').toString().toLowerCase();
+    final desc = (campaign['description'] ?? campaign['desc'] ?? '').toString().toLowerCase();
+
+    final keywords = categoryKeywords[lower];
+    if (keywords != null && keywords.isNotEmpty) {
+      for (final kw in keywords) {
+        if (title.contains(kw) || desc.contains(kw)) return true;
+      }
+    }
+
+    // Final fallback: direct substring match against title/description
+    if (title.contains(lower) || desc.contains(lower)) return true;
+
+    return false;
+  }
+
   Future<void> _loadInitialCampaigns() async {
     setState(() {
       _isLoading = true;
@@ -94,11 +155,16 @@ class _CharityScreenState extends State<CharityScreen> {
     });
 
     try {
-      final payload =
-          await locator<CampaignApi>().getCampaigns(page: _pageNumber, category: _selectedCategory);
+        // Fetch campaigns without sending `category` to the backend (some APIs reject this query param).
+        final payload = await locator<CampaignApi>().getCampaigns(page: _pageNumber);
 
-      final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
-      final List<Map<String, dynamic>> campaigns = rawList.cast<Map<String, dynamic>>();
+        final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
+        final List<Map<String, dynamic>> campaignsAll = rawList.cast<Map<String, dynamic>>();
+
+        // If a category is selected (other than 'All'), do client-side filtering.
+        final List<Map<String, dynamic>> campaigns = (_selectedCategory != 'All')
+          ? campaignsAll.where((c) => _campaignMatchesCategory(c, _selectedCategory)).toList()
+          : campaignsAll;
 
       if (!mounted) return;
 
@@ -123,11 +189,14 @@ class _CharityScreenState extends State<CharityScreen> {
 
     try {
       final nextPage = _pageNumber + 1;
-      final payload =
-          await locator<CampaignApi>().getCampaigns(page: nextPage, category: _selectedCategory);
+        // Fetch next page without sending `category` param; filter client-side if needed.
+        final payload = await locator<CampaignApi>().getCampaigns(page: nextPage);
 
-      final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
-      final List<Map<String, dynamic>> newCampaigns = rawList.cast<Map<String, dynamic>>();
+        final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
+        final List<Map<String, dynamic>> newCampaignsAll = rawList.cast<Map<String, dynamic>>();
+        final List<Map<String, dynamic>> newCampaigns = (_selectedCategory != 'All')
+          ? newCampaignsAll.where((c) => _campaignMatchesCategory(c, _selectedCategory)).toList()
+          : newCampaignsAll;
 
       if (!mounted) return;
 

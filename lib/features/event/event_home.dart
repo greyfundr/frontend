@@ -15,6 +15,8 @@ import 'package:greyfundr/features/home/home_screen.dart';
 import 'package:greyfundr/features/bill/bill_screen.dart';
 import 'package:greyfundr/features/profile/profile_screen.dart';
 
+import 'package:greyfundr/features/event/start_event.dart';
+
 import 'package:greyfundr/features/event/event_screen.dart';
 
 import 'package:greyfundr/widgets/lifestyle/header_section.dart';
@@ -172,9 +174,9 @@ class _EventHomeState extends State<EventHome> {
     if (selectedTab == 'Upcoming') {
       return _buildEmptyTab(
         icon: Icons.recommend_outlined,
-        title: "No campaigns yet",
-        subtitle: "Campaigns you create will appear here.\nTap the button below to start your first one!",
-        buttonText: "Start a Campaign",
+        title: "Upcoming Events will appear here",
+        subtitle: "Events you create will appear here.\nTap the button below to start your first one!",
+        buttonText: "Start an Event",
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const EventScreen()),
@@ -185,8 +187,8 @@ class _EventHomeState extends State<EventHome> {
     if (selectedTab == 'Past') {
       return _buildEmptyTab(
         icon: Icons.people_alt_outlined,
-        title: "No Campaigns from people you follow yet",
-        subtitle: "When someone you follow creates or backs a campaign, it will appear here.",
+        title: "Events that have ended will appear here",
+        subtitle: "Past events you participated in or created will appear here.",
       );
     }
 
@@ -198,7 +200,7 @@ class _EventHomeState extends State<EventHome> {
           children: [
             Icon(Icons.campaign_outlined, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            const Text("No campaigns available yet", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const Text("No events available yet", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             const Text("Check back later or create your own!", style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 24),
@@ -208,7 +210,7 @@ class _EventHomeState extends State<EventHome> {
                 MaterialPageRoute(builder: (_) => const EventScreen()),
               ),
               icon: const Icon(Icons.add_circle_outline),
-              label: const Text("Start a Campaign"),
+              label: const Text("Start an Event"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF6B35),
                 foregroundColor: Colors.white,
@@ -418,7 +420,7 @@ Widget build(BuildContext context) {
             isCollapsed: _isHeaderCollapsed,
             onStartCampaign: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const EventScreen()),
+              MaterialPageRoute(builder: (_) => const StartEvent()),
             ),
             onSettings: () {
               ScaffoldMessenger.of(context).showSnackBar(

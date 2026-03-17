@@ -154,8 +154,8 @@ class _PayBillScreenState extends State<PayBillScreen> with SingleTickerProvider
     });
 
     try {
-      // Fetch bills where the current user is a participant (my-bills endpoint)
-      final bills = await _splitBillApi.getMySplitBills();
+      // Fetch all bills (global) instead of only the current user's participant bills
+      final bills = await _splitBillApi.getAllSplitBills();
 
       if (mounted) {
         setState(() {
@@ -354,14 +354,14 @@ class _PayBillScreenState extends State<PayBillScreen> with SingleTickerProvider
               ],
             ),
             const SizedBox(height: 16),
-            Text(
-              "$amountPaid paid of $totalAmount",
-              style: TextStyle(color: Colors.grey[700], fontSize: 14),
-            ),
             // Text(
-            //   "Date - 12th Jan, 2027", // ← placeholder text since API doesn't return date
+            //   "$amountPaid paid of $totalAmount",
             //   style: TextStyle(color: Colors.grey[700], fontSize: 14),
             // ),
+            Text(
+              "Date - 12th Jan, 2027", // ← placeholder text since API doesn't return date
+              style: TextStyle(color: Colors.grey[700], fontSize: 14),
+            ),
            
             const SizedBox(height: 8),
             

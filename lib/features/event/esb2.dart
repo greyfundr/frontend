@@ -375,7 +375,7 @@ class _EditSplitBillState extends State<EditSplitBill> with SingleTickerProvider
                 children: [
                   const Text('Edit Total Amount', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
-                  const Text('Changing the total updates participant shares when split method is Even. Switch to Custom to edit participant amounts.', style: TextStyle(fontSize: 13),),
+                  const Text('Changing the total updates participant shares when split method is Even. Switch to Manual to edit participant amounts.', style: TextStyle(fontSize: 13),),
                   const SizedBox(height: 12),
 
                   // Total amount field
@@ -571,11 +571,14 @@ class _EditSplitBillState extends State<EditSplitBill> with SingleTickerProvider
       },
     );
 
-    // NOTE: Do not dispose modal-local controllers here — they are short-lived
-    // and disposing them while Flutter is tearing down the modal can cause
-    // 'used after disposed' errors. If you want explicit disposal, move the
-    // modal into its own StatefulWidget and dispose controllers in its
-    // State.dispose().
+    // dispose temporary controllers after the current frame so TextFields detach safely
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final c in participantControllers.values) {
+        try {
+          c.dispose();
+        } catch (_) {}
+      }
+    });
   }
 
   Future<void> _addParticipant() async {
@@ -715,84 +718,16 @@ class _EditSplitBillState extends State<EditSplitBill> with SingleTickerProvider
       updatedData['splitMethod'] = _selectedSplitMethod;
     }
 
-    // Prepare participants payloads. For newly added participants (temporary
-    // ids generated locally) the backend requires the dedicated add-participants
-    // endpoint; detect them and add separately. Existing participants can be
-    // included in the PATCH if needed.
-    final newParticipants = _participants.where((p) => p.id.startsWith('temp_')).toList();
-    final existingParticipants = _participants.where((p) => !p.id.startsWith('temp_')).toList();
-
-    // Map existing participants for PATCH (if any)
-    final participantsPayload = existingParticipants.map((p) {
-      final percent = (_displayAmount > 0) ? ((p.amountOwed / _displayAmount) * 100).round() : 0;
-      return {
-        'userId': p.userId,
-        'guestName': p.guestName ?? '',
-        'guestPhone': p.guestPhone ?? '',
-        'amountOwed': (p.amountOwed).round(),
-        'percentage': percent,
-      };
-    }).toList();
-    if (participantsPayload.isNotEmpty) updatedData['participants'] = participantsPayload;
-
-    // include image/bill receipt and recipient if present
-    if (_imageUrl.isNotEmpty) {
-      updatedData['imageUrl'] = _imageUrl;
-      updatedData['billReceipt'] = _imageUrl;
-    }
-    // set recipientUserId to the bill creator by default (adjust if you have a different field)
-    updatedData['recipientUserId'] = widget.initialBill.creatorId;
-
-    // Before patching the bill, add any newly-created (local) participants
-    if (newParticipants.isNotEmpty) {
-      final addPayloads = newParticipants.map((p) {
-        // treat as guest when id is temp
-        if (p.userId?.startsWith('temp_') ?? false) {
-          return {
-            'name': p.guestName ?? '',
-            'phone': p.guestPhone ?? '',
-            'amount': p.amountOwed.round(),
-          };
-        }
-
-        // otherwise send userId (try numeric when possible)
-        return {
-          'userId': p.userId != null ? (int.tryParse(p.userId!) ?? p.userId) : null,
-          'amount': p.amountOwed.round(),
-        };
-      }).toList();
-
-      final added = await _splitBillApi.addParticipants(
-        splitBillId: widget.initialBill.id,
-        participants: addPayloads,
-      );
-
-      // If add succeeded, refresh the local bill details so we have server ids
-      if (added != null) {
-        try {
-          final details = await _splitBillApi.getSplitBillDetails(widget.initialBill.id);
-          if (details != null && details['data'] is Map<String, dynamic>) {
-            final fresh = SplitBill.fromJson(details['data'] as Map<String, dynamic>);
-            if (mounted) {
-              setState(() {
-                _participants = List.from(fresh.participants);
-                _displayAmount = fresh.amount;
-                _amountController.text = _displayAmount.toStringAsFixed(0);
-                _imageUrl = fresh.imageUrl ?? _imageUrl;
-              });
-            }
-          }
-        } catch (e) {
-          // ignore refresh failures; continue to PATCH remaining fields
-        }
-      }
-    }
+    // NOTE: the backend rejects `participants` on this PATCH endpoint
+    // (response: "property participants should not exist").
+    // Participants updates must be handled via the appropriate participants
+    // endpoint (if available). Do not include `participants` here.
 
     // FIXED: use _splitBillApi instead of _authApi
     final result = await _splitBillApi.updateSplitBill(
-      splitBillId: widget.initialBill.id,
-      updatedData: updatedData,
-    );
+  splitBillId: widget.initialBill.id,
+  updatedData: updatedData,
+);
 
     if (!mounted) return;
 
@@ -807,46 +742,12 @@ class _EditSplitBillState extends State<EditSplitBill> with SingleTickerProvider
         final totalStr = returned['totalAmount']?.toString();
         final totalNum = double.tryParse(totalStr ?? '') ?? (double.tryParse(_amountController.text) ?? _displayAmount);
 
-        // parse participants from returned data if present
-        List<dynamic>? partRaw = (returned['participants'] is List) ? (returned['participants'] as List<dynamic>) : null;
-        final updatedParticipants = (partRaw != null)
-            ? partRaw.map<Participant>((p) {
-                // build User object if present
-                User? mappedUser;
-                final userRaw = p['user'];
-                if (userRaw is Map) {
-                  mappedUser = User(
-                    id: userRaw['id']?.toString() ?? '',
-                    firstName: (userRaw['first_name'] ?? userRaw['firstName'] ?? '')?.toString() ?? '',
-                    lastName: (userRaw['last_name'] ?? userRaw['lastName'] ?? '')?.toString() ?? '',
-                    profilePic: (userRaw['profile_pic'] ?? userRaw['profilePic'] ?? '')?.toString() ?? '',
-                  );
-                }
-
-                return Participant(
-                  id: p['id']?.toString() ?? '',
-                  userId: (p['user_id'] ?? p['userId'])?.toString() ?? '',
-                  guestName: (p['guest_name'] ?? p['guestName'])?.toString(),
-                  guestPhone: (p['guest_phone'] ?? p['guestPhone'])?.toString(),
-                  guestEmail: (p['guest_email'] ?? p['guestEmail'])?.toString(),
-                  amountOwed: (p['amountOwed'] is num) ? (p['amountOwed'] as num).toDouble() : double.tryParse(p['amountOwed']?.toString() ?? '0') ?? 0.0,
-                  amountPaid: (p['amountPaid'] is num) ? (p['amountPaid'] as num).toDouble() : double.tryParse(p['amountPaid']?.toString() ?? '0') ?? 0.0,
-                  status: (p['status'] as String?)?.toUpperCase() ?? 'UNPAID',
-                  paid: (p['amountPaid'] != null && (p['amountPaid'] is num) && (p['amountPaid'] as num) > 0),
-                  inviteCode: (p['inviteCode'] ?? p['invite_code'])?.toString() ?? '',
-                  profilePic: mappedUser?.profilePic ?? '',
-                  user: mappedUser,
-                );
-              }).toList()
-            : _participants;
-
         setState(() {
           _displayAmount = totalNum;
           _amountController.text = totalNum.toStringAsFixed(0);
           _titleController.text = returned['title']?.toString() ?? _titleController.text;
           _descriptionController.text = returned['description']?.toString() ?? _descriptionController.text;
           _imageUrl = returned['imageUrl']?.toString() ?? _imageUrl;
-          _participants = updatedParticipants;
         });
 
         CustomMessageModal.show(
@@ -927,7 +828,7 @@ class _EditSplitBillState extends State<EditSplitBill> with SingleTickerProvider
                   strokeWidth: 2.5,
                 ),
               )
-            : const Icon(Icons.circle_rounded, color: Colors.white),
+            : const Icon(Icons.save, color: Colors.white),
         label: Text(
           _isSaving ? "SAVING..." : "SAVE CHANGES",
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
@@ -1089,7 +990,7 @@ class _EditSplitBillState extends State<EditSplitBill> with SingleTickerProvider
 
                             // icon to edit amount
                             Text(
-                              "${_participants.where((p) => p.paid).length} of ${_participants.length} paid",
+                              "${bill.participants.where((p) => p.paid).length} of ${bill.totalParticipants} paid",
                             ),
                           ],
                         ),

@@ -7,12 +7,7 @@ import 'package:greyfundr/features/splitbill/splitbill_provider.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-
-import 'package:http/http.dart' as http;
-
 import 'package:provider/provider.dart';
-
-// ADD THIS IMPORT — this defines AuthProvider
 import 'package:greyfundr/features/auth/auth_provider.dart'; // ← this fixes the error
 
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
@@ -517,7 +512,10 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Create New Split Bill"),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+        title: const Text("Create New Split Bill", style: TextStyle(color: Colors.black87)),
         centerTitle: true,
       ),
       body: _isLoadingUsers

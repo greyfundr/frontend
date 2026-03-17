@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:greyfundr/core/models/split_bill_model.dart';
 import 'package:greyfundr/features/bill/bill_screen.dart';
-// import './edit_split_bill.dart';
 import 'package:greyfundr/features/splitbill/edit_split_bill.dart';
 import 'package:provider/provider.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/features/bill/sort_bill_modal.dart';
+import 'package:greyfundr/shared/custom_message_modal.dart';
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
+import 'package:intl/intl.dart';
 
 class BillSummaryScreen extends StatefulWidget {
   final SplitBill bill;
@@ -57,34 +59,174 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
           if (isCreator) {
             return FloatingActionButton.extended(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => EditSplitBill(initialBill: _bill),
-                  ),
-                ).then((result) {
-                  // The editor now returns either `true` or the updated bill `data` map.
-                  if (!mounted) return;
-                  if (result == true) {
-                    setState(() {});
-                    return;
-                  }
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  builder: (ctx) {
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Edit button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0D7377),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: const BorderSide(color: Color(0xFF0D7377), width: 0.6),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                elevation: 2,
+                              ),
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => EditSplitBill(initialBill: _bill)),
+                                ).then((result) {
+                                  if (!mounted) return;
+                                  if (result == true) {
+                                    setState(() {});
+                                    return;
+                                  }
+                                  if (result is Map<String, dynamic>) {
+                                    try {
+                                      final updated = SplitBill.fromJson(result);
+                                      setState(() => _bill = updated);
+                                    } catch (_) {
+                                      setState(() {});
+                                    }
+                                  }
+                                });
+                              },
+                              child: const Text('EDIT SPLIT BILL', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Cancel button
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0D7377),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: const BorderSide(color: Color(0xFF0D7377), width: 0.6),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                elevation: 2,
+                              ),
+                              onPressed: () {
+                                Navigator.of(ctx).pop();
+                                // open cancellation reason sheet
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (cctx) {
+                                    final TextEditingController reasonCtrl = TextEditingController();
+                                    return Padding(
+                                      padding: EdgeInsets.only(bottom: MediaQuery.of(cctx).viewInsets.bottom),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('Reason for Cancellation', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                                            const SizedBox(height: 12),
+                                            const Text('Description', style: TextStyle(fontWeight: FontWeight.w600)),
+                                            const SizedBox(height: 8),
+                                            TextField(
+                                              controller: reasonCtrl,
+                                              maxLines: 4,
+                                              decoration: const InputDecoration(
+                                                border: OutlineInputBorder(),
+                                                hintText: 'Enter reason for cancelling this split bill',
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.end,
+                                              children: [
+                                                TextButton(onPressed: () => Navigator.of(cctx).pop(), child: const Text('Close')),
+                                                const SizedBox(width: 8),
+                                                ElevatedButton(
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: const Color(0xFF0D7377),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(8),
+                                                      side: const BorderSide(color: Color(0xFF0D7377), width: 0.6),
+                                                    ),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                                  ),
+                                                  onPressed: () async {
+                                                    final reason = reasonCtrl.text.trim();
+                                                    if (reason.isEmpty) {
+                                                      CustomMessageModal.show(context: context, message: 'Please provide a reason', isSuccess: false);
+                                                      return;
+                                                    }
 
-                  if (result is Map<String, dynamic>) {
-                    try {
-                      final updated = SplitBill.fromJson(result);
-                      setState(() => _bill = updated);
-                    } catch (_) {
-                      setState(() {});
-                    }
-                  }
-                });
+                                                    Navigator.of(cctx).pop();
+                                                    // Call cancel endpoint
+                                                    final api = SplitBillApiImpl();
+                                                    final ok = await api.cancelSplitBill(splitBillId: _bill.id, reason: reason, description: null);
+                                                    if (ok) {
+                                                      CustomMessageModal.show(context: context, message: 'Split bill cancelled', isSuccess: true);
+                                                      // Optionally navigate back to list
+                                                      Navigator.of(context).pushAndRemoveUntil(
+                                                        MaterialPageRoute(builder: (_) => const BillScreen()),
+                                                        (route) => false,
+                                                      );
+                                                    } else {
+                                                      CustomMessageModal.show(context: context, message: 'Failed to cancel split bill', isSuccess: false);
+                                                    }
+                                                  },
+                                                  child: const Text('CONTINUE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                                                ),
+                                              ],
+                                            )
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              child: const Text('CANCEL SPLIT BILL', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ),
+                    );
+                  },
+                );
               },
               backgroundColor: const Color(0xFF0D7377),
-              icon: const Icon(Icons.edit, color: Colors.white),
-              label: const Text(
-                "MANAGE SPLIT BILL",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+                side: const BorderSide(color: Color(0xFF0D7377), width: 0.6),
+              ),
+              // Removed leading pencil icon and reduced internal padding
+              label: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Text(
+                  "MANAGE SPLIT BILL",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
               ),
             );
           }
@@ -103,7 +245,8 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 220,
+            // reduced by ~13% to make room for the FAB below
+            expandedHeight: 150,
             pinned: true,
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -276,7 +419,8 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
         ),
 
         SizedBox(
-          height: MediaQuery.of(context).size.height * 0.6,
+          // fixed height so content sits above the centered FAB
+          height: 350,
           child: TabBarView(
             controller: _tabController,
             children: [

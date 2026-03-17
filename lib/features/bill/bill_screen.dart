@@ -4,14 +4,14 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:get/get.dart';
 
-import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart'; // ← correct interface
-import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart'; // ← correct impl
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
 import 'package:greyfundr/core/models/split_bill_model.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
-// import 'package:greyfundr/features/bill/pathsforbill/sboscreen.dart';
+
 import 'package:greyfundr/features/home/add_money_sheet.dart';
-// import 'package:greyfundr/features/charity/charity_screen.dart';
+
 import 'package:greyfundr/features/shared/notification.dart';
 import 'package:greyfundr/features/splitbill/create_split_bill.dart';
 import 'package:greyfundr/features/home/home_screen.dart';
@@ -29,7 +29,6 @@ import 'package:greyfundr/features/bill/bill-stack/request_bill.dart';
 import 'package:greyfundr/features/bill/bill-stack/split_bill.dart';
 import 'package:greyfundr/features/bill/bill-stack/scan_bill.dart';
 import 'package:gap/gap.dart';
-// import 'package:greyfundr/services/custom_alert.dart';
 import 'package:greyfundr/shared/utils.dart';
 
 

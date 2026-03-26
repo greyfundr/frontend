@@ -4,7 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:greyfundr/features/home/home_screen.dart';
-import 'package:greyfundr/features/bill/bill_screen.dart';
+import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/features/charity/campaigndetails.dart';
@@ -19,7 +19,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final RefreshController _refreshController = RefreshController(initialRefresh: false);
+  final RefreshController _refreshController = RefreshController(
+    initialRefresh: false,
+  );
   int _selectedMainTab = 0;
   int _selectedPostSubTab = 0; // 0 = My Post, 1 = Likes
 
@@ -52,15 +54,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final userProvider = Provider.of<UserProvider>(context);
     final user = userProvider.userProfileModel;
 
-    // If this screen is shown standalone (no ancestor BottomNavigationBar),
-    // ensure the provider marks Profile as active so the local 3-tab nav
-    // highlights the Profile tab.
-    final bool noAncestorNav = context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
-    if (noAncestorNav && userProvider.selectedIndex != 4) {
-      userProvider.updateSelectedIndex(4);
-    }
-    userProvider.setSuppressAppNav(noAncestorNav);
-
+    
+   
+ 
     if (userProvider.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -82,107 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: noAncestorNav
-          ? Builder(builder: (ctx) {
-              int mapTo3(int gi) {
-                if (gi == 0) return 0;
-                if (gi == 1) return 1;
-                if (gi == 4) return 2;
-                return 0;
-              }
-              final up = Provider.of<UserProvider>(ctx);
-              return BottomNavigationBar(
-                backgroundColor: Colors.white,
-                type: BottomNavigationBarType.fixed,
-                showUnselectedLabels: true,
-                showSelectedLabels: true,
-                elevation: 0,
-                selectedFontSize: 12,
-                unselectedFontSize: 12,
-                unselectedLabelStyle: const TextStyle(
-                  color: greyTextColor,
-                  fontWeight: FontWeight.w500,
-                ),
-                selectedLabelStyle: const TextStyle(
-                  color: appPrimaryColor,
-                  fontWeight: FontWeight.w500,
-                ),
-                currentIndex: mapTo3(up.selectedIndex),
-                selectedItemColor: appPrimaryColor,
-                unselectedItemColor: greyTextColor,
-                onTap: (i) {
-                  doHepticFeedback();
-                  if (i == 0) {
-                    up.updateSelectedIndex(0);
-                    Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const HomeScreen()));
-                    return;
-                  }
-                    if (i == 1) {
-                      up.updateSelectedIndex(1);
-                      Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const BillScreen()));
-                      return;
-                    }
-                  if (i == 2) {
-                    up.updateSelectedIndex(4);
-                    return;
-                  }
-                },
-                items: [
-                  BottomNavigationBarItem(
-                    icon: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: SvgPicture.asset(
-                          'assets/svgs/home.svg',
-                          colorFilter: ColorFilter.mode(
-                            mapTo3(up.selectedIndex) == 0 ? appPrimaryColor : greyTextColor,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                    ),
-                    label: 'Home',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: SvgPicture.asset(
-                          'assets/svgs/bills.svg',
-                          colorFilter: ColorFilter.mode(
-                            mapTo3(up.selectedIndex) == 1 ? appPrimaryColor : greyTextColor,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                    ),
-                    label: 'Bills',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: SvgPicture.asset(
-                          'assets/svgs/profile.svg',
-                          colorFilter: ColorFilter.mode(
-                            mapTo3(up.selectedIndex) == 2 ? appPrimaryColor : greyTextColor,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                    ),
-                    label: 'Profile',
-                  ),
-                ],
-              );
-            })
-          : null,
+
       body: SafeArea(
         child: SmartRefresher(
           controller: _refreshController,
@@ -211,7 +107,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Colors.black.withOpacity(0.65)],
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.65),
+                              ],
                             ),
                           ),
                         ),
@@ -232,8 +131,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               border: Border.all(color: Colors.white, width: 4),
                             ),
                             child: ClipOval(
-                              child:  CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
-                              
+                              child: CustomNetworkImage(
+                                imageUrl: "imageUrl",
+                                radius: 40,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -252,7 +153,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                                 Text(
                                   "@${user.username ?? 'username'}",
-                                  style: const TextStyle(color: Colors.white70, fontSize: 15),
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 15,
+                                  ),
                                 ),
                                 const SizedBox(height: 12),
                                 Row(
@@ -284,33 +188,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ElevatedButton(
                         onPressed: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const EditProfileScreen(),
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal.shade600,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                        child: const Text("EDIT PROFILE", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          "EDIT PROFILE",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       OutlinedButton(
-                        onPressed: () {/* share */},
+                        onPressed: () {
+                          /* share */
+                        },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.black87,
-                          side: const BorderSide(color: Colors.grey, width: 1.5),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          side: const BorderSide(
+                            color: Colors.grey,
+                            width: 1.5,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                        child: const Text("SHARE PROFILE", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          "SHARE PROFILE",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Container(
                         width: 36,
                         height: 36,
-                        decoration: BoxDecoration(color: Colors.teal.shade600, shape: BoxShape.circle),
-                        child: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.teal.shade600,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ],
                   ),
@@ -348,9 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
 
               // Main content
-              SliverFillRemaining(
-                child: _buildContent(userProvider),
-              ),
+              SliverFillRemaining(child: _buildContent(userProvider)),
             ],
           ),
         ),
@@ -365,7 +303,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onTap: () {
           setState(() {
             _selectedMainTab = index;
-            if (index != 0) _selectedPostSubTab = 0; // reset sub-tab when leaving Campaigns
+            if (index != 0)
+              _selectedPostSubTab = 0; // reset sub-tab when leaving Campaigns
           });
         },
         child: Container(
@@ -430,7 +369,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
         if (userProvider.userCampaigns.isEmpty) {
           return const Center(
-            child: Text("You haven't created any campaigns yet", style: TextStyle(color: Colors.grey)),
+            child: Text(
+              "You haven't created any campaigns yet",
+              style: TextStyle(color: Colors.grey),
+            ),
           );
         }
         return _buildCampaignGrid(userProvider.userCampaigns);
@@ -443,7 +385,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Icon(Icons.favorite_border, size: 60, color: Colors.grey),
               SizedBox(height: 16),
-              Text("Liked campaigns coming soon", style: TextStyle(fontSize: 16, color: Colors.grey)),
+              Text(
+                "Liked campaigns coming soon",
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
             ],
           ),
         );
@@ -485,9 +430,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           imageUrl = rawImages;
         }
 
-        final hasImage = imageUrl != null && imageUrl.isNotEmpty && imageUrl != 'null';
-        const defaultUrl = "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1000&auto=format&fit=crop";
-        const cdnBaseUrl = "https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/";
+        final hasImage =
+            imageUrl != null && imageUrl.isNotEmpty && imageUrl != 'null';
+        const defaultUrl =
+            "https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?q=80&w=1000&auto=format&fit=crop";
+        const cdnBaseUrl =
+            "https://pub-bcb5a51a1259483e892a2c2993882380.r2.dev/";
 
         String finalUrl = defaultUrl;
         if (hasImage) {
@@ -502,7 +450,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           image: finalUrl,
           title: campaign['title'] as String? ?? "Untitled Campaign",
           // Use the same logic as other parts of the app for amounts
-          raised: (double.tryParse((campaign['current_amount'] ?? campaign['currentAmount'])?.toString() ?? '0.0') ?? 0.0) * 100,
+          raised:
+              (double.tryParse(
+                    (campaign['current_amount'] ?? campaign['currentAmount'])
+                            ?.toString() ??
+                        '0.0',
+                  ) ??
+                  0.0) *
+              100,
           goal: double.tryParse(campaign['target']?.toString() ?? '1.0') ?? 1.0,
           currency: '₦',
           campaign: campaign,
@@ -527,7 +482,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => CampaignDetails(id: campaign['id'].toString())),
+          MaterialPageRoute(
+            builder: (_) => CampaignDetails(id: campaign['id'].toString()),
+          ),
         );
       },
       child: Container(
@@ -535,7 +492,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, 2)),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
         child: Column(
@@ -543,15 +504,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
                 child: Image.network(
                   image,
                   fit: BoxFit.cover,
                   width: double.infinity,
-                  loadingBuilder: (context, child, progress) =>
-                      progress == null ? child : Container(color: Colors.grey[200]),
-                  errorBuilder: (context, error, stackTrace) =>
-                      Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                  loadingBuilder: (context, child, progress) => progress == null
+                      ? child
+                      : Container(color: Colors.grey[200]),
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  ),
                 ),
               ),
             ),
@@ -564,7 +530,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title ?? "Untitled Campaign",
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -576,14 +545,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             value: progress,
                             minHeight: 8,
                             backgroundColor: Colors.grey.shade300,
-                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.teal),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.teal,
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         percent,
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.teal.shade800),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.teal.shade800,
+                        ),
                       ),
                     ],
                   ),
@@ -600,8 +575,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
       ],
     );
   }
@@ -612,7 +597,12 @@ class HeaderCurveClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     final path = Path();
     path.lineTo(0, size.height - 60);
-    path.quadraticBezierTo(size.width / 2, size.height, size.width, size.height - 60);
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height,
+      size.width,
+      size.height - 60,
+    );
     path.lineTo(size.width, 0);
     path.close();
     return path;

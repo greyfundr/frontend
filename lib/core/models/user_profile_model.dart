@@ -18,7 +18,7 @@ class UserProfileModel {
     String? password;
     String? firstName;
     String? lastName;
-    dynamic username;
+    String? username;
     String? accountType;
     String? emailOtp;
     String? phoneOtp;
@@ -31,7 +31,11 @@ class UserProfileModel {
     dynamic companyName;
     dynamic tin;
     String? refreshToken;
-    dynamic pin;
+    String? pin;
+    dynamic passwordResetToken;
+    dynamic passwordResetTokenExpiry;
+    Profile? profile;
+    dynamic kyc;
 
     UserProfileModel({
         this.id,
@@ -57,6 +61,10 @@ class UserProfileModel {
         this.tin,
         this.refreshToken,
         this.pin,
+        this.passwordResetToken,
+        this.passwordResetTokenExpiry,
+        this.profile,
+        this.kyc,
     });
 
     factory UserProfileModel.fromJson(Map<String, dynamic> json) => UserProfileModel(
@@ -83,6 +91,10 @@ class UserProfileModel {
         tin: json["tin"],
         refreshToken: json["refreshToken"],
         pin: json["pin"],
+        passwordResetToken: json["passwordResetToken"],
+        passwordResetTokenExpiry: json["passwordResetTokenExpiry"],
+        profile: json["profile"] == null ? null : Profile.fromJson(json["profile"]),
+        kyc: json["kyc"],
     );
 
     Map<String, dynamic> toJson() => {
@@ -109,5 +121,65 @@ class UserProfileModel {
         "tin": tin,
         "refreshToken": refreshToken,
         "pin": pin,
+        "passwordResetToken": passwordResetToken,
+        "passwordResetTokenExpiry": passwordResetTokenExpiry,
+        "profile": profile?.toJson(),
+        "kyc": kyc,
+    };
+}
+
+class Profile {
+    String? id;
+    DateTime? createdAt;
+    DateTime? updatedAt;
+    dynamic deletedAt;
+    String? bio;
+    dynamic country;
+    dynamic state;
+    dynamic city;
+    dynamic address;
+    List<String>? interests;
+    dynamic image;
+
+    Profile({
+        this.id,
+        this.createdAt,
+        this.updatedAt,
+        this.deletedAt,
+        this.bio,
+        this.country,
+        this.state,
+        this.city,
+        this.address,
+        this.interests,
+        this.image,
+    });
+
+    factory Profile.fromJson(Map<String, dynamic> json) => Profile(
+        id: json["id"],
+        createdAt: json["createdAt"] == null ? null : DateTime.parse(json["createdAt"]),
+        updatedAt: json["updatedAt"] == null ? null : DateTime.parse(json["updatedAt"]),
+        deletedAt: json["deletedAt"],
+        bio: json["bio"],
+        country: json["country"],
+        state: json["state"],
+        city: json["city"],
+        address: json["address"],
+        interests: json["interests"] == null ? [] : List<String>.from(json["interests"]!.map((x) => x)),
+        image: json["image"],
+    );
+
+    Map<String, dynamic> toJson() => {
+        "id": id,
+        "createdAt": createdAt?.toIso8601String(),
+        "updatedAt": updatedAt?.toIso8601String(),
+        "deletedAt": deletedAt,
+        "bio": bio,
+        "country": country,
+        "state": state,
+        "city": city,
+        "address": address,
+        "interests": interests == null ? [] : List<dynamic>.from(interests!.map((x) => x)),
+        "image": image,
     };
 }

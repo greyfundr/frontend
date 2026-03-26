@@ -4,7 +4,17 @@ import 'package:greyfundr/core/models/user_settings_model.dart';
 abstract class UserApi {
   Future<UserProfileModel> fetchUserProfile();
 
-  Future updateUserProfile({String? firstName, String? lastName});
+  Future updateUserProfile({
+    String? firstName,
+    String? lastName,
+    List<String>? interest,
+    String? bio,
+    String? username,
+    String? country,
+    String? state,
+    String? city,
+    String? address,
+  });
 
   Future<UserSettingsModel> fetchUserSettings();
 

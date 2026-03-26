@@ -4,7 +4,10 @@ import 'package:flutter/widgets.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
 import 'package:greyfundr/core/dependencies/locator.dart';
 import 'package:greyfundr/core/models/all_user_model.dart';
+import 'package:greyfundr/core/models/single_split_split_bill_model.dart';
+import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/shared/responsiveState/base_view_model.dart';
+import 'package:greyfundr/shared/responsiveState/view_state.dart';
 
 class SplitBillProvider extends BaseNotifier {
   final _splitBillApi = locator<SplitBillApi>();
@@ -94,6 +97,39 @@ class SplitBillProvider extends BaseNotifier {
       return true;
     } catch (e, stack) {
       log("ERROR FETCHING ALL USERS: $e", stackTrace: stack);
+      return false;
+    }
+  }
+
+  List <SplitBillDatum> userSplitBills = [];
+  ViewState userSplitBillState = ViewState.Idle;
+  Future<bool> getCurrentUserSplitBill() async {
+    setCustomState(ViewState state) {
+      userSplitBillState = state;
+      notifyListeners();
+    }
+    try {
+      setCustomState(ViewState.Busy);
+      var response = await _splitBillApi.getCurrentUserSplitBill();
+      setCustomState(ViewState.Success);
+      notifyListeners();
+      return true;
+    } catch (e, stack) {
+      log("ERROR FETCHING CURRENT USER SPLIT BILL: $e", stackTrace: stack);
+      setCustomState(ViewState.Error);
+
+      return false;
+    }
+  }
+
+  SingleSplitBillModel? splitBillDetails;
+  Future<bool> getSplitBillDetails({required String splitBillId}) async {
+    try {
+      splitBillDetails = await _splitBillApi.getSplitBillDetails(splitBillId);
+      notifyListeners();
+      return true;
+    } catch (e, stack) {
+      log("ERROR FETCHING CURRENT USER SPLIT BILL: $e", stackTrace: stack);
       return false;
     }
   }

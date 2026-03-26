@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/route_manager.dart';
 import 'package:flutter/material.dart';
@@ -6,28 +7,23 @@ import 'package:greyfundr/features/onboardinf/splash_screen.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
 import 'package:greyfundr/features/event/event_home.dart';
-import 'package:greyfundr/features/bill/bill_screen.dart';
+import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/environment.dart';
 import 'package:provider/provider.dart';
 
-
-
- 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   BuildEnvironment.init(flavor: BuildFlavor.development);
 
-
-  // await dotenv.load(fileName: ".env");
+  await dotenv.load(fileName: ".env");
   // Initialize Firebase with background message handler
   // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Set the background messaging handler
   // FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
 
   UserLocalStorageService.initSharedPreferences();
   setupLocator();
@@ -52,9 +48,9 @@ void main() async {
   //     ),
   //   );
   // } else {
-    runApp(
-      MultiProvider(providers: AppProviders.providers, child: const MyApp()),
-    );
+  runApp(
+    MultiProvider(providers: AppProviders.providers, child: const MyApp()),
+  );
   // }
 }
 
@@ -75,18 +71,10 @@ class MyApp extends StatelessWidget {
       home: const SplashScreen(),
 
       // Add this line
+      defaultTransition: Transition.rightToLeft,
+      transitionDuration: const Duration(milliseconds: 350),
 
-  defaultTransition: Transition.rightToLeft,   // ← add this line
-  transitionDuration: const Duration(milliseconds: 350), // optional: control speed
-
-      // ── ADD THIS getPages BLOCK ────────────────────────────────────────
-     getPages: [
-    GetPage(name: '/bill', page: () => const BillScreen()),
-    GetPage(name: '/charity', page: () => const CharityScreen()),
-    GetPage(name: '/lifestyle', page: () => const EventHome()),
-  ],
       // ────────────────────────────────────────────────────────────────────
-
       builder: (BuildContext context, Widget? child) {
         final MediaQueryData originalMediaQuery = MediaQuery.of(context);
 

@@ -3,12 +3,10 @@ import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_num_pad.dart';
-import 'package:greyfundr/components/custom_pin_input.dart';
 import 'package:greyfundr/features/auth/auth_provider.dart';
 import 'package:greyfundr/features/shared/bottom_nav.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/text_style.dart';
-
 import 'package:provider/provider.dart';
 
 class CreatePinScreen extends StatefulWidget {
@@ -19,21 +17,13 @@ class CreatePinScreen extends StatefulWidget {
 }
 
 class _CreatePinScreenState extends State<CreatePinScreen> {
-  AuthProvider? authProvider;
-  final TextEditingController pinController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      authProvider = Provider.of<AuthProvider>(context, listen: false);
-    });
-  }
+  bool isConfirming = false;
+  String firstPin = "";
 
   @override
   void dispose() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // authProvider?.disposePin();
+      Provider.of<AuthProvider>(context, listen: false).disposePin();
     });
     super.dispose();
   }
@@ -43,8 +33,8 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: Color(0xffD9F1F3),
-      appBar: AppBar(elevation: 0, backgroundColor: Color(0xffD9F1F3)),
+      backgroundColor: const Color(0xffD9F1F3),
+      appBar: AppBar(elevation: 0, backgroundColor: const Color(0xffD9F1F3)),
       body: LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
           return SingleChildScrollView(
@@ -53,15 +43,15 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
               child: IntrinsicHeight(
                 child: SafeArea(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 32),
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Gap(0),
+                        const Gap(0),
                         Padding(
                           padding: const EdgeInsets.only(bottom: 10.0),
                           child: Text(
-                            'Create Pin',
+                            isConfirming ? 'Confirm PIN' : 'Create PIN',
                             style: txStyle32Bold.copyWith(
                               color: appPrimaryColor,
                             ),
@@ -69,40 +59,67 @@ class _CreatePinScreenState extends State<CreatePinScreen> {
                         ),
                         Center(
                           child: Text(
-                            'Enable faster sign in and transaction completion with PIN',
+                            isConfirming
+                                ? 'Please re-enter your PIN to confirm'
+                                : 'Enable faster sign in and transaction completion with PIN',
                             style: txStyle14,
                             textAlign: TextAlign.center,
                           ),
                         ),
-                        Gap(64),
+                        const Gap(64),
                         PinCodeText(pin: authProvider.newPin),
-                        Spacer(),
+                        const Spacer(),
                         NumPad(
                           onValue: (value) {
                             authProvider.addToPin(value);
-                            // signInProvider.checkPinFiled();
                           },
                           onDelete: () {
                             authProvider.deleteFromPin();
-                            // signInProvider.checkPinFiled();
                           },
                         ),
-                        Spacer(),
+                        const Spacer(),
                         Padding(
                           padding: const EdgeInsets.only(bottom: 20.0),
                           child: CustomButton(
+                            enabled: authProvider.newPin.length == 6,
                             onTap: () async {
-                              bool res = await authProvider.createPin(
-                                pin: authProvider.newPin,
-                              );
-                              if (res) {
-                                Get.to(
-                                  BottomNav(),
-                                  transition: Transition.rightToLeft,
-                                );
+                              if (!isConfirming) {
+                                setState(() {
+                                  firstPin = authProvider.newPin;
+                                  isConfirming = true;
+                                });
+                                authProvider.disposePin();
+                              } else {
+                                if (authProvider.newPin == firstPin) {
+                                  bool res = await authProvider.createPin(
+                                    pin: authProvider.newPin,
+                                  );
+                                  if (res) {
+                                    Get.offAll(
+                                      const BottomNav(),
+                                      transition: Transition.rightToLeft,
+                                    );
+                                  }
+                                } else {
+                                  Get.snackbar(
+                                    "Error",
+                                    "PINs do not match",
+                                    backgroundColor: Colors.red.withOpacity(
+                                      0.7,
+                                    ),
+                                    colorText: Colors.white,
+                                    margin: const EdgeInsets.all(15),
+                                    snackPosition: SnackPosition.BOTTOM,
+                                  );
+                                  authProvider.disposePin();
+                                  setState(() {
+                                    isConfirming = false;
+                                    firstPin = "";
+                                  });
+                                }
                               }
                             },
-                            label: "Create Pin",
+                            label: isConfirming ? "Confirm PIN" : "Continue",
                           ),
                         ),
                       ],

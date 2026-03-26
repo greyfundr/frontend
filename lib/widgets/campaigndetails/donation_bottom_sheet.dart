@@ -1013,6 +1013,7 @@ class PaymentSuccessScreen extends StatelessWidget {
         padding: const EdgeInsets.all(24.0),
         child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Lottie.asset(
             "assets/lottie/Success.json",
@@ -1021,7 +1022,7 @@ class PaymentSuccessScreen extends StatelessWidget {
             repeat: false,
           ),
           Gap(20),
-          Text("Payment Successful", style: txStyle30SemiBold),
+          Text("Payment Successful", style: txStyle30SemiBold, textAlign: TextAlign.center,),
           Gap(10),
           Center(
             child: RichText(

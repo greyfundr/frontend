@@ -50,7 +50,7 @@ class FeatureIcons extends StatelessWidget {
             Navigator.push(context, MaterialPageRoute(builder: (_) => const RequestBillScreen()));
           }),
           _featureIcon("Scan Bill", Icons.qr_code_scanner, Colors.blue, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const ScanBill()));
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const SizedBox()));
           }),
         ],
       ),

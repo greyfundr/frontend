@@ -1,0 +1,74 @@
+event model
+
+•⁠  ⁠category
+•⁠  ⁠location: {
+    lat: number,
+    lng: number,
+    address: string
+}
+•⁠  short-description
+•⁠  event hashtag - 30 characters
+•⁠  title
+•⁠  detailed-description: {
+    [text: string,
+    media: [string]]
+}
+•⁠  ⁠target amount
+•⁠  ⁠amount raised
+•⁠  ⁠date & ⁠event time 
+•⁠  ⁠qr code link event/id
+•⁠  ⁠itemsToBuy [{image, name, price, quantity}]
+•⁠  ⁠no of expected participant
+•⁠  ⁠name of venue
+•⁠  organizers [{name, username, picture, role}]
+
+
+donation, purchase and activity model
+
+•⁠  ⁠activities [{name, amount, description}]
+
+
+gifting model
+
+•⁠  ⁠gifting [{name, amount, picture}]
+
+
+socket for donations
+
+•⁠  init
+    init socket via the event id
+
+
+•⁠  events
+    ⁠event-donate - to listen for new donations in real-time
+    {name, amount, picture}
+
+make payment for event
+    initiate via paystack, 
+    pick via wallet
+    transfer bill
+
+
+
+[
+  "Wedding",
+  "Anniversary",
+  "Birthday",
+  "Festival",
+  "Picnic",
+  "MeetUp",
+  "Community Gathering",
+  "Reunion",
+  "Engagement",
+  "Baby Shower",
+  "Gender Reveal",
+  "Graduation",
+  "Cultural Festival",
+  "Religious Gathering",
+  "Thanksgiving",
+  "Eid",
+  "Christmas",
+  "Fundraising",
+  "Charity",
+  "Fundraising"
+]

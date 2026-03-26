@@ -7,8 +7,10 @@ import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
 import 'package:greyfundr/core/models/all_user_model.dart';
-import 'package:greyfundr/core/models/split_bill_model.dart' as splitBill;
-import 'package:greyfundr/core/models/split_bill_model.dart';
+import 'package:greyfundr/core/models/ny_split_bill_model.dart' as splitBill;
+import 'package:greyfundr/core/models/ny_split_bill_model.dart';
+import 'package:greyfundr/core/models/single_split_split_bill_model.dart';
+import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/core/models/split_user_model.dart' as splitUser;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
@@ -16,66 +18,53 @@ import 'package:mime/mime.dart';
 class SplitBillApiImpl implements SplitBillApi {
   final ApiClient _apiClient = ApiClient();
 
-  Map<String, String> get header => {
-      'Accept': 'application/json',
-      };
+  Map<String, String> get header => {'Accept': 'application/json'};
 
   // ──────────────────────────────────────────────────────────────
   // Get Split Bill Details
   // ──────────────────────────────────────────────────────────────
   @override
-  Future<Map<String, dynamic>> getSplitBillDetails(String splitBillId) async {
-    try {
-      final url = '${ApiRoute.createSplitBillRoute}/$splitBillId';
-      final responseBody = await _apiClient.get(
-        url,
-        requiresToken: true,
-        hideLog: false,
-      );
-
-      final decoded = jsonDecode(responseBody);
-      log('getSplitBillDetails response for $splitBillId: $decoded');
-
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      }
-
-      throw Exception('Invalid split bill response format');
-    } catch (e, stack) {
-      log('getSplitBillDetails failed for $splitBillId: $e', stackTrace: stack);
-      rethrow;
-    }
+  Future<SingleSplitBillModel> getSplitBillDetails(String splitBillId) async {
+    final url = '${ApiRoute.createSplitBillRoute}/$splitBillId';
+    final responseBody = await _apiClient.get(
+      url,
+      requiresToken: true,
+      hideLog: false,
+    );
+    return singleSplitBillModelFromJson(responseBody);
   }
 
   // ──────────────────────────────────────────────────────────────
   // Get Users / Participants
   // ──────────────────────────────────────────────────────────────
- @override
-Future<List<AllUsersModel>> getUsers() async {
-  try {
-    final responseBody = await _apiClient.get(
-      ApiRoute.getUserRoute,
-      headers: header,
-      requiresToken: true,
-      hideLog: false
-    );
-    
-    final decoded = jsonDecode(responseBody);
-    log("DECODED USERS RESPONSE: $decoded");
+  @override
+  Future<List<AllUsersModel>> getUsers() async {
+    try {
+      final responseBody = await _apiClient.get(
+        ApiRoute.getUserRoute,
+        headers: header,
+        requiresToken: true,
+        hideLog: false,
+      );
 
-    if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
-      return (decoded['data'] as List).map((x) => AllUsersModel.fromJson(x)).toList();
-    } else if (decoded is List) {
-      return decoded.map((x) => AllUsersModel.fromJson(x)).toList();
+      final decoded = jsonDecode(responseBody);
+      log("DECODED USERS RESPONSE: $decoded");
+
+      if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
+        return (decoded['data'] as List)
+            .map((x) => AllUsersModel.fromJson(x))
+            .toList();
+      } else if (decoded is List) {
+        return decoded.map((x) => AllUsersModel.fromJson(x)).toList();
+      }
+
+      // Fallback logic in case the structure is different or empty
+      return [];
+    } catch (e, stack) {
+      log('Error in getUsers(): $e', stackTrace: stack);
+      rethrow;
     }
-
-    // Fallback logic in case the structure is different or empty
-    return []; 
-  } catch (e, stack) {
-    log('Error in getUsers(): $e', stackTrace: stack);
-    rethrow;
   }
-}
 
   // ──────────────────────────────────────────────────────────────
   // Upload Bill Receipt
@@ -90,21 +79,10 @@ Future<List<AllUsersModel>> getUsers() async {
         contentType: lookupMimeType(file.path) != null
             ? MediaType.parse(lookupMimeType(file.path)!)
             : MediaType('image', 'jpeg'),
-      );
-
-      // Use a single field name to avoid duplicate file references which can
-      // confuse content-length calculation on some servers.
-      final fileSize = File(file.path).lengthSync();
-      log('uploadBillReceipt - file size: $fileSize bytes');
-      // For single-file receipt uploads the backend typically expects the
-      // field name `file`. Use that instead of `image` which some endpoints
-      // reject (see server response).
-      final formData = FormData.fromMap({
-        'file': multipart,
-      });
-
-      // Use the dedicated formData parameter to make intent explicit
-      final responseBody = await _apiClient.post(
+      ); 
+      final fileSize = File(file.path).lengthSync(); 
+      final formData = FormData.fromMap({'file': multipart});
+       final responseBody = await _apiClient.post(
         ApiRoute.uploadBillReceiptRoute,
         headers: header,
         formData: formData,
@@ -114,7 +92,9 @@ Future<List<AllUsersModel>> getUsers() async {
       // Try to decode JSON safely, fall back to raw body
       dynamic decoded;
       try {
-        decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+        decoded = responseBody is String
+            ? jsonDecode(responseBody)
+            : responseBody;
       } catch (e) {
         decoded = responseBody;
       }
@@ -164,7 +144,9 @@ Future<List<AllUsersModel>> getUsers() async {
       // If it's a DioException, log more details
       try {
         if (e is DioException) {
-          log('DioException details: ${e.type} ${e.message} ${e.response?.statusCode} ${e.response?.data}');
+          log(
+            'DioException details: ${e.type} ${e.message} ${e.response?.statusCode} ${e.response?.data}',
+          );
         }
       } catch (_) {}
       return null;
@@ -209,12 +191,12 @@ Future<List<AllUsersModel>> getUsers() async {
         final entry = <String, dynamic>{
           "type": isGuest ? "GUEST" : "USER",
           if (isGuest) ...{
-              "name": name,
-              "phone": phone,
-            } else ...{
-              // Some backends accept numeric userId. Send int when possible.
-              "userId": int.tryParse(user.id.toString()) ?? user.id,
-            },
+            "name": name,
+            "phone": phone,
+          } else ...{
+            // Some backends accept numeric userId. Send int when possible.
+            "userId": int.tryParse(user.id.toString()) ?? user.id,
+          },
           "amount": amountForThis,
         };
         participantList.add(entry);
@@ -238,7 +220,9 @@ Future<List<AllUsersModel>> getUsers() async {
         requiresToken: true,
       );
 
-      final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      final decoded = responseBody is String
+          ? jsonDecode(responseBody)
+          : responseBody;
 
       return decoded is Map<String, dynamic> ? decoded : null;
     } catch (e) {
@@ -271,7 +255,9 @@ Future<List<AllUsersModel>> getUsers() async {
         final assignedAmountInt = assignedAmountDouble.toInt();
         // Debug: log mapping from participant -> assigned amount (naira int)
         // ignore: avoid_print
-        print('ManualSplit: participant=${user.id} assignedAmt_naira=$assignedAmountInt');
+        print(
+          'ManualSplit: participant=${user.id} assignedAmt_naira=$assignedAmountInt',
+        );
         if (assignedAmountInt <= 0) continue;
 
         // Treat as guest only when id looks like a short temp id (e.g. generated timestamp)
@@ -340,7 +326,9 @@ Future<List<AllUsersModel>> getUsers() async {
       // ignore: avoid_print
       print('ManualSplit responseBody: $responseBody');
 
-      final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      final decoded = responseBody is String
+          ? jsonDecode(responseBody)
+          : responseBody;
 
       return decoded is Map<String, dynamic> ? decoded : null;
     } catch (e) {
@@ -373,7 +361,9 @@ Future<List<AllUsersModel>> getUsers() async {
 
       dynamic decoded;
       try {
-        decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+        decoded = responseBody is String
+            ? jsonDecode(responseBody)
+            : responseBody;
       } catch (e) {
         // If decoding fails, keep the raw response around
         decoded = responseBody;
@@ -394,7 +384,9 @@ Future<List<AllUsersModel>> getUsers() async {
       log('updateSplitBill failed: $e', stackTrace: stack);
       try {
         if (e is DioException) {
-          log('DioException in updateSplitBill: ${e.type} ${e.message} ${e.response?.statusCode} ${e.response?.data}');
+          log(
+            'DioException in updateSplitBill: ${e.type} ${e.message} ${e.response?.statusCode} ${e.response?.data}',
+          );
         }
       } catch (_) {}
       return null;
@@ -411,11 +403,10 @@ Future<List<AllUsersModel>> getUsers() async {
     required double amount,
   }) async {
     try {
-      final url = '${ApiRoute.createSplitBillRoute}/$splitBillId/participants/$participantId/pay';
+      final url =
+          '${ApiRoute.createSplitBillRoute}/$splitBillId/participants/$participantId/pay';
 
-      final body = {
-        'amount': amount.toInt(),
-      };
+      final body = {'amount': amount.toInt()};
 
       final responseBody = await _apiClient.post(
         url,
@@ -424,7 +415,9 @@ Future<List<AllUsersModel>> getUsers() async {
         requiresToken: true,
       );
 
-      final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      final decoded = responseBody is String
+          ? jsonDecode(responseBody)
+          : responseBody;
       if (decoded is Map<String, dynamic>) return decoded;
       return {'raw': decoded};
     } catch (e, stack) {
@@ -455,7 +448,9 @@ Future<List<AllUsersModel>> getUsers() async {
           requiresToken: true,
         );
 
-        final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+        final decoded = responseBody is String
+            ? jsonDecode(responseBody)
+            : responseBody;
         if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
           final data = decoded['data'];
           if (data is List) {
@@ -478,14 +473,18 @@ Future<List<AllUsersModel>> getUsers() async {
             body: p,
             requiresToken: true,
           );
-          final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+          final decoded = responseBody is String
+              ? jsonDecode(responseBody)
+              : responseBody;
           if (decoded is Map<String, dynamic>) {
             // try extract created participant from data or raw map
             if (decoded.containsKey('data')) {
               final d = decoded['data'];
-              if (d is Map<String, dynamic>) created.add(d);
+              if (d is Map<String, dynamic>)
+                created.add(d);
               else if (d is List) {
-                for (final it in d) if (it is Map<String, dynamic>) created.add(it);
+                for (final it in d)
+                  if (it is Map<String, dynamic>) created.add(it);
               }
             } else {
               created.add(decoded);
@@ -512,7 +511,8 @@ Future<List<AllUsersModel>> getUsers() async {
     required String participantId,
   }) async {
     try {
-      final url = '${ApiRoute.createSplitBillRoute}/$splitBillId/participants/$participantId';
+      final url =
+          '${ApiRoute.createSplitBillRoute}/$splitBillId/participants/$participantId';
       final responseBody = await _apiClient.delete(
         url,
         headers: header,
@@ -521,8 +521,11 @@ Future<List<AllUsersModel>> getUsers() async {
 
       // If server returned JSON with success marker, consider it success
       try {
-        final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
-        if (decoded is Map<String, dynamic> && (decoded['success'] == true || decoded['status'] == 'success')) {
+        final decoded = responseBody is String
+            ? jsonDecode(responseBody)
+            : responseBody;
+        if (decoded is Map<String, dynamic> &&
+            (decoded['success'] == true || decoded['status'] == 'success')) {
           return true;
         }
       } catch (_) {}
@@ -547,7 +550,8 @@ Future<List<AllUsersModel>> getUsers() async {
     try {
       final url = '${ApiRoute.getSplitBillRoute}/$splitBillId/cancel';
       final body = <String, dynamic>{'reason': reason};
-      if (description != null && description.isNotEmpty) body['description'] = description;
+      if (description != null && description.isNotEmpty)
+        body['description'] = description;
 
       final responseBody = await _apiClient.post(
         url,
@@ -558,7 +562,9 @@ Future<List<AllUsersModel>> getUsers() async {
 
       // Try decode and check for success markers
       try {
-        final decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+        final decoded = responseBody is String
+            ? jsonDecode(responseBody)
+            : responseBody;
         if (decoded is Map<String, dynamic>) {
           if (decoded['success'] == true) return true;
           if (decoded['status'] == 'success') return true;
@@ -580,47 +586,41 @@ Future<List<AllUsersModel>> getUsers() async {
   Future<MySplitBillModel> getMySplitBills() async {
     try {
       final url = '${ApiRoute.createSplitBillRoute}/my-bills';
-      final responseBody = await _apiClient.get(
-        url,
-        requiresToken: true,
-      );
+      final responseBody = await _apiClient.get(url, requiresToken: true);
 
-      // Decode safely
-      dynamic decoded;
-      try {
-        decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
-      } catch (e) {
-        // fallback to trying jsonEncode -> decode
-        decoded = jsonDecode(jsonEncode(responseBody));
-      }
+      // // Decode safely
+      // dynamic decoded;
+      // try {
+      //   decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
+      // } catch (e) {
+      //   // fallback to trying jsonEncode -> decode
+      //   decoded = jsonDecode(jsonEncode(responseBody));
+      // }
 
-      // The server may return different shapes. Common shapes:
-      // 1) { data: [ ... ] }
-      // 2) { data: { bills: [ ... ], ... } }
-      // 3) { bills: [ ... ] }
-      // 4) [ ... ]
-      List<dynamic> billList = [];
+      // // The server may return different shapes. Common shapes:
+      // // 1) { data: [ ... ] }
+      // // 2) { data: { bills: [ ... ], ... } }
+      // // 3) { bills: [ ... ] }
+      // // 4) [ ... ]
+      // List<dynamic> billList = [];
 
-      if (decoded is Map<String, dynamic>) {
-        final dataNode = decoded['data'];
-        if (dataNode is List) {
-          billList = dataNode;
-        } else if (dataNode is Map && dataNode['bills'] is List) {
-          billList = dataNode['bills'];
-        } else if (decoded['bills'] is List) {
-          billList = decoded['bills'];
-        }
-      } else if (decoded is List) {
-        billList = decoded;
-      }
+      // if (decoded is Map<String, dynamic>) {
+      //   final dataNode = decoded['data'];
+      //   if (dataNode is List) {
+      //     billList = dataNode;
+      //   } else if (dataNode is Map && dataNode['bills'] is List) {
+      //     billList = dataNode['bills'];
+      //   } else if (decoded['bills'] is List) {
+      //     billList = decoded['bills'];
+      //   }
+      // } else if (decoded is List) {
+      //   billList = decoded;
+      // }
 
       // Log decoded for easier debugging when shapes differ
-      log('getMySplitBills decoded shape: ${decoded.runtimeType}');
+      // log('getMySplitBills decoded shape: ${decoded.runtimeType}');
 
-      return billList
-          .whereType<Map<String, dynamic>>()
-          .map((item) => splitBill.SplitBill.fromJson(item))
-          .toList();
+      return mySplitBillModelFromJson(responseBody);
     } catch (e) {
       log('getMySplitBills failed: $e');
       rethrow;
@@ -628,25 +628,11 @@ Future<List<AllUsersModel>> getUsers() async {
   }
 
   @override
-  Future<List<splitBill.SplitBill>> getAllSplitBills() async {
-    try {
-      // Use the main split-bills route which returns all bills
-      final responseBody = await _apiClient.get(
-        ApiRoute.getSplitBillRoute,
-        requiresToken: true,
-      );
-
-      final decoded = jsonDecode(responseBody is String ? responseBody : jsonEncode(responseBody));
-
-      final List<dynamic> billList = (decoded['data'] as List?) ?? [];
-
-      return billList
-          .whereType<Map<String, dynamic>>()
-          .map((item) => splitBill.SplitBill.fromJson(item))
-          .toList();
-    } catch (e) {
-      log('getAllSplitBills failed: $e');
-      rethrow;
-    }
+  Future<SplitBillResponseModel> getCurrentUserSplitBill() async {
+    final responseBody = await _apiClient.get(
+      ApiRoute.getSplitBillRoute,
+      requiresToken: true,
+    );
+    return splitBillResponseModelFromJson(responseBody);
   }
 }

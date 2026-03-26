@@ -15,7 +15,7 @@ import 'package:greyfundr/features/event/event_home.dart';
 import 'package:greyfundr/features/event/event_screen.dart';
 import 'package:greyfundr/features/invoice/invoice_screen.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
-import 'package:greyfundr/features/bill/bill_screen.dart';
+import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
 import 'package:greyfundr/features/profile/profile_screen.dart';
 
 import 'package:greyfundr/components/custom_ontap.dart';
@@ -39,121 +39,122 @@ class HomeScreen extends StatelessWidget {
     final walletProvider = Provider.of<WalletProvider>(context);
     var userProfile = userProvider.userProfileModel;
     var walletModel = walletProvider.walletModel;
-    final bool noAncestorNav = context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
+    final bool noAncestorNav =
+        context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
     userProvider.setSuppressAppNav(noAncestorNav);
 
     return Scaffold(
       // Render a compact 3-tab bottom nav only when no ancestor
       // BottomNavigationBar exists (standalone screen). Home should be
       // active when this screen is shown.
-      bottomNavigationBar: noAncestorNav
-          ? Builder(builder: (ctx) {
-              final up = Provider.of<UserProvider>(ctx);
-              int mapTo3(int gi) {
-                if (gi == 0) return 0;
-                if (gi == 1) return 1;
-                if (gi == 4) return 2;
-                return 0;
-              }
-              return BottomNavigationBar(
-                backgroundColor: Colors.white,
-                type: BottomNavigationBarType.fixed,
-                showUnselectedLabels: true,
-                showSelectedLabels: true,
-                elevation: 0,
-                selectedFontSize: 12,
-                unselectedFontSize: 12,
-                unselectedLabelStyle: const TextStyle(
-                  color: greyTextColor,
-                  fontWeight: FontWeight.w500,
-                ),
-                selectedLabelStyle: const TextStyle(
-                  color: appPrimaryColor,
-                  fontWeight: FontWeight.w500,
-                ),
-                currentIndex: mapTo3(up.selectedIndex),
-                selectedItemColor: appPrimaryColor,
-                unselectedItemColor: greyTextColor,
-                onTap: (i) {
-                  doHepticFeedback();
-                  if (i == 0) {
-                    up.updateSelectedIndex(0);
-                    // already on HomeScreen; nothing else needed
-                    return;
-                  }
-                  if (i == 1) {
-                    up.updateSelectedIndex(1);
-                    Navigator.pushReplacement(
-                      ctx,
-                      MaterialPageRoute(builder: (_) => const BillScreen()),
-                    );
-                    return;
-                  }
-                  if (i == 2) {
-                    up.updateSelectedIndex(4);
-                    Navigator.pushReplacement(
-                      ctx,
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                    );
-                    return;
-                  }
-                },
-                items: [
-                  BottomNavigationBarItem(
-                    icon: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: SvgPicture.asset(
-                          'assets/svgs/home.svg',
-                          colorFilter: ColorFilter.mode(
-                            mapTo3(up.selectedIndex) == 0 ? appPrimaryColor : greyTextColor,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                    ),
-                    label: 'Home',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: SvgPicture.asset(
-                          'assets/svgs/bills.svg',
-                          colorFilter: ColorFilter.mode(
-                            mapTo3(up.selectedIndex) == 1 ? appPrimaryColor : greyTextColor,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                    ),
-                    label: 'Bills',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: SvgPicture.asset(
-                          'assets/svgs/profile.svg',
-                          colorFilter: ColorFilter.mode(
-                            mapTo3(up.selectedIndex) == 2 ? appPrimaryColor : greyTextColor,
-                            BlendMode.srcIn,
-                          ),
-                        ),
-                      ),
-                    ),
-                    label: 'Profile',
-                  ),
-                ],
-              );
-            })
-          : null,
+      // bottomNavigationBar: noAncestorNav
+      //     ? Builder(builder: (ctx) {
+      //         final up = Provider.of<UserProvider>(ctx);
+      //         int mapTo3(int gi) {
+      //           if (gi == 0) return 0;
+      //           if (gi == 1) return 1;
+      //           if (gi == 4) return 2;
+      //           return 0;
+      //         }
+      //         return BottomNavigationBar(
+      //           backgroundColor: Colors.white,
+      //           type: BottomNavigationBarType.fixed,
+      //           showUnselectedLabels: true,
+      //           showSelectedLabels: true,
+      //           elevation: 0,
+      //           selectedFontSize: 12,
+      //           unselectedFontSize: 12,
+      //           unselectedLabelStyle: const TextStyle(
+      //             color: greyTextColor,
+      //             fontWeight: FontWeight.w500,
+      //           ),
+      //           selectedLabelStyle: const TextStyle(
+      //             color: appPrimaryColor,
+      //             fontWeight: FontWeight.w500,
+      //           ),
+      //           currentIndex: mapTo3(up.selectedIndex),
+      //           selectedItemColor: appPrimaryColor,
+      //           unselectedItemColor: greyTextColor,
+      //           onTap: (i) {
+      //             doHepticFeedback();
+      //             if (i == 0) {
+      //               up.updateSelectedIndex(0);
+      //               // already on HomeScreen; nothing else needed
+      //               return;
+      //             }
+      //             if (i == 1) {
+      //               up.updateSelectedIndex(1);
+      //               Navigator.pushReplacement(
+      //                 ctx,
+      //                 MaterialPageRoute(builder: (_) => const BillScreen()),
+      //               );
+      //               return;
+      //             }
+      //             if (i == 2) {
+      //               up.updateSelectedIndex(4);
+      //               Navigator.pushReplacement(
+      //                 ctx,
+      //                 MaterialPageRoute(builder: (_) => const ProfileScreen()),
+      //               );
+      //               return;
+      //             }
+      //           },
+      //           items: [
+      //             BottomNavigationBarItem(
+      //               icon: Padding(
+      //                 padding: const EdgeInsets.all(8.0),
+      //                 child: SizedBox(
+      //                   height: 20,
+      //                   width: 20,
+      //                   child: SvgPicture.asset(
+      //                     'assets/svgs/home.svg',
+      //                     colorFilter: ColorFilter.mode(
+      //                       mapTo3(up.selectedIndex) == 0 ? appPrimaryColor : greyTextColor,
+      //                       BlendMode.srcIn,
+      //                     ),
+      //                   ),
+      //                 ),
+      //               ),
+      //               label: 'Home',
+      //             ),
+      //             BottomNavigationBarItem(
+      //               icon: Padding(
+      //                 padding: const EdgeInsets.all(8.0),
+      //                 child: SizedBox(
+      //                   height: 20,
+      //                   width: 20,
+      //                   child: SvgPicture.asset(
+      //                     'assets/svgs/bills.svg',
+      //                     colorFilter: ColorFilter.mode(
+      //                       mapTo3(up.selectedIndex) == 1 ? appPrimaryColor : greyTextColor,
+      //                       BlendMode.srcIn,
+      //                     ),
+      //                   ),
+      //                 ),
+      //               ),
+      //               label: 'Bills',
+      //             ),
+      //             BottomNavigationBarItem(
+      //               icon: Padding(
+      //                 padding: const EdgeInsets.all(8.0),
+      //                 child: SizedBox(
+      //                   height: 20,
+      //                   width: 20,
+      //                   child: SvgPicture.asset(
+      //                     'assets/svgs/profile.svg',
+      //                     colorFilter: ColorFilter.mode(
+      //                       mapTo3(up.selectedIndex) == 2 ? appPrimaryColor : greyTextColor,
+      //                       BlendMode.srcIn,
+      //                     ),
+      //                   ),
+      //                 ),
+      //               ),
+      //               label: 'Profile',
+      //             ),
+      //           ],
+      //         );
+      //       })
+      //     : null,
       body: SafeArea(
         child: Column(
           children: [
@@ -174,7 +175,7 @@ class HomeScreen extends StatelessWidget {
                       Column(
                         children: [
                           Text(
-                            "${userProfile?.firstName} ${userProfile?.lastName}",
+                            "${userProfile?.firstName ?? "---"} ${userProfile?.lastName ?? "---"}",
                           ),
                         ],
                       ),
@@ -204,66 +205,67 @@ class HomeScreen extends StatelessWidget {
 
                     Row(
                       children: [
+                        CustomOnTap(
+                          onTap: () {
+                            Get.to(
+                              () =>
+                                  EventHome(), // ← replace with your actual screen/widget
+                              transition: Transition.rightToLeft,
+                            );
+                          },
+                          child: Image.asset(
+                            "assets/images/lifestyle.png",
+                            height: 250,
+                            width: SizeConfig.widthOf(50),
+                          ),
+                        ),
 
-                         CustomOnTap(
-  onTap: () {
-    Get.to(
-      () => EventHome(), // ← replace with your actual screen/widget
-      transition: Transition.rightToLeft,
-    );
-  },
-  child: Image.asset(
-    "assets/images/lifestyle.png",
-    height: 250,
-    width: SizeConfig.widthOf(50),
-  ),
-),
-
-
-                         CustomOnTap(
-  onTap: () {
-    Get.to(
-      () => InvoiceScreen(), // ← replace with your actual screen/widget
-      transition: Transition.rightToLeft,
-    );
-  },
-  child: Image.asset(
-    "assets/images/invoice.png",
-    height: 250,
-    width: SizeConfig.widthOf(50),
-  ),
-),
+                        CustomOnTap(
+                          onTap: () {
+                            Get.to(
+                              () =>
+                                  InvoiceScreen(), // ← replace with your actual screen/widget
+                              transition: Transition.rightToLeft,
+                            );
+                          },
+                          child: Image.asset(
+                            "assets/images/invoice.png",
+                            height: 250,
+                            width: SizeConfig.widthOf(50),
+                          ),
+                        ),
                       ],
                     ),
                     Gap(20),
                     Row(
                       children: [
                         CustomOnTap(
-  onTap: () {
-    Get.to(
-      () => CreateNewScreen(), 
-      transition: Transition.rightToLeft,
-    );
-  },
-  child: Image.asset(
-    "assets/images/create_new.png",
-    height: 250,
-    width: SizeConfig.widthOf(50),
-  ),
-),
-                          CustomOnTap(
-  onTap: () {
-    Get.to(
-      () => CharityScreen(), // ← replace with your actual screen/widget
-      transition: Transition.rightToLeft,
-    );
-  },
-  child: Image.asset(
-    "assets/images/charity.png",
-    height: 250,
-    width: SizeConfig.widthOf(50),
-  ),
-),
+                          onTap: () {
+                            Get.to(
+                              () => CreateNewScreen(),
+                              transition: Transition.rightToLeft,
+                            );
+                          },
+                          child: Image.asset(
+                            "assets/images/create_new.png",
+                            height: 250,
+                            width: SizeConfig.widthOf(50),
+                          ),
+                        ),
+                        CustomOnTap(
+                          onTap: () {
+                            Get.to(
+                              () =>
+                                  CharityScreen(), // ← replace with your actual screen/widget
+                              transition: Transition.rightToLeft,
+                            );
+                          },
+                          child: Image.asset(
+                            "assets/images/charity.png",
+                            height: 250,
+                            width: SizeConfig.widthOf(50),
+                          ),
+                        ),
                       ],
                     ),
                     Gap(20),
@@ -414,10 +416,10 @@ class IncompleteKycBadge extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     return CustomOnTap(
       onTap: () async {
-        bool res = await userProvider.completeKycTemp();
-        if (res) {
-          userProvider.fetchUserProfileApi();
-        }
+        // bool res = await userProvider.completeKycTemp();
+        // if (res) {
+        userProvider.fetchUserProfileApi();
+        // }
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),

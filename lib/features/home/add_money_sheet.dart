@@ -286,7 +286,7 @@ class PaymentSuccessScreen extends StatelessWidget {
               ),
             ),
           ),
-          Gap(20),
+          Gap(SizeConfig.heightOf(20)),
           CustomButton(
             onTap: () {
               Get.close(1);

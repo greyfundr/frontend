@@ -2,8 +2,12 @@ import 'dart:developer';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/route_manager.dart';
+import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
+import 'package:greyfundr/core/models/login_response_model.dart';
+import 'package:greyfundr/features/auth/signup_personal/signup_personal_outlet.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/shared/responsiveState/base_view_model.dart';
 import 'package:greyfundr/shared/responsiveState/view_state.dart';
@@ -112,8 +116,7 @@ class AuthProvider extends BaseNotifier with Validators {
     notifyListeners();
   }
 
-
-  String? _token;  // ← NEW: private token field
+  String? _token; // ← NEW: private token field
 
   // NEW: Public getter so other screens can access it
   String? get token => _token;
@@ -137,14 +140,29 @@ class AuthProvider extends BaseNotifier with Validators {
         password: password,
       );
       notifyListeners();
-      return true;
+      return checkIfUserIsVerified(response);
     } catch (e, stacktrace) {
-      log("ERROR ON SIGN IN $e ");
-      log("ERROR ON SIGN IN $stacktrace ");
+      log("ERROR ON SIGN IN $e :::; $stacktrace");
       showErrorToast("${e}");
       return false;
     } finally {
       EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> checkIfUserIsVerified(LoginResponseModel response) async {
+    if (response.data?.hasVerifiedPhone == false) {
+      emailController.text = response.data?.email ?? "";
+      phoneController.text = response.data?.phoneNumber ?? "";
+      Get.to(SignupPersonalOutlet());
+      EasyLoading.show();
+      await Future.delayed(Duration(seconds: 2));
+      EasyLoading.dismiss();
+      animateToNextSignupPage(1);
+      notifyListeners();
+      return false;
+    } else {
+      return true;
     }
   }
 
@@ -284,7 +302,6 @@ class AuthProvider extends BaseNotifier with Validators {
     }
   }
 
-
   Future<bool> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -297,12 +314,12 @@ class AuthProvider extends BaseNotifier with Validators {
         newPassword: newPassword,
         confirmNewPassword: confirmNewPassword,
       );
-       notifyListeners();
+      notifyListeners();
       return true;
     } catch (e) {
       log("ERROR ON CHANGE PASSWORD $e ");
       showErrorToast("${e}");
-       notifyListeners();
+      notifyListeners();
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -341,6 +358,7 @@ class AuthProvider extends BaseNotifier with Validators {
       showErrorToast("${e}");
       return false;
     } finally {
+      disposePin();
       EasyLoading.dismiss();
       pin = "";
       notifyListeners();
@@ -366,5 +384,20 @@ class AuthProvider extends BaseNotifier with Validators {
     } finally {
       EasyLoading.dismiss();
     }
+  }
+
+  clearSignup() {
+    emailController.clear();
+    phoneController.clear();
+    passwordController.clear();
+    confirmPasswordController.clear();
+    selectedRole = "";
+    currentSignupPage = 0;
+    notifyListeners();
+  }
+
+  disposePin() {
+    newPin = "";
+    notifyListeners();
   }
 }

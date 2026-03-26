@@ -12,7 +12,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:greyfundr/features/home/home_screen.dart';
-import 'package:greyfundr/features/bill/bill_screen.dart';
+import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
 import 'package:greyfundr/features/profile/profile_screen.dart';
 
 import 'package:greyfundr/features/event/start_event.dart';
@@ -34,7 +34,9 @@ class EventHome extends StatefulWidget {
 }
 
 class _EventHomeState extends State<EventHome> {
-  final RefreshController _refreshController = RefreshController(initialRefresh: false);
+  final RefreshController _refreshController = RefreshController(
+    initialRefresh: false,
+  );
   late ScrollController _scrollController;
 
   bool _isHeaderCollapsed = true;
@@ -91,10 +93,14 @@ class _EventHomeState extends State<EventHome> {
     });
 
     try {
-      final payload = await locator<CampaignApi>().getAllCampaigns(page: _pageNumber);
+      final payload = await locator<CampaignApi>().getAllCampaigns(
+        page: _pageNumber,
+      );
 
-      final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
-      final List<Map<String, dynamic>> campaigns = rawList.cast<Map<String, dynamic>>();
+      final List<dynamic> rawList =
+          payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
+      final List<Map<String, dynamic>> campaigns = rawList
+          .cast<Map<String, dynamic>>();
 
       if (!mounted) return;
 
@@ -105,7 +111,8 @@ class _EventHomeState extends State<EventHome> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = "Failed to load events: ${e.toString().split('\n').first}";
+        _errorMessage =
+            "Failed to load events: ${e.toString().split('\n').first}";
         _isLoading = false;
       });
     } finally {
@@ -119,10 +126,14 @@ class _EventHomeState extends State<EventHome> {
 
     try {
       final nextPage = _pageNumber + 1;
-      final payload = await locator<CampaignApi>().getAllCampaigns(page: nextPage);
+      final payload = await locator<CampaignApi>().getAllCampaigns(
+        page: nextPage,
+      );
 
-      final List<dynamic> rawList = payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
-      final List<Map<String, dynamic>> newCampaigns = rawList.cast<Map<String, dynamic>>();
+      final List<dynamic> rawList =
+          payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
+      final List<Map<String, dynamic>> newCampaigns = rawList
+          .cast<Map<String, dynamic>>();
 
       if (!mounted) return;
 
@@ -146,7 +157,9 @@ class _EventHomeState extends State<EventHome> {
 
   Widget _buildTabContent(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF007A74)));
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF007A74)),
+      );
     }
 
     if (_errorMessage != null) {
@@ -156,11 +169,16 @@ class _EventHomeState extends State<EventHome> {
           children: [
             Icon(Icons.error_outline, size: 80, color: Colors.red[300]),
             const SizedBox(height: 16),
-            Text(_errorMessage!, style: const TextStyle(fontSize: 16, color: Colors.red)),
+            Text(
+              _errorMessage!,
+              style: const TextStyle(fontSize: 16, color: Colors.red),
+            ),
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadInitialCampaigns,
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF6B35)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF6B35),
+              ),
               child: const Text("Retry", style: TextStyle(color: Colors.white)),
             ),
           ],
@@ -175,7 +193,8 @@ class _EventHomeState extends State<EventHome> {
       return _buildEmptyTab(
         icon: Icons.recommend_outlined,
         title: "Upcoming Events will appear here",
-        subtitle: "Events you create will appear here.\nTap the button below to start your first one!",
+        subtitle:
+            "Events you create will appear here.\nTap the button below to start your first one!",
         buttonText: "Start an Event",
         onPressed: () => Navigator.push(
           context,
@@ -188,7 +207,8 @@ class _EventHomeState extends State<EventHome> {
       return _buildEmptyTab(
         icon: Icons.people_alt_outlined,
         title: "Events that have ended will appear here",
-        subtitle: "Past events you participated in or created will appear here.",
+        subtitle:
+            "Past events you participated in or created will appear here.",
       );
     }
 
@@ -200,9 +220,15 @@ class _EventHomeState extends State<EventHome> {
           children: [
             Icon(Icons.campaign_outlined, size: 80, color: Colors.grey[400]),
             const SizedBox(height: 16),
-            const Text("No events available yet", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            const Text(
+              "No events available yet",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
-            const Text("Check back later or create your own!", style: TextStyle(color: Colors.grey)),
+            const Text(
+              "Check back later or create your own!",
+              style: TextStyle(color: Colors.grey),
+            ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => Navigator.push(
@@ -229,7 +255,9 @@ class _EventHomeState extends State<EventHome> {
         if (index >= _allCampaigns.length) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(child: CircularProgressIndicator(color: Color(0xFF007A74))),
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF007A74)),
+            ),
           );
         }
 
@@ -260,9 +288,20 @@ class _EventHomeState extends State<EventHome> {
             children: [
               Icon(icon, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 16),
-              Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
               const SizedBox(height: 8),
-              Text(subtitle, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              ),
               if (buttonText != null) ...[
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
@@ -284,181 +323,75 @@ class _EventHomeState extends State<EventHome> {
 
   @override
   @override
-Widget build(BuildContext context) {
-  // Status bar styling
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Color(0xFF007A74),
-    statusBarIconBrightness: Brightness.light,
-    statusBarBrightness: Brightness.dark,
-  ));
+  Widget build(BuildContext context) {
+    // Status bar styling
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF007A74),
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+    );
 
-  final userProvider = Provider.of<UserProvider>(context);
+    final userProvider = Provider.of<UserProvider>(context);
 
-  final user = userProvider.userProfileModel;
+    final user = userProvider.userProfileModel;
 
-  if (user == null) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator(color: Color(0xFF007A74))),
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF007A74)),
+        ),
+      );
+    }
+    // If shown standalone (no ancestor BottomNavigationBar), ensure the
+    // provider marks Bills as active so the compact nav highlights it.
+    final bool noAncestorNav =
+        context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
+    if (noAncestorNav && userProvider.selectedIndex != 1) {
+      userProvider.updateSelectedIndex(1);
+    }
+    userProvider.setSuppressAppNav(noAncestorNav);
+
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+
+      body: SafeArea(
+        child: Column(
+          children: [
+            EventHeaderSection(
+              isCollapsed: _isHeaderCollapsed,
+              onStartCampaign: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const StartEvent()),
+              ),
+              onSettings: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Settings coming soon!")),
+                );
+              },
+            ),
+
+            // FeatureIconsRow(
+            //   selectedCategory: _selectedCategory,
+            //   onCategorySelected: (category) {
+            //     setState(() {
+            //       _selectedCategory = category;
+            //       _loadInitialCampaigns();
+            //     });
+            //     WidgetsBinding.instance.addPostFrameCallback((_) {
+            //       if (_scrollController.hasClients) {
+            //         _scrollController.jumpTo(0);
+            //       }
+            //     });
+            //   },
+            // ),
+            Gap(20),
+            // HorizontalEventCarousel(isVisible: !_isHeaderCollapsed),
+           
+          ],
+        ),
+      ),
     );
   }
-  // If shown standalone (no ancestor BottomNavigationBar), ensure the
-  // provider marks Bills as active so the compact nav highlights it.
-  final bool noAncestorNav = context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
-  if (noAncestorNav && userProvider.selectedIndex != 1) {
-    userProvider.updateSelectedIndex(1);
-  }
-  userProvider.setSuppressAppNav(noAncestorNav);
-
-  return Scaffold(
-    backgroundColor: Colors.grey[100],
-    bottomNavigationBar: noAncestorNav
-        ? Builder(builder: (ctx) {
-            final up = Provider.of<UserProvider>(ctx);
-            int mapTo3(int gi) {
-              if (gi == 0) return 0;
-              if (gi == 1) return 1;
-              if (gi == 4) return 2;
-              return 0;
-            }
-            return BottomNavigationBar(
-              backgroundColor: Colors.white,
-              type: BottomNavigationBarType.fixed,
-              showUnselectedLabels: true,
-              showSelectedLabels: true,
-              elevation: 0,
-              selectedFontSize: 12,
-              unselectedFontSize: 12,
-              unselectedLabelStyle: const TextStyle(
-                color: greyTextColor,
-                fontWeight: FontWeight.w500,
-              ),
-              selectedLabelStyle: const TextStyle(
-                color: appPrimaryColor,
-                fontWeight: FontWeight.w500,
-              ),
-              currentIndex: mapTo3(up.selectedIndex),
-              selectedItemColor: appPrimaryColor,
-              unselectedItemColor: greyTextColor,
-              onTap: (i) {
-                doHepticFeedback();
-                if (i == 0) {
-                  up.updateSelectedIndex(0);
-                  Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const HomeScreen()));
-                  return;
-                }
-                if (i == 1) {
-                  up.updateSelectedIndex(1);
-                  Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const BillScreen()));
-                  return;
-                }
-                if (i == 2) {
-                  up.updateSelectedIndex(4);
-                  Navigator.pushReplacement(ctx, MaterialPageRoute(builder: (_) => const ProfileScreen()));
-                  return;
-                }
-              },
-              items: [
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: SvgPicture.asset(
-                        'assets/svgs/home.svg',
-                        colorFilter: ColorFilter.mode(
-                          mapTo3(up.selectedIndex) == 0 ? appPrimaryColor : greyTextColor,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    ),
-                  ),
-                  label: 'Home',
-                ),
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: SvgPicture.asset(
-                        'assets/svgs/bills.svg',
-                        colorFilter: ColorFilter.mode(
-                          mapTo3(up.selectedIndex) == 1 ? appPrimaryColor : greyTextColor,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    ),
-                  ),
-                  label: 'Bills',
-                ),
-                BottomNavigationBarItem(
-                  icon: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: SvgPicture.asset(
-                        'assets/svgs/profile.svg',
-                        colorFilter: ColorFilter.mode(
-                          mapTo3(up.selectedIndex) == 2 ? appPrimaryColor : greyTextColor,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                    ),
-                  ),
-                  label: 'Profile',
-                ),
-              ],
-            );
-          })
-        : null,
-    body: SafeArea(
-      child: Column(
-        children: [
-          EventHeaderSection(
-            isCollapsed: _isHeaderCollapsed,
-            onStartCampaign: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const StartEvent()),
-            ),
-            onSettings: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Settings coming soon!")),
-              );
-            },
-          ),
-          // FeatureIconsRow(
-          //   selectedCategory: _selectedCategory,
-          //   onCategorySelected: (category) {
-          //     setState(() {
-          //       _selectedCategory = category;
-          //       _loadInitialCampaigns();
-          //     });
-          //     WidgetsBinding.instance.addPostFrameCallback((_) {
-          //       if (_scrollController.hasClients) {
-          //         _scrollController.jumpTo(0);
-          //       }
-          //     });
-          //   },
-          // ),
-
-           Gap(20),
-          // HorizontalEventCarousel(isVisible: !_isHeaderCollapsed),
-          TabSelector(
-            selectedTab: selectedTab,
-            onTabChanged: (tab) => setState(() => selectedTab = tab),
-          ),
-          Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              child: _buildTabContent(context),
-              transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
 }

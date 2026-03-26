@@ -8,6 +8,7 @@ import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:provider/provider.dart';
+import 'package:greyfundr/features/settings/interest_selection_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -19,6 +20,11 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   var firstNameController = TextEditingController();
   var lastNameController = TextEditingController();
+  var usernameController = TextEditingController();
+  var bioController = TextEditingController();
+
+  List<String> selectedInterests = [];
+
   UserProvider? userProvider;
   bool isChanged = false;
 
@@ -27,6 +33,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     firstNameController.addListener(_checkIfChanged);
     lastNameController.addListener(_checkIfChanged);
+    usernameController.addListener(_checkIfChanged);
+    bioController.addListener(_checkIfChanged);
     Future.delayed(Duration.zero, () {
       userProvider = Provider.of<UserProvider>(context, listen: false);
       initController();
@@ -37,8 +45,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     firstNameController.removeListener(_checkIfChanged);
     lastNameController.removeListener(_checkIfChanged);
+    usernameController.removeListener(_checkIfChanged);
+    bioController.removeListener(_checkIfChanged);
     firstNameController.dispose();
     lastNameController.dispose();
+    usernameController.dispose();
+    bioController.dispose();
     super.dispose();
   }
 
@@ -47,7 +59,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (userProfile != null) {
       bool changed =
           firstNameController.text != (userProfile.firstName ?? "") ||
-          lastNameController.text != (userProfile.lastName ?? "");
+          lastNameController.text != (userProfile.lastName ?? "") ||
+          usernameController.text != (userProfile.username ?? "") ||
+          bioController.text != (userProfile.profile?.bio ?? "") ||
+          !_areListsEqual(
+            selectedInterests,
+            userProfile.profile?.interests ?? [],
+          );
       if (isChanged != changed) {
         setState(() {
           isChanged = changed;
@@ -56,10 +74,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  bool _areListsEqual(List<String> list1, List<String> list2) {
+    if (list1.length != list2.length) return false;
+    for (int i = 0; i < list1.length; i++) {
+      if (!list2.contains(list1[i])) return false;
+    }
+    return true;
+  }
+
   initController() {
     var userProfile = userProvider!.userProfileModel;
     firstNameController.text = userProfile?.firstName ?? "";
     lastNameController.text = userProfile?.lastName ?? "";
+    usernameController.text = userProfile?.username ?? "";
+    bioController.text = userProfile?.profile?.bio ?? "";
+    selectedInterests = List.from(userProfile?.profile?.interests ?? []);
     setState(() {});
   }
 
@@ -68,9 +97,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final userProvider = Provider.of<UserProvider>(context);
     return Scaffold(
       appBar: CustomAppBar(title: "Edit Profile"),
-      body: Column(
+      body: ListView(
         children: [
-          CustomNetworkImage(imageUrl: "", radius: 100),
+          Center(child: CustomNetworkImage(imageUrl: "", radius: 100)),
           Gap(20),
           CustomTextField(
             labelText: "First Name",
@@ -84,6 +113,68 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             controller: lastNameController,
           ),
           Gap(20),
+          CustomTextField(
+            labelText: "Username",
+            hintText: "Enter your username",
+            controller: usernameController,
+          ),
+          Gap(20),
+          CustomTextField(
+            labelText: "Bio",
+            hintText: "Tell us a bit about yourself",
+            controller: bioController,
+          ),
+          Gap(20),
+          const Text(
+            "Interests",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          const Gap(10),
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: [
+              ...selectedInterests.map((interest) {
+                return Chip(
+                  label: Text(interest),
+                  onDeleted: () {
+                    setState(() {
+                      selectedInterests.remove(interest);
+                    });
+                    _checkIfChanged();
+                  },
+                  backgroundColor: Colors.grey.shade100,
+                  deleteIconColor: Colors.black54,
+                  side: BorderSide.none,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                );
+              }),
+              ActionChip(
+                label: const Text("Add+"),
+                onPressed: () async {
+                  final result = await Get.to(
+                    () => InterestSelectionScreen(
+                      initialInterests: selectedInterests,
+                    ),
+                  );
+                  if (result != null && result is List<String>) {
+                    setState(() {
+                      selectedInterests = result;
+                    });
+                    _checkIfChanged();
+                  }
+                },
+                backgroundColor: Colors.transparent,
+                side: const BorderSide(color: Colors.grey),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+            ],
+          ),
+          Gap(20),
           CustomButton(
             enabled: isChanged,
             onTap: () async {
@@ -91,6 +182,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 bool success = await userProvider.editProfile(
                   firstName: firstNameController.text,
                   lastName: lastNameController.text,
+                  username: usernameController.text,
+                  bio: bioController.text,
+                  interests: selectedInterests,
                 );
                 if (success) {
                   await userProvider.fetchUserProfileApi();

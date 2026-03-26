@@ -9,6 +9,7 @@ import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_circular_progress_indicator.dart';
+import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/features/auth/auth_outlet.dart';
 import 'package:greyfundr/features/auth/signin_widget.dart';
 import 'package:greyfundr/features/onboardinf/onboarding_screen.dart';
@@ -30,7 +31,7 @@ Future<void> doHepticFeedback() async {
 Future<bool> showCustomBottomSheet(
   Widget bottomSheet,
   BuildContext context, {
-  Color? backgroundColor,
+  Color? backgroundColor = Colors.transparent,
   bool isDismissible = true,
 }) async {
   await showModalBottomSheet(
@@ -731,4 +732,79 @@ String formatPhoneNumber(String phoneNumber) {
     return '+234${phoneNumber.substring(1)}';
   }
   return "+234$phoneNumber";
+}
+
+
+class UiNoDataWidget extends StatelessWidget {
+  final String title;
+  final String subTitle;
+  final double? height;
+  final MainAxisAlignment? mainAxisAlignment;
+  final VoidCallback? onTap;
+  final Future<void> Function()? onrefresh;
+  final Widget? actionWidget;
+  const UiNoDataWidget({
+    super.key,
+    required this.title,
+    this.subTitle = "",
+    this.height,
+    this.mainAxisAlignment,
+    this.onTap,
+    this.onrefresh,
+    this.actionWidget = const SizedBox(),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Future<void> defaultOnRefresh() async {}
+
+    return RefreshIndicator.adaptive(
+      color: appPrimaryColor,
+      onRefresh: onrefresh ?? () async {},
+      child: SingleChildScrollView(
+        physics: AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: height ?? SizeConfig.heightOf(70),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: mainAxisAlignment ?? MainAxisAlignment.center,
+              children: [
+                // Lottie.asset("assets/lottie/empty.json", height: 100),
+                // SvgPicture.asset("assets/svgs/empty.svg", height: 100),
+                // Gap(10),
+                Text(
+                  title,
+                  style: txStyle16Bold.copyWith(
+                    color: greyTextColor,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                Gap(10),
+                subTitle.isNotEmpty
+                    ? SizedBox(
+                      width: SizeConfig.widthOf(80),
+                      child: CustomOnTap(
+                        onTap: onTap ?? () {},
+                        child: Text(
+                          subTitle,
+                          style: txStyle14.copyWith(
+                            color: Colors.grey,
+                            height: 1.5,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    )
+                    : const SizedBox.shrink(),
+
+                Gap(10),
+                actionWidget ?? SizedBox.shrink(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

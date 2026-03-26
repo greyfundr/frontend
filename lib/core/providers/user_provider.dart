@@ -1,6 +1,8 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/user_api/user_api.dart';
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
@@ -42,6 +44,7 @@ class UserProvider with ChangeNotifier {
   // ─── Methods ────────────────────────────────────────────────────
   void updateSelectedIndex(int index) {
     _selectedIndex = index;
+    log("Selected Index: $index");
     notifyListeners();
   }
 
@@ -83,22 +86,60 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> editProfile({String? firstName, String? lastName}) async {
+  Future<bool> editProfile({
+    String? firstName,
+    String? lastName,
+    String? username,
+    String? bio,
+    String? country,
+    String? state,
+    String? city,
+    String? address,
+    List<String>? interests,
+  }) async {
+    EasyLoading.show();
     try {
       await _userApi.updateUserProfile(
         firstName: firstName ?? "",
         lastName: lastName ?? "",
+        username: username,
+        bio: bio,
+        country: country,
+        state: state,
+        city: city,
+        address: address,
+        interest: interests,
       );
+      // Refresh profile after edit
+      await fetchUserProfileApi();
+      showSuccessToast("Profile updated successfully");
+      return true;
+    } catch (e, stack) {
+      log("ERROR ON EDIT PROFILE: $e", stackTrace: stack);
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> editInterest({required List<String> interests}) async {
+    EasyLoading.show();
+    try {
+      await _userApi.updateUserProfile(interest: interests);
       // Refresh profile after edit
       await fetchUserProfileApi();
       return true;
     } catch (e, stack) {
       log("ERROR ON EDIT PROFILE: $e", stackTrace: stack);
       return false;
+    } finally {
+      EasyLoading.dismiss();
     }
   }
 
-  Future<bool> updateUserNotificationPreference(Map<String, dynamic> payload) async {
+  Future<bool> updateUserNotificationPreference(
+    Map<String, dynamic> payload,
+  ) async {
     try {
       await _userApi.updateUserNotificationPreference(payload: payload);
       notifyListeners();
@@ -117,7 +158,8 @@ class UserProvider with ChangeNotifier {
 
     try {
       // Use CampaignApi to fetch the current user's campaigns
-      final List<Map<String, dynamic>> list = await _campaignApi.getMyCampaigns();
+      final List<Map<String, dynamic>> list = await _campaignApi
+          .getMyCampaigns();
       _userCampaigns = list;
     } catch (e, stack) {
       log("ERROR FETCHING CAMPAIGNS: $e", stackTrace: stack);
@@ -127,6 +169,4 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-
- 
 }

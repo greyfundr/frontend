@@ -28,8 +28,31 @@ List<RoleSelectionClass> roles = [
   ),
 ];
 
-class SignupRoleSelectionScreen extends StatelessWidget {
+class SignupRoleSelectionScreen extends StatefulWidget {
   const SignupRoleSelectionScreen({super.key});
+
+  @override
+  State<SignupRoleSelectionScreen> createState() =>
+      _SignupRoleSelectionScreenState();
+}
+
+class _SignupRoleSelectionScreenState extends State<SignupRoleSelectionScreen> {
+  AuthProvider? authProvider;
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero, () {
+      authProvider = Provider.of<AuthProvider>(context, listen: false);
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      authProvider?.clearSignup();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +62,7 @@ class SignupRoleSelectionScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Gap(10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

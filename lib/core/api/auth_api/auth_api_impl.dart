@@ -11,9 +11,9 @@ class AuthApiImpl implements AuthApi {
   final ApiClient _apiClient = ApiClient();
 
   Map<String, String> get header => {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      };
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  };
 
   // ──────────────────────────────────────────────────────────────
   // Authentication / Registration
@@ -24,10 +24,7 @@ class AuthApiImpl implements AuthApi {
     required String emailOrPhone,
     required String password,
   }) async {
-    final data = {
-      "emailOrPhone": emailOrPhone,
-      "password": password,
-    };
+    final data = {"emailOrPhone": emailOrPhone, "password": password};
     final response = await _apiClient.post(
       ApiRoute.loginRoute,
       headers: header,
@@ -37,8 +34,10 @@ class AuthApiImpl implements AuthApi {
     final decoded = jsonDecode(response);
     final loginResponse = loginModels.loginResponseModelFromJson(response);
 
-    localStorage.setString("access_token", decoded["accessToken"]);
-    localStorage.setString("refresh_token", decoded["refreshToken"]);
+    if (loginResponse.data?.hasVerifiedPhone != false) {
+      localStorage.setString("access_token", decoded["accessToken"]);
+      localStorage.setString("refresh_token", decoded["refreshToken"]);
+    }
 
     return loginResponse;
   }
@@ -56,11 +55,7 @@ class AuthApiImpl implements AuthApi {
       "password": password,
       "accountType": accountType,
     };
-    return _apiClient.post(
-      ApiRoute.signupRoute,
-      headers: header,
-      body: data,
-    );
+    return _apiClient.post(ApiRoute.signupRoute, headers: header, body: data);
   }
 
   // @override
@@ -112,7 +107,7 @@ class AuthApiImpl implements AuthApi {
   //   );
   // }
 
-   @override
+  @override
   Future createPasswordApi({required String password}) async {
     // Map<String, dynamic> data = {"password": password};
     // final response = await _apiClient.post(
@@ -130,7 +125,7 @@ class AuthApiImpl implements AuthApi {
     return response;
   }
 
- @override
+  @override
   Future changePasswordApi({
     required String currentPassword,
     required String newPassword,
@@ -165,9 +160,7 @@ class AuthApiImpl implements AuthApi {
     return response;
   }
 
-
-
-    @override
+  @override
   Future submitBasicInfoApi({
     required String firstName,
     required String lastName,
@@ -188,8 +181,6 @@ class AuthApiImpl implements AuthApi {
     );
     return response;
   }
-
-  
 
   @override
   Future<dynamic> completeKycApi({
@@ -222,6 +213,8 @@ class AuthApiImpl implements AuthApi {
     final decoded = jsonDecode(responseBody);
     localStorage.setString("access_token", decoded["accessToken"]);
     localStorage.setString("refresh_token", decoded["refreshToken"]);
+    localStorage.setString("user_id", decoded["data"]["id"]);
+
     return responseBody;
   }
 
@@ -251,13 +244,10 @@ class AuthApiImpl implements AuthApi {
 
   @override
   Future<dynamic> generateTwoFactorApi() async {
-    return _apiClient.get(
-      ApiRoute.generateTwoFactorRoute,
-      headers: header,
-    );
+    return _apiClient.get(ApiRoute.generateTwoFactorRoute, headers: header);
   }
 
-    @override
+  @override
   Future verifyOtpApi({String? emailOrPhone, required String otp}) async {
     Map<String, dynamic> data = {"emailOrPhone": emailOrPhone, "otp": otp};
     final response = await _apiClient.patch(
@@ -266,11 +256,10 @@ class AuthApiImpl implements AuthApi {
       body: data,
     );
     var decodedResponse = jsonDecode(response);
-    localStorage.setString("temp_access_token", decodedResponse["accessToken"]);
-    // localStorage.setString("refresh_token", decodedResponse["refreshToken"]);
+    localStorage.setString("access_token", decodedResponse["accessToken"]);
+    localStorage.setString("refresh_token", decodedResponse["refreshToken"]);
     return response;
   }
-
 
   @override
   Future<dynamic> verifyTwoFactorApi({required String code}) async {
@@ -307,18 +296,12 @@ class AuthApiImpl implements AuthApi {
 
   @override
   Future<dynamic> userProfileApi() async {
-    return _apiClient.get(
-      ApiRoute.userProfileRoute,
-      headers: header,
-    );
+    return _apiClient.get(ApiRoute.userProfileRoute, headers: header);
   }
 
   @override
   Future<dynamic> getSettingsApi() async {
-    return _apiClient.get(
-      ApiRoute.getSettingsRoute,
-      headers: header,
-    );
+    return _apiClient.get(ApiRoute.getSettingsRoute, headers: header);
   }
 
   @override

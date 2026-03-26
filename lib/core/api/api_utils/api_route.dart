@@ -20,6 +20,11 @@ class ApiRoute {
   static final String loginPinRoute = "$baseUrl/auth/login-pin";
   static final String setPinRoute = "$baseUrl/auth/set-pin";
   static final String changePinRoute = "$baseUrl/auth/change-pin";
+  static final String searchUserRoute = "$baseUrl/users";
+  static final String uploadSingleImageRoute = "$baseUrl/upload/image";
+  static final String getAllEventsRoute = "$baseUrl/events";
+
+
 
 
 
@@ -61,6 +66,7 @@ class ApiRoute {
   // Campaign Routes (NEW)
   // ──────────────────────────────────────────────────────────────
   static final String createCampaignRoute = "$baseUrl/campaigns";
+  static final String createEventRoute = "$baseUrl/events";
   static final String donateToCampaignRoute = "$baseUrl/campaigns/{id}/donate";
   static final String uploadImageRoute = "$baseUrl/upload/campaign-images";
   // static const String uploadImagesRoute = "$baseUrl/upload/image";

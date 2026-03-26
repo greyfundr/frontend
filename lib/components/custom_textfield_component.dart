@@ -31,6 +31,7 @@ class CustomTextField extends StatefulWidget {
   final TextInputType? textInputType;
   final AutovalidateMode? autovalidateMode;
   final String? Function(String?)? onChanged;
+  final int? maxLength;
 
   ///labelText cannot be used when hintText is used
   const CustomTextField({
@@ -59,6 +60,7 @@ class CustomTextField extends StatefulWidget {
     this.darkenText = false,
     this.isRequired = false,
     this.autoFocus = false,
+    this.maxLength,
   });
 
   @override
@@ -122,7 +124,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   Expanded(
                     child: TextFormField(
                       focusNode: myFocusNode,
-                      autocorrect: false,
+                      autocorrect: true,
+                      textCapitalization: TextCapitalization.sentences,
                       inputFormatters: [
                         widget.formatters ??
                             FilteringTextInputFormatter.deny(''),
@@ -136,6 +139,8 @@ class _CustomTextFieldState extends State<CustomTextField> {
                       obscureText: hide,
                       obscuringCharacter: '•',
                       maxLines: widget.maxLines ?? 1,
+                      minLines: 1,
+                      maxLength: widget.maxLength,
                       validator: widget.validator,
 
                       onChanged: widget.onChanged,

@@ -1,6 +1,11 @@
 // eventwelcome.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/state_manager.dart';
+import 'package:provider/provider.dart';
+import 'package:greyfundr/components/custom_network_image%20copy.dart';
+import 'package:greyfundr/features/event/event_provider.dart';
 import 'create_event.dart';
 
 class EventScreen extends StatefulWidget {
@@ -38,9 +43,12 @@ class _EventScreenState extends State<EventScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<EventProvider>(context, listen: false).getEventCategories();
+    });
 
     // Auto-scroll carousel
-    Timer.periodic(const Duration(seconds: 4), (timer) {
+    Timer.periodic(const Duration(seconds: 2), (timer) {
       if (!mounted) return;
       int nextPage = _pageController.page!.round() + 1;
       if (nextPage >= carouselImages.length) nextPage = 0;
@@ -57,9 +65,10 @@ class _EventScreenState extends State<EventScreen>
       vsync: this,
     )..repeat();
 
-    _textAnimation = IntTween(begin: 0, end: rotatingTexts.length - 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.linear),
-    );
+    _textAnimation = IntTween(
+      begin: 0,
+      end: rotatingTexts.length - 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.linear));
 
     _textAnimation.addListener(() {
       if (mounted) {
@@ -69,17 +78,9 @@ class _EventScreenState extends State<EventScreen>
       }
     });
 
-    // Auto navigate after 3 seconds
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 5), () {
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 800),
-          pageBuilder: (_, __, ___) => const CreateventPage(),
-          transitionsBuilder: (_, a, __, child) =>
-              FadeTransition(opacity: a, child: child),
-        ),
-      );
+      Get.off(CreateventPage());
     });
   }
 
@@ -102,18 +103,12 @@ class _EventScreenState extends State<EventScreen>
               controller: _pageController,
               itemCount: carouselImages.length,
               itemBuilder: (context, index) {
-                return Container(
-                  width: MediaQuery.of(context).size.width,
-                  decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: NetworkImage(carouselImages[index]),
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(
-                        Colors.black,
-                        BlendMode.darken,
-                      ),
-                    ),
-                  ),
+                return CustomNetworkImageSqr(
+                  imageUrl: carouselImages[index],
+                  height: double.infinity,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  padding: 0,
                 );
               },
             ),
@@ -163,7 +158,7 @@ class _EventScreenState extends State<EventScreen>
                           blurRadius: 10,
                           color: Colors.deepPurple,
                           offset: Offset(0, 0),
-                        )
+                        ),
                       ],
                     ),
                     textAlign: TextAlign.center,
@@ -198,16 +193,20 @@ class _EventScreenState extends State<EventScreen>
                         children: [
                           Text(
                             "Taking you in",
-                            style: TextStyle(color: Colors.white54, fontSize: 16),
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 16,
+                            ),
                           ),
                           SizedBox(width: 8),
                           SizedBox(
-                            width: 20,
-                            height: 20,
+                            width: 10,
+                            height: 10,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor:
-                                  AlwaysStoppedAnimation(Colors.deepPurpleAccent),
+                              valueColor: AlwaysStoppedAnimation(
+                                Colors.deepPurpleAccent,
+                              ),
                             ),
                           ),
                         ],

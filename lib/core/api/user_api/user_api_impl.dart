@@ -33,12 +33,31 @@ class UserApiImpl implements UserApi {
   }
 
   @override
-  Future updateUserProfile({String? firstName, String? lastName}) async {
+  Future updateUserProfile({
+    String? firstName,
+    String? lastName,
+    List<String>? interest,
+    String? bio,
+    String? username,
+    String? country,
+    String? state,
+    String? city,
+    String? address,
+  }) async {
     final response = await _apiClient.patch(
       ApiRoute.userProfileRoute,
       headers: header,
-      body: {"firstName": firstName, "lastName": lastName}
-        ..removeWhere((key, value) => value == null || value.isEmpty),
+      body: {
+        "firstName": firstName,
+        "lastName": lastName,
+        "interests": interest,
+        "bio": bio,
+        "username": username,
+        "country": country,
+        "state": state,
+        "city": city,
+        "address": address,
+      }..removeWhere((key, value) => value == null || value == ""),
     );
     return response;
   }

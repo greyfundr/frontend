@@ -26,7 +26,15 @@ class AdaptiveIcons extends StatelessWidget {
             // size: 30,
           )
         : InkWell(
-          onTap: onTap,
-          child: Icon(iconData, size: 17, color: appPrimaryColor));
+            onTap: onTap,
+            child: Container(
+              padding: EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                // border: Border.all(color: Colors.grey),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(iconData, size: 25, color: appPrimaryColor),
+            ),
+          );
   }
 }

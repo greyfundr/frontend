@@ -1,6 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api_impl.dart';
+import 'package:greyfundr/core/api/event_api/event_api.dart';
+import 'package:greyfundr/core/api/event_api/event_api_impl.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
@@ -19,4 +21,6 @@ void setupLocator() {
   locator.registerLazySingleton<SplitBillApi>(() => SplitBillApiImpl());
   // Register CampaignApi so CampaignProvider can resolve it via locator
   locator.registerLazySingleton<CampaignApi>(() => CampaignApiImpl());
+  locator.registerLazySingleton<EventApi>(() => EventApiImpl());
+
 }

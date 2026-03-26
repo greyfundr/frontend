@@ -2,3 +2,19 @@ create the route
 create the implementation(core/api)(register it in locator)
 create the provider(register provider if it does not exist)
 connect it the ui
+
+
+- add dob to user model
+
+- create didit account
+- get bvn verification provider 
+
+- verification levels
+level one - bvn /bvn-verification {bvn: ""}
+level two - didit /userKyc/session :: start session
+
+- return kyc object in user model
+
+- mobile
+- refresh wallet on completion of action
+- 

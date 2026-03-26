@@ -15,6 +15,7 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final GlobalKey<ScaffoldState>? scaffoldKey;
   final bool centerTitle;
+  final VoidCallback? onBack;
   const CustomAppBar({
     super.key,
     this.title = "",
@@ -24,6 +25,7 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.hasDrawer = false,
     this.scaffoldKey,
     this.centerTitle = true,
+    this.onBack
   });
 
   @override
@@ -62,7 +64,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
                   SizedBox(
                     height: 40,
                     child: AdaptiveIcons(
-                      onTap: () {Get.close(1);},
+                      onTap: () {widget.onBack != null ? widget.onBack!() : Get.close(1);},
                       iconName: "arrow.left.circle",
                       iconData: Icons.arrow_back,
                     ),

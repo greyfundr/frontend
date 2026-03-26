@@ -1,8 +1,12 @@
 // A screen that shows the full split bill summary for a provided `SplitBill`.
 import 'package:flutter/material.dart';
+import 'package:greyfundr/components/custom_network_image%20copy.dart';
+// import 'package:greyfundr/core/models/single_split_split_bill_model.dart';
+import 'package:greyfundr/core/models/split_bill_response_model.dart';
+import 'package:greyfundr/shared/utils.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-import 'package:greyfundr/core/models/split_bill_model.dart';
-import 'package:greyfundr/features/bill/bill_screen.dart';
+import 'package:greyfundr/core/models/ny_split_bill_model.dart';
+import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
 import 'package:greyfundr/features/splitbill/edit_split_bill.dart';
 import 'package:provider/provider.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
@@ -12,7 +16,7 @@ import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
 import 'package:intl/intl.dart';
 
 class BillSummaryScreen extends StatefulWidget {
-  final SplitBill bill;
+  final SplitBillDatum bill;
 
   const BillSummaryScreen({super.key, required this.bill});
 
@@ -24,7 +28,7 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
     with SingleTickerProviderStateMixin {
   late RefreshController _refreshController;
   late TabController _tabController;
-  late SplitBill _bill;
+  late SplitBillDatum _bill;
 
   @override
   void initState() {
@@ -86,25 +90,25 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
                                 elevation: 2,
                               ),
                               onPressed: () {
-                                Navigator.of(ctx).pop();
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => EditSplitBill(initialBill: _bill)),
-                                ).then((result) {
-                                  if (!mounted) return;
-                                  if (result == true) {
-                                    setState(() {});
-                                    return;
-                                  }
-                                  if (result is Map<String, dynamic>) {
-                                    try {
-                                      final updated = SplitBill.fromJson(result);
-                                      setState(() => _bill = updated);
-                                    } catch (_) {
-                                      setState(() {});
-                                    }
-                                  }
-                                });
+                                // Navigator.of(ctx).pop();
+                                // Navigator.push(
+                                //   context,
+                                //   MaterialPageRoute(builder: (_) => EditSplitBill(initialBill: _bill)),
+                                // ).then((result) {
+                                //   if (!mounted) return;
+                                //   if (result == true) {
+                                //     setState(() {});
+                                //     return;
+                                //   }
+                                //   if (result is Map<String, dynamic>) {
+                                //     try {
+                                //       final updated = SplitBill.fromJson(result);
+                                //       setState(() => _bill = updated);
+                                //     } catch (_) {
+                                //       setState(() {});
+                                //     }
+                                //   }
+                                // });
                               },
                               child: const Text('EDIT SPLIT BILL', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                             ),
@@ -181,12 +185,12 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
                                                     Navigator.of(cctx).pop();
                                                     // Call cancel endpoint
                                                     final api = SplitBillApiImpl();
-                                                    final ok = await api.cancelSplitBill(splitBillId: _bill.id, reason: reason, description: null);
+                                                    final ok = await api.cancelSplitBill(splitBillId: _bill.id ?? "", reason: reason, description: null);
                                                     if (ok) {
                                                       CustomMessageModal.show(context: context, message: 'Split bill cancelled', isSuccess: true);
                                                       // Optionally navigate back to list
                                                       Navigator.of(context).pushAndRemoveUntil(
-                                                        MaterialPageRoute(builder: (_) => const BillScreen()),
+                                                        MaterialPageRoute(builder: (_) => const BillOutletScreen()),
                                                         (route) => false,
                                                       );
                                                     } else {
@@ -255,7 +259,7 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
               child: IconButton(
                 onPressed: () => Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => const BillScreen()),
+                  MaterialPageRoute(builder: (_) => const BillOutletScreen()),
                   (route) => false,
                 ),
                 icon: Image.asset(
@@ -312,8 +316,8 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
     );
   }
 
-  Widget _buildContent(SplitBill bill) {
-    final progress = bill.amount > 0 ? bill.amountRaised / bill.amount : 0.0;
+  Widget _buildContent(SplitBillDatum bill) {
+    final progress = ((bill.totalAmount ?? 0) > 0 ? (bill.totalCollected ?? 0) / (bill.totalAmount ?? 0) * 100 : 0);
 
     return Column(
       children: [
@@ -324,14 +328,14 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
             children: [
               Expanded(
                 child: Text(
-                  bill.title,
+                  bill.title ?? "",
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 12),
               Text(
-                _formatDate(bill.dueDate),
+                _formatDate(bill.dueDate ?? DateTime.now()),
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
             ],
@@ -358,7 +362,7 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "₦${bill.amountRaised.toStringAsFixed(2)} raised",
+                      "₦${bill.totalCollected.toStringAsFixed(2)} raised",
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -386,11 +390,11 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "of ₦${bill.amount.toStringAsFixed(2)}",
+                      "of ₦${bill.totalAmount.toStringAsFixed(2)}",
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                     Text(
-                      "${bill.participants.where((p) => p.paid).length} of ${bill.totalParticipants} paid",
+                      "${bill.participants?.where((p) => p.status == "").length} of ${bill.totalParticipants} paid",
                     ),
                   ],
                 ),
@@ -426,7 +430,7 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
             children: [
               _buildAboutTab(bill),
               _buildFinancingTab(bill),
-              _buildParticipantsTab(bill.participants),
+              _buildParticipantsTab(bill.participants ?? []),
               const Center(child: Text("No comment so far")),
             ],
           ),
@@ -435,32 +439,34 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
     );
   }
 
-  Widget _buildAboutTab(SplitBill bill) {
+  Widget _buildAboutTab(SplitBillDatum bill) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            bill.title,
+            bill.title ?? "title",
             style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           Text(
-            bill.description,
+            bill.description ?? "description",
             style: TextStyle(fontSize: 16, color: Colors.grey[700], height: 1.6),
           ),
           const SizedBox(height: 24),
-          _buildInfoRow("Split Method", bill.splitMethod),
-          _buildInfoRow("Due Date", _formatDate(bill.dueDate)),
-          _buildInfoRow("Status", bill.status.toUpperCase()),
+          _buildInfoRow("Split Method", bill.splitMethod ?? "method"),
+          _buildInfoRow("Due Date", _formatDate(bill.dueDate ?? DateTime.now())),
+          _buildInfoRow("Status", "${bill.status}"),
         ],
       ),
     );
   }
 
-  Widget _buildFinancingTab(SplitBill bill) {
-    final hasImage = bill.imageUrl != null && bill.imageUrl!.trim().isNotEmpty;
+  Widget _buildFinancingTab(SplitBillDatum bill) {
+    final hasImage =
+        bill.imageUrl != null &&
+        (bill.imageUrl!.trim().isNotEmpty ?? false);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -480,34 +486,20 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
           if (hasImage) ...[
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.network(
-                bill.imageUrl!,
-                fit: BoxFit.cover,
-                width: double.infinity,
+              child: CustomNetworkImageSqr(
+                imageUrl: "${bill.imageUrl}",
                 height: 320,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    height: 320,
-                    color: Colors.grey[200],
-                    child: const Center(child: CircularProgressIndicator()),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: 320,
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.broken_image, size: 80, color: Colors.grey),
-                    ),
-                  );
-                },
+                width: double.infinity,
               ),
             ),
             const SizedBox(height: 16),
             Text(
               "Bill / Receipt",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
             ),
           ] else ...[
             Container(
@@ -520,22 +512,37 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildFinanceRow("Total Amount", "₦${bill.amount.toStringAsFixed(0)}", isBold: true),
+                  _buildFinanceRow(
+                    "Total Amount",
+                    "₦${bill.totalAmount?.toStringAsFixed(0)}",
+                    isBold: true,
+                  ),
                   const Divider(height: 32),
-                  _buildFinanceRow("Number of Participants", "${bill.totalParticipants}"),
+                  _buildFinanceRow(
+                    "Number of Participants",
+                    "${bill.totalParticipants}",
+                  ),
                   const Divider(height: 32),
-                  _buildFinanceRow("Amount per Person", "₦${(bill.amount / bill.totalParticipants).toStringAsFixed(0)}"),
-                  if (bill.splitMethod.isNotEmpty) ...[
-                    const Divider(height: 32),
-                    _buildFinanceRow("Split Method", bill.splitMethod),
-                  ],
+                  _buildFinanceRow(
+                    "Amount per Person",
+                    "₦${((bill.totalAmount ?? 0) / (bill.totalParticipants ?? 0)).toStringAsFixed(0)}",
+                  ),
+                  const Divider(height: 32),
+                  _buildFinanceRow(
+                    "Split Method",
+                    bill.splitMethod ?? "---",
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
             Text(
               "Upload the bill/receipt to show detailed breakdown",
-              style: TextStyle(color: Colors.grey[600], fontSize: 14, fontStyle: FontStyle.italic),
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ],
 
@@ -550,23 +557,41 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Funding Progress", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(
+                  "Funding Progress",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("₦${bill.amountRaised.toStringAsFixed(0)} raised", style: const TextStyle(fontSize: 15)),
                     Text(
-                      "${(bill.amount > 0 ? bill.amountRaised / bill.amount * 100 : 0).toStringAsFixed(0)}%",
-                      style: const TextStyle(color: Color(0xFF0D7377), fontWeight: FontWeight.bold),
+                      "₦${convertStringToCurrency("${bill.totalCollected}")} raised",
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                    Text(
+                      "${((bill.totalAmount ?? 0) > 0 ? (bill.totalCollected ?? 0) / (bill.totalAmount ?? 0) * 100 : 0).toStringAsFixed(0)}%",
+                      style: const TextStyle(
+                        color: Color(0xFF0D7377),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 LinearProgressIndicator(
-                  value: bill.amount > 0 ? bill.amountRaised / bill.amount : 0,
+                  value: ((bill.totalAmount ?? 0) > 0
+                      ? (bill.totalCollected ?? 0) /
+                            (bill.totalAmount ?? 0) *
+                            100
+                      : 0),
                   backgroundColor: Colors.grey[300],
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D7377)),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFF0D7377),
+                  ),
                   minHeight: 10,
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -582,13 +607,7 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 15,
-            color: Colors.grey[700],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 15, color: Colors.grey[700])),
         Text(
           value,
           style: TextStyle(
@@ -607,7 +626,10 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
       itemCount: participants.length,
       itemBuilder: (context, index) {
         final p = participants[index];
-        final progress = p.amountOwed > 0 ? p.amountPaid / p.amountOwed : 0.0;
+        final progress = (p.amountOwed ?? 0) > 0
+            ? (p.amountPaid ?? 0) / (p.amountOwed ?? 0)
+            : 0.0;
+        final bool isPaid = p.status != "unpaid";
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -633,13 +655,16 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
                     radius: 26,
                     backgroundColor: const Color(0xFF0D7377),
                     child: Text(
-                      p.guestName != null && p.guestName!.trim().isNotEmpty
-                          ? p.guestName!.trim()[0].toUpperCase()
-                          : p.user != null && p.user!.firstName.trim().isNotEmpty
-                              ? p.user!.firstName.trim()[0].toUpperCase()
-                              : p.guestPhone != null && p.guestPhone!.trim().isNotEmpty
-                                  ? p.guestPhone!.replaceAll(RegExp(r'[^0-9]'), '')[0]
-                                  : 'G',
+                      p.guestName,
+                      // p.guestName != null && p.guestName!.trim().isNotEmpty
+                      //     ? p.guestName!.trim()[0].toUpperCase()
+                      //     : p.user != null &&
+                      //           p.user!.firstName!.trim().isNotEmpty
+                      //     ? p.user!.firstName!.trim()[0].toUpperCase()
+                      //     : p.guestPhone != null &&
+                      //           p.guestPhone!.trim().isNotEmpty
+                      //     ? p.guestPhone!.replaceAll(RegExp(r'[^0-9]'), '')[0]
+                      //     : 'G',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -653,27 +678,40 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          p.displayName,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                          p.guestName ?? "name",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
                         ),
                         if (p.guestPhone != null && p.guestPhone!.isNotEmpty)
                           Text(
                             p.guestPhone!,
-                            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 13,
+                            ),
                           ),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: p.paid ? Colors.green.shade100 : Colors.orange.shade100,
+                      color: isPaid
+                          ? Colors.green.shade100
+                          : Colors.orange.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      p.paid ? "PAID" : "UNPAID",
+                      isPaid ? "PAID" : "UNPAID",
                       style: TextStyle(
-                        color: p.paid ? Colors.green.shade800 : Colors.orange.shade800,
+                        color: isPaid
+                            ? Colors.green.shade800
+                            : Colors.orange.shade800,
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
@@ -685,17 +723,24 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
               Row(
                 children: [
                   Text(
-                    "₦${p.amountPaid.toStringAsFixed(0)}",
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    convertStringToCurrency("${p.amountPaid}"),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   Text(
-                    " of ₦${p.amountOwed.toStringAsFixed(0)}",
+                    " of ₦${convertStringToCurrency("${p.amountOwed}")}",
                     style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                   const Spacer(),
                   Text(
                     "${(progress * 100).toStringAsFixed(0)}%",
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0D7377), fontSize: 16),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0D7377),
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
@@ -705,7 +750,9 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
                 child: LinearProgressIndicator(
                   value: progress,
                   backgroundColor: Colors.grey[300],
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0D7377)),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    Color(0xFF0D7377),
+                  ),
                   minHeight: 10,
                 ),
               ),
@@ -725,7 +772,11 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
           Text(label, style: const TextStyle(fontSize: 16)),
           Text(
             value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0D7377)),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF0D7377),
+            ),
           ),
         ],
       ),
@@ -736,3 +787,4 @@ class _BillSummaryScreenState extends State<BillSummaryScreen>
     return "${date.day}/${date.month}/${date.year}";
   }
 }
+

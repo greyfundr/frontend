@@ -450,7 +450,7 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
                   ),
                           ),
                         ),
-                        title: Text(user.username ?? "GreyUser"),
+                        title: Text(user.username ?? "${user.firstName} ${user.lastName}"),
                         subtitle: Text(user.phoneNumber ?? user.email ?? ""),
                         trailing: ElevatedButton(
                           onPressed: () {

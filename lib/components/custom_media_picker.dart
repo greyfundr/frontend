@@ -9,30 +9,36 @@ import 'package:greyfundr/shared/text_style.dart';
 
 class CustomMediaPicker extends StatelessWidget {
   final List<XFile> images;
+  final List<String> networkImages;
   final VoidCallback onAddMedia;
   final Function(int) onRemoveMedia;
+  final Function(int)? onRemoveNetworkMedia;
 
   const CustomMediaPicker({
     super.key,
     required this.images,
+    this.networkImages = const [],
     required this.onAddMedia,
     required this.onRemoveMedia,
+    this.onRemoveNetworkMedia,
   });
 
   @override
   Widget build(BuildContext context) {
+    final totalMediaCount = networkImages.length + images.length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (images.isNotEmpty) ...[
+        if (totalMediaCount > 0) ...[
           SizedBox(
             height: 120,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: images.length + 1, // +1 for the add more button
+              itemCount: totalMediaCount + 1, // +1 for the add more button
               separatorBuilder: (_, __) => const Gap(12),
               itemBuilder: (context, index) {
-                if (index == images.length) {
+                if (index == totalMediaCount) {
                   // Add more button
                   return GestureDetector(
                     onTap: onAddMedia,
@@ -55,13 +61,52 @@ class CustomMediaPicker extends StatelessWidget {
                   );
                 }
 
+                if (index < networkImages.length) {
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          networkImages[index],
+                          fit: BoxFit.cover,
+                          width: 120,
+                          height: 120,
+                        ),
+                      ),
+                      if (onRemoveNetworkMedia != null)
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: GestureDetector(
+                            onTap: () => onRemoveNetworkMedia!(index),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }
+
+                final localIndex = index - networkImages.length;
+
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.file(
-                        File(images[index].path),
+                        File(images[localIndex].path),
                         fit: BoxFit.cover,
                         width: 120,
                         height: 120,
@@ -71,7 +116,7 @@ class CustomMediaPicker extends StatelessWidget {
                       top: 4,
                       right: 4,
                       child: GestureDetector(
-                        onTap: () => onRemoveMedia(index),
+                        onTap: () => onRemoveMedia(localIndex),
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: const BoxDecoration(

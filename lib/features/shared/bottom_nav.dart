@@ -43,7 +43,9 @@ class _BottomNavState extends State<BottomNav> {
 
     return Scaffold(
       backgroundColor: Colors.red,
-      body: _views.elementAt(userProvider.selectedIndex),
+      body: SafeArea(
+        top: false,
+        child: _views.elementAt(userProvider.selectedIndex)),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -61,16 +63,16 @@ class _BottomNavState extends State<BottomNav> {
           selectedFontSize: 12,
           unselectedFontSize: 12,
           unselectedLabelStyle: TextStyle(
-            color: Colors.white,
+            color: Colors.white.withOpacity(.5),
             fontWeight: FontWeight.w500,
           ),
           selectedLabelStyle: TextStyle(
-            color: appPrimaryColor,
+            color: Colors.white,
             fontWeight: FontWeight.w500,
           ),
           currentIndex: userProvider.selectedIndex,
-          selectedItemColor: appPrimaryColor,
-          unselectedItemColor: Colors.white,
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Colors.white.withOpacity(.5),
           onTap: (index) {
             doHepticFeedback();
             userProvider.updateSelectedIndex(index);
@@ -85,8 +87,8 @@ class _BottomNavState extends State<BottomNav> {
                   child: SvgPicture.asset(
                     'assets/svgs/home.svg',
                     color: userProvider.selectedIndex == 0
-                        ? appPrimaryColor
-                        : Colors.white,
+                        ? Colors.white
+                        : Colors.white.withOpacity(.5),
                   ),
                 ),
               ),
@@ -101,8 +103,8 @@ class _BottomNavState extends State<BottomNav> {
                   child: SvgPicture.asset(
                     'assets/svgs/bills.svg',
                     color: userProvider.selectedIndex == 1
-                        ? appPrimaryColor
-                        : Colors.white,
+                        ? Colors.white
+                        : Colors.white.withOpacity(.5),
                   ),
                 ),
               ),
@@ -118,8 +120,8 @@ class _BottomNavState extends State<BottomNav> {
                   child: SvgPicture.asset(
                     'assets/svgs/profile.svg',
                     color: userProvider.selectedIndex == 2
-                        ? appPrimaryColor
-                        : Colors.white,
+                        ? Colors.white
+                        : Colors.white.withOpacity(.5),
                   ),
                 ),
               ),

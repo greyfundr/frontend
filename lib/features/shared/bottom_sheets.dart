@@ -30,46 +30,48 @@ class LogoutAppSheet extends StatelessWidget {
               horizontal: SizeConfig.widthOf(5),
               vertical: 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("About to logout?", style: txStyle16Bold),
-                Gap(20),
-                Text(
-                  "Dear $userName, would you like to logout?",
-                  style: txStyle14,
-                ),
-                Gap(30),
-                SizedBox(
-                  height: 40,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: CustomButton(
-                          onTap: () {
-                            Get.close(1);
-                          },
-                          label: "Stay",
-                          backgroundColor: Colors.transparent,
-                          color: appPrimaryColor,
-                          borderColor: appPrimaryColor,
-                        ),
-                      ),
-                      Gap(10),
-                      Expanded(
-                        child: CustomButton(
-                          onTap: () {
-                            logout();
-                            UserLocalStorageService().clearUserData();
-                          },
-                          label: "Logout",
-                        ),
-                      ),
-                    ],
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("About to logout?", style: txStyle16Bold),
+                  Gap(20),
+                  Text(
+                    "Dear $userName, would you like to logout?",
+                    style: txStyle14,
                   ),
-                ),
-                Gap(20),
-              ],
+                  Gap(30),
+                  SizedBox(
+                    height: 40,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: CustomButton(
+                            onTap: () {
+                              Get.close(1);
+                            },
+                            label: "Stay",
+                            backgroundColor: Colors.transparent,
+                            color: appPrimaryColor,
+                            borderColor: appPrimaryColor,
+                          ),
+                        ),
+                        Gap(10),
+                        Expanded(
+                          child: CustomButton(
+                            onTap: () {
+                              logout();
+                              UserLocalStorageService().clearUserData();
+                            },
+                            label: "Logout",
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Gap(20),
+                ],
+              ),
             ),
           ),
         ),

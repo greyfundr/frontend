@@ -87,8 +87,9 @@ class UiBusyWidget extends StatelessWidget {
 
 class UiErrorWidget extends StatelessWidget {
   final double? height;
+  final VoidCallback? onRetry;
 
-  const UiErrorWidget({super.key, this.height});
+  const UiErrorWidget({super.key, this.height, this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +102,8 @@ class UiErrorWidget extends StatelessWidget {
             Text("An error occurred", style: txStyle16Bold),
             Gap(10),
             Text("Please try again later."),
-            CustomButton(onTap: () {}, label: ""),
+            Gap(10),
+            CustomButton(onTap: onRetry ?? (){}, label: "Try again"),
           ],
         ),
       ),

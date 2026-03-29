@@ -4,10 +4,8 @@ import 'package:get/route_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:greyfundr/core/providers/providers.dart';
 import 'package:greyfundr/features/onboardinf/splash_screen.dart';
+import 'package:greyfundr/services/app_link_service.dart';
 import 'package:greyfundr/services/locator.dart';
-import 'package:greyfundr/features/charity/charity_screen.dart';
-import 'package:greyfundr/features/event/event_home.dart';
-import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/environment.dart';
@@ -19,6 +17,14 @@ void main() async {
   BuildEnvironment.init(flavor: BuildFlavor.development);
 
   await dotenv.load(fileName: ".env");
+
+  try {
+    AppLinkService().init();
+  } catch (e) {
+    // Log the error, but don't crash the app
+    debugPrint("Error initializing AppLinkService: $e");
+  }
+
   // Initialize Firebase with background message handler
   // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 

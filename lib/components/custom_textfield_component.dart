@@ -30,8 +30,9 @@ class CustomTextField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final TextInputType? textInputType;
   final AutovalidateMode? autovalidateMode;
-  final String? Function(String?)? onChanged;
+  final void Function(String?)? onChanged;
   final int? maxLength;
+  final TextCapitalization textCapitalization;
 
   ///labelText cannot be used when hintText is used
   const CustomTextField({
@@ -61,6 +62,7 @@ class CustomTextField extends StatefulWidget {
     this.isRequired = false,
     this.autoFocus = false,
     this.maxLength,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   @override
@@ -125,7 +127,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                     child: TextFormField(
                       focusNode: myFocusNode,
                       autocorrect: true,
-                      textCapitalization: TextCapitalization.sentences,
+                      textCapitalization: widget.textCapitalization,
                       inputFormatters: [
                         widget.formatters ??
                             FilteringTextInputFormatter.deny(''),

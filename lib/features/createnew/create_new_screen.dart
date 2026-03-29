@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:gap/gap.dart';
+import 'package:greyfundr/features/event/create_event.dart';
+import 'package:greyfundr/features/event/event_screen.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
@@ -110,7 +112,7 @@ class CreateNewScreen extends StatelessWidget {
                 title: 'Create An Event',
                 description: 'Create an event and let guests donate toward your goal.',
                 onTap: () => Get.to(
-                  () => StartEvent(),
+                  () => EventScreen(),
                   transition: Transition.rightToLeft,
                 ),
               ),

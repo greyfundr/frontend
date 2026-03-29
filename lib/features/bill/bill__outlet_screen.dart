@@ -3,37 +3,25 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/features/bill/bill_screen.dart';
 import 'package:greyfundr/features/bill/lifestyle_screen.dart';
-import 'package:greyfundr/features/event/event_home.dart';
 import 'package:greyfundr/features/event/event_screen.dart';
-import 'package:greyfundr/shared/sizeConfig.dart';
+import 'package:greyfundr/features/event/event_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:get/get.dart';
 
-import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
-import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
-import 'package:greyfundr/core/models/ny_split_bill_model.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
-
 import 'package:greyfundr/features/home/add_money_sheet.dart';
-
 import 'package:greyfundr/features/shared/notification.dart';
 import 'package:greyfundr/features/splitbill/create_split_bill.dart';
-import 'package:greyfundr/features/home/home_screen.dart';
-import 'package:greyfundr/features/profile/profile_screen.dart';
-import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/features/settings/settings_screen.dart';
-import 'package:greyfundr/features/bill/sort_bill_modal.dart';
-import 'package:greyfundr/features/bill/bill_summary.dart';
 import 'package:greyfundr/features/bill/bill-stack/transfer_bill.dart';
 import 'package:greyfundr/features/bill/bill-stack/pay_bill.dart';
 import 'package:greyfundr/features/bill/bill-stack/request_bill.dart';
 import 'package:greyfundr/features/bill/bill-stack/split_bill.dart';
-import 'package:greyfundr/features/bill/bill-stack/scan_bill.dart';
 import 'package:gap/gap.dart';
 import 'package:greyfundr/shared/utils.dart';
 
@@ -79,7 +67,7 @@ class ConcaveBottomClipper extends CustomClipper<Path> {
 class _BillOutletScreenState extends State<BillOutletScreen>
     with SingleTickerProviderStateMixin {
   // for Bill | Charity | Lifestyle
-  late TabController _tabController;
+  // late TabController _tabController; (Moved to EventProvider)
 
   final ScrollController _scrollController = ScrollController();
   bool _isHeaderCollapsed = true;
@@ -96,18 +84,14 @@ class _BillOutletScreenState extends State<BillOutletScreen>
   String? comment;
 
   late UserProvider _userProvider;
+  late EventProvider _eventProvider;
 
   @override
   void initState() {
     super.initState();
     _userProvider = Provider.of<UserProvider>(context, listen: false);
-
-    _tabController = TabController(length: 3, vsync: this, initialIndex: 0);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        setState(() {});
-      }
-    });
+    _eventProvider = Provider.of<EventProvider>(context, listen: false);
+    _eventProvider.initBillOutletController(this);
 
     _scrollController.addListener(_scrollListener);
     // _fetchSplitBills();
@@ -115,7 +99,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
+    // _tabController.dispose(); (Handled in EventProvider)
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     donorController.dispose();
@@ -176,7 +160,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
   Widget _headerTabButton(String title, bool isActive, int index) {
     return GestureDetector(
       onTap: () {
-        _tabController.animateTo(index);
+        _eventProvider.billOutletTabController.animateTo(index);
         // if (title == 'Charity') {
         //   Get.toNamed('/charity'); // ← no transition param needed anymore
         // } else if (title == 'Lifestyle') {
@@ -408,108 +392,6 @@ class _BillOutletScreenState extends State<BillOutletScreen>
     );
   }
 
-  // Simple card used for Request and History dummy lists
-  Widget _buildSimpleCard({
-    required String title,
-    required String subtitle,
-    required String amountPaid,
-    required String totalAmount,
-    required double progress,
-    required String remaining,
-    VoidCallback? onTap,
-  }) {
-    var userProvider = Provider.of<UserProvider>(context);
-    // var currentUserInPa
-
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: const [
-            BoxShadow(color: Colors.grey, blurRadius: 12, offset: Offset(0, 4)),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-
-                ElevatedButton(
-                  onPressed: () => SortBillModal.show(
-                    context,
-                    widgetKeyForBillPlaceholder(),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF007A74),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                  ),
-                  child: const Text(
-                    "Sort Bill",
-                    style: TextStyle(fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "$amountPaid paid of $totalAmount",
-              style: TextStyle(color: Colors.grey[700], fontSize: 14),
-            ),
-            Text(
-              "$remaining remaining",
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 10,
-                backgroundColor: Colors.grey[200],
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFF007A74),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   // Helper to satisfy SortBillModal signature when using dummy cards
   SplitBillDatum widgetKeyForBillPlaceholder() {
     return SplitBillDatum(
@@ -533,50 +415,11 @@ class _BillOutletScreenState extends State<BillOutletScreen>
     );
   }
 
-  Widget _buildSimpleCompletedCard(
-    int index,
-    double paid,
-    double total,
-    double progress,
-  ) {
-    final paidFormatted = formatter.format(paid);
-    final totalFormatted = formatter.format(total);
-    final remaining = formatter.format(total - paid);
-    return _buildSimpleCard(
-      title: 'Completed #${index + 1}',
-      subtitle: 'This request has been completed',
-      amountPaid: '₦$paidFormatted',
-      totalAmount: '₦$totalFormatted',
-      progress: progress,
-      remaining: '₦$remaining',
-      onTap: () {},
-    );
-  }
-
-  Widget _buildSimpleCancelledCard(
-    int index,
-    double paid,
-    double total,
-    double progress,
-  ) {
-    final paidFormatted = formatter.format(paid);
-    final totalFormatted = formatter.format(total);
-    final remaining = formatter.format(total - paid);
-    return _buildSimpleCard(
-      title: 'Cancelled #${index + 1}',
-      subtitle: 'This request has been cancelled',
-      amountPaid: '₦$paidFormatted',
-      totalAmount: '₦$totalFormatted',
-      progress: progress,
-      remaining: '₦$remaining',
-      onTap: () {},
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
     final walletProvider = Provider.of<WalletProvider>(context);
+    final eventProvider = Provider.of<EventProvider>(context);
     var userProfile = userProvider.userProfileModel;
     var walletModel = walletProvider.walletModel;
     // If shown standalone (no ancestor BottomNavigationBar), make sure
@@ -663,17 +506,26 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                                 children: [
                                                   _headerTabButton(
                                                     'Bill',
-                                                    _tabController.index == 0,
+                                                    eventProvider
+                                                            .billOutletTabController
+                                                            .index ==
+                                                        0,
                                                     0,
                                                   ),
                                                   _headerTabButton(
                                                     'Charity',
-                                                    _tabController.index == 1,
+                                                    eventProvider
+                                                            .billOutletTabController
+                                                            .index ==
+                                                        1,
                                                     1,
                                                   ),
                                                   _headerTabButton(
                                                     'Lifestyle',
-                                                    _tabController.index == 2,
+                                                    eventProvider
+                                                            .billOutletTabController
+                                                            .index ==
+                                                        2,
                                                     2,
                                                   ),
                                                 ],
@@ -682,7 +534,6 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                           ),
                                           Row(
                                             children: [
-                                              // Notification SVG - Opens NotificationScreen
                                               GestureDetector(
                                                 onTap: () {
                                                   Get.to(
@@ -703,7 +554,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                                       ),
                                                 ),
                                               ),
-                                              const SizedBox(width: 16),
+                                              // const SizedBox(width: 16),
                                             ],
                                           ),
                                         ],
@@ -749,14 +600,14 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                         ),
                                       ],
                                     ),
-                                  CustomOnTap(
-                                    onTap: () {
-                                      Get.to(() => const NotificationScreen());
-                                    },
-                                    child: SvgPicture.asset(
-                                      "assets/svgs/notification.svg",
-                                    ),
-                                  ),
+                                  // CustomOnTap(
+                                  //   onTap: () {
+                                  //     Get.to(() => const NotificationScreen());
+                                  //   },
+                                  //   child: SvgPicture.asset(
+                                  //     "assets/svgs/notification.svg",
+                                  //   ),
+                                  // ),
                                 ],
                               ),
                             ),
@@ -1022,7 +873,10 @@ class _BillOutletScreenState extends State<BillOutletScreen>
 
                                 ElevatedButton(
                                   onPressed: () {
-                                    _tabController.index == 2
+                                    eventProvider
+                                                .billOutletTabController
+                                                .index ==
+                                            2
                                         ? Get.to(EventScreen())
                                         : Get.to(CreateSplitBillScreen());
                                   },
@@ -1046,7 +900,10 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                       Icon(Icons.favorite_border, size: 14),
                                       SizedBox(width: 6),
                                       Text(
-                                        _tabController.index == 2
+                                        eventProvider
+                                                    .billOutletTabController
+                                                    .index ==
+                                                2
                                             ? "Create Event"
                                             : "Create Bill",
                                         style: TextStyle(
@@ -1155,7 +1012,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
           ),
 
           // Secondary tabs: Bill | Request | History (only shown in "Bill" sub-tab)
-          if (_tabController.index == 0)
+          if (eventProvider.billOutletTabController.index == 0)
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
@@ -1249,7 +1106,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
           // Main content
           Expanded(
             child: TabBarView(
-              controller: _tabController,
+              controller: eventProvider.billOutletTabController,
               children: [
                 // Bill sub-tab (shows secondary tabs + list)
                 BillScreen(),

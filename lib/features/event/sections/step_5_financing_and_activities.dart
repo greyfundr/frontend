@@ -30,7 +30,7 @@ class Step5FinancingAndActivities extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            "Manage tickets, donations, and set event highlights",
+            "Manage tickets, gifts, and set event highlights",
             style: txStyle14.copyWith(color: Colors.grey[600]),
           ),
           Gap(20),
@@ -38,7 +38,7 @@ class Step5FinancingAndActivities extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Accept Donations?", style: txStyle15),
+              Text("Accept Gift?", style: txStyle15),
               Switch(
                 value: provider.acceptDonations,
                 activeThumbColor: appPrimaryColor,
@@ -50,8 +50,8 @@ class Step5FinancingAndActivities extends StatelessWidget {
 
           if (provider.acceptDonations) ...[
             CustomTextField(
-              labelText: "Target Donation Amount (Optional)",
-              hintText: "Enter amount",
+              labelText: "Target Gift Amount",
+              hintText: "~10,000,000",
               controller: provider.targetAmountCtrl,
               textInputType: TextInputType.number,
               formatters: MoneyInputFormatter(),
@@ -64,6 +64,7 @@ class Step5FinancingAndActivities extends StatelessWidget {
             hintText: "e.g. 100",
             controller: provider.expectedParticipantsCtrl,
             textInputType: TextInputType.number,
+            onChanged: (_) => provider.notifyListeners(),
           ),
           const Gap(10),
 
@@ -100,6 +101,16 @@ class Step5FinancingAndActivities extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                           child: Image.file(
                             File(item.images.first.path),
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : item.existingImageUrls.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            item.existingImageUrls.first,
                             width: 50,
                             height: 50,
                             fit: BoxFit.cover,
@@ -163,6 +174,16 @@ class Step5FinancingAndActivities extends StatelessWidget {
                           borderRadius: BorderRadius.circular(8),
                           child: Image.file(
                             File(act.image!.path),
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : (act.existingImageUrl?.isNotEmpty ?? false)
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            act.existingImageUrl!,
                             width: 50,
                             height: 50,
                             fit: BoxFit.cover,
@@ -241,89 +262,91 @@ class _AddPurchasableItemSheetState extends State<_AddPurchasableItemSheet> {
               right: 16,
               top: 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Add Item",
-                  style: txStyle16.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const Gap(16),
-                CustomTextField(labelText: "Name", controller: nameCtrl),
-                const Gap(12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: CustomTextField(
-                        labelText: "Price",
-                        controller: priceCtrl,
-                        textInputType: TextInputType.number,
-                        formatters: MoneyInputFormatter(),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Add Item",
+                    style: txStyle16.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const Gap(16),
+                  CustomTextField(labelText: "Name", controller: nameCtrl),
+                  const Gap(12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: CustomTextField(
+                          labelText: "Price",
+                          controller: priceCtrl,
+                          textInputType: TextInputType.number,
+                          formatters: MoneyInputFormatter(),
+                        ),
                       ),
-                    ),
-                    const Gap(12),
-                    Expanded(
-                      child: CustomTextField(
-                        labelText: "Quantity",
-                        controller: qtyCtrl,
-                        textInputType: TextInputType.number,
+                      const Gap(12),
+                      Expanded(
+                        child: CustomTextField(
+                          labelText: "Quantity",
+                          controller: qtyCtrl,
+                          textInputType: TextInputType.number,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const Gap(12),
-                Text(
-                  "Item Images",
-                  style: txStyle13.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const Gap(8),
-                CustomMediaPicker(
-                  images: images,
-                  onAddMedia: () async {
-                    final picked = await ImagePicker().pickMultiImage();
-                    if (picked.isNotEmpty) {
-                      setState(() => images.addAll(picked));
-                    }
-                  },
-                  onRemoveMedia: (index) {
-                    setState(() => images.removeAt(index));
-                  },
-                ),
-                const Gap(24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (nameCtrl.text.isNotEmpty) {
-                        // Money formatter adds commas, so we need to clean it up before parsing
-                        final rawPrice = priceCtrl.text.replaceAll(',', '');
-                        widget.provider.addPurchasableItem(
-                          PurchasableItem(
-                            name: nameCtrl.text,
-                            price: double.tryParse(rawPrice) ?? 0,
-                            quantity: int.tryParse(qtyCtrl.text) ?? 0,
-                            images: images,
-                          ),
-                        );
-                        Navigator.pop(context);
+                    ],
+                  ),
+                  const Gap(12),
+                  Text(
+                    "Item Images",
+                    style: txStyle13.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const Gap(8),
+                  CustomMediaPicker(
+                    images: images,
+                    onAddMedia: () async {
+                      final picked = await ImagePicker().pickMultiImage();
+                      if (picked.isNotEmpty) {
+                        setState(() => images.addAll(picked));
                       }
                     },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: appPrimaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: const Text(
-                      "SAVE",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                    onRemoveMedia: (index) {
+                      setState(() => images.removeAt(index));
+                    },
+                  ),
+                  const Gap(24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (nameCtrl.text.isNotEmpty) {
+                          // Money formatter adds commas, so we need to clean it up before parsing
+                          final rawPrice = priceCtrl.text.replaceAll(',', '');
+                          widget.provider.addPurchasableItem(
+                            PurchasableItem(
+                              name: nameCtrl.text,
+                              price: double.tryParse(rawPrice) ?? 0,
+                              quantity: int.tryParse(qtyCtrl.text) ?? 0,
+                              images: images,
+                            ),
+                          );
+                          Navigator.pop(context);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: appPrimaryColor,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        "SAVE",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const Gap(20),
-              ],
+                  const Gap(20),
+                ],
+              ),
             ),
           ),
         ),
@@ -361,95 +384,100 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
             right: 16,
             top: 20,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Add Activity",
-                style: txStyle16.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const Gap(16),
-              CustomTextField(labelText: "Activity Name", controller: nameCtrl),
-              const Gap(12),
-              CustomTextField(labelText: "Description", controller: descCtrl),
-              const Gap(12),
-              Row(
-                children: [
-                  Expanded(
-                    child: CustomTextField(
-                      labelText: "Target Amount",
-                      controller: amountCtrl,
-                      textInputType: TextInputType.number,
-                      formatters: MoneyInputFormatter(),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Add Activity",
+                  style: txStyle16.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const Gap(16),
+                CustomTextField(
+                  labelText: "Activity Name",
+                  controller: nameCtrl,
+                ),
+                const Gap(12),
+                CustomTextField(labelText: "Description", controller: descCtrl),
+                const Gap(12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomTextField(
+                        labelText: "Target Amount",
+                        controller: amountCtrl,
+                        textInputType: TextInputType.number,
+                        formatters: MoneyInputFormatter(),
+                      ),
                     ),
-                  ),
-                  const Gap(12),
-                  Expanded(
-                    child: CustomTimePickerTextFiled(
-                      labelText: "Time",
-                      selectedTime: selectedTime?.toIso8601String() ?? "",
-                      onTimeChanged: (t) {
-                        setState(() => selectedTime = t);
-                      },
+                    const Gap(12),
+                    Expanded(
+                      child: CustomTimePickerTextFiled(
+                        labelText: "Time",
+                        selectedTime: selectedTime?.toIso8601String() ?? "",
+                        onTimeChanged: (t) {
+                          setState(() => selectedTime = t);
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const Gap(12),
-              Text(
-                "Activity Image",
-                style: txStyle13.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const Gap(8),
-              CustomMediaPicker(
-                images: image != null ? [image!] : [],
-                onAddMedia: () async {
-                  final picked = await ImagePicker().pickImage(
-                    source: ImageSource.gallery,
-                  );
-                  if (picked != null) {
-                    setState(() => image = picked);
-                  }
-                },
-                onRemoveMedia: (index) {
-                  setState(() => image = null);
-                },
-              ),
-              const Gap(24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (nameCtrl.text.isNotEmpty) {
-                      final rawAmount = amountCtrl.text.replaceAll(',', '');
-                      widget.provider.addActivity(
-                        EventActivity(
-                          name: nameCtrl.text,
-                          description: descCtrl.text,
-                          targetAmount: double.tryParse(rawAmount) ?? 0,
-                          time: selectedTime?.toIso8601String() ?? "TBD",
-                          image: image,
-                        ),
-                      );
-                      Navigator.pop(context);
+                  ],
+                ),
+                const Gap(12),
+                Text(
+                  "Activity Image",
+                  style: txStyle13.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const Gap(8),
+                CustomMediaPicker(
+                  images: image != null ? [image!] : [],
+                  onAddMedia: () async {
+                    final picked = await ImagePicker().pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    if (picked != null) {
+                      setState(() => image = picked);
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: appPrimaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text(
-                    "SAVE ACTIVITY",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                  onRemoveMedia: (index) {
+                    setState(() => image = null);
+                  },
+                ),
+                const Gap(24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      if (nameCtrl.text.isNotEmpty) {
+                        final rawAmount = amountCtrl.text.replaceAll(',', '');
+                        widget.provider.addActivity(
+                          EventActivity(
+                            name: nameCtrl.text,
+                            description: descCtrl.text,
+                            targetAmount: double.tryParse(rawAmount) ?? 0,
+                            time: selectedTime?.toIso8601String() ?? "TBD",
+                            image: image,
+                          ),
+                        );
+                        Navigator.pop(context);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: appPrimaryColor,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: const Text(
+                      "SAVE ACTIVITY",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const Gap(20),
-            ],
+                const Gap(20),
+              ],
+            ),
           ),
         ),
       ],

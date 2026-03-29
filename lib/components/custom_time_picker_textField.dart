@@ -118,52 +118,54 @@ class CupertinoTimePickerSheet extends StatelessWidget {
               horizontal: SizeConfig.widthOf(5),
               vertical: 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Select time', style: txStyle16SemiBold),
-                    InkWell(
-                      onTap: () {
-                        Get.close(1);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: const BoxDecoration(
-                          color: borderColor,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.black,
-                          size: 15,
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Select time', style: txStyle16SemiBold),
+                      InkWell(
+                        onTap: () {
+                          Get.close(1);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: const BoxDecoration(
+                            color: borderColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.black,
+                            size: 15,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const Gap(10),
-                const Divider(),
-                const Gap(10),
-                SizedBox(
-                  height: 200,
-                  child: CupertinoDatePicker(
-                    mode: CupertinoDatePickerMode.time,
-                    initialDateTime: initialTime ?? DateTime.now(),
-                    onDateTimeChanged: (value) => onTimeChanged?.call(value),
+                    ],
                   ),
-                ),
-                const Gap(30),
-                CustomButton(
-                  onTap: () {
-                    Get.close(1);
-                  },
-                  label: "Done",
-                ),
-                const Gap(10),
-              ],
+                  const Gap(10),
+                  const Divider(),
+                  const Gap(10),
+                  SizedBox(
+                    height: 200,
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.time,
+                      initialDateTime: initialTime ?? DateTime.now(),
+                      onDateTimeChanged: (value) => onTimeChanged?.call(value),
+                    ),
+                  ),
+                  const Gap(30),
+                  CustomButton(
+                    onTap: () {
+                      Get.close(1);
+                    },
+                    label: "Done",
+                  ),
+                  const Gap(10),
+                ],
+              ),
             ),
           ),
         ),

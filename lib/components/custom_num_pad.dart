@@ -1,7 +1,11 @@
+import 'dart:developer';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
+import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/utils.dart';
@@ -135,46 +139,40 @@ class NumPad extends StatelessWidget {
           children: [
             Expanded(
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // if (showDecimal)
-                  //   NumberButton(
-                  //     allignment: MainAxisAlignment.start,
-                  //     number: ".",
-                  //     color: buttonColor,
-                  //     onValue: onValue,
-                  //   )
-                  // else if (!UserInfo().getUseLoginBiometricValue())
-                  //   InkWell(
-                  //     onTap: () {
-                  //       log("L:::::::::${UserInfo().getUseLoginBiometricValue()}");
-                  //     },
-                  //     child: Container(
-                  //       // color: Colors.black,
-                  //       width: SizeConfig.widthOf(7),
-                  //       // height: 20,
-                  //     ),
-                  //   )
-                  // else if (isForLogin && UserInfo().getUseLoginBiometricValue())
-                  //   Container(
-                  //     // color: Colors.black26,
-                  //     width: SizeConfig.widthOf(20),
-                  //     height: SizeConfig.heightOf(8),
-                  //     alignment: Alignment.centerLeft,
-                  //     child: CustomOnTap(
-                  //         highlightColor: Colors.white,
-                  //         splashColor: Colors.white,
-                  //         onTap: () => onBiometricClicked!(),
-                  //         child: SvgPicture.asset(
-                  //           Platform.isAndroid
-                  //               ? "assets/svgs/fingerprint.svg"
-                  //               : "assets/svgs/securityBiometric.svg",
-                  //           height: 30,
-                  //           width: 20,
-                  //           // fit: BoxFit.cover,
-                  //           // alignment: Alignment(5, 0),
-                  //         )),
-                  //   ),
+                   
+                  if (!UserLocalStorageService().getUseLoginBiometricValue())
+                    InkWell(
+                      onTap: () {
+                        log("L:::::::::${UserLocalStorageService().getUseLoginBiometricValue()}");
+                      },
+                      child: Container(
+                        // color: Colors.black,
+                        width: SizeConfig.widthOf(7),
+                        // height: 20,
+                      ),
+                    )
+                  else if (isForLogin && UserLocalStorageService().getUseLoginBiometricValue())
+                    Container(
+                      // color: Colors.black26,
+                      width: SizeConfig.widthOf(20),
+                      height: SizeConfig.heightOf(8),
+                      alignment: Alignment.centerLeft,
+                      child: CustomOnTap(
+                          highlightColor: Colors.white,
+                          splashColor: Colors.white,
+                          onTap: () => onBiometricClicked!(),
+                          child: SvgPicture.asset(
+                            Platform.isAndroid
+                                ? "assets/svgs/fingerprint.svg"
+                                : "assets/svgs/securityBiometric.svg",
+                            height: 30,
+                            width: 20,
+                            // fit: BoxFit.cover,
+                            // alignment: Alignment(5, 0),
+                          )),
+                    ),
                 ],
               ),
             ),

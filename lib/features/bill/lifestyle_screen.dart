@@ -1,17 +1,23 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:get/get.dart';
+import 'package:get/get_utils/get_utils.dart';
 import 'package:greyfundr/components/custom_network_image%20copy.dart';
-import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 import 'package:greyfundr/core/models/user_event_model.dart';
-import 'package:greyfundr/core/providers/user_provider.dart';
+import 'package:greyfundr/features/bill/event_rsvp_page.dart';
+import 'package:greyfundr/features/bill/my_event_details_screen.dart';
+import 'package:greyfundr/features/bill/rsvp_details_screen.dart';
+import 'package:greyfundr/features/event/create_event.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
-import 'package:greyfundr/services/locator.dart';
+import 'package:greyfundr/shared/app_colors.dart';
+import 'package:greyfundr/shared/responsiveState/responsive_state.dart';
 import 'package:greyfundr/shared/responsiveState/view_state.dart';
+import 'package:greyfundr/shared/sizeConfig.dart';
+import 'package:greyfundr/shared/utils.dart';
 import 'package:greyfundr/widgets/lifestyle/tab_selector.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
+// import 'package:pull_to_refresh/pull_to_refresh.dart';
 
 class LifestyleScreen extends StatefulWidget {
   const LifestyleScreen({super.key});
@@ -21,11 +27,7 @@ class LifestyleScreen extends StatefulWidget {
 }
 
 class _LifestyleScreenState extends State<LifestyleScreen> {
-  String selectedTab = 'Live Event';
-
-  final RefreshController _refreshController = RefreshController(
-    initialRefresh: false,
-  );
+  String selectedTab = 'Live Events';
 
   EventProvider? eventProvider;
 
@@ -35,6 +37,7 @@ class _LifestyleScreenState extends State<LifestyleScreen> {
     Future.delayed(Duration.zero, () {
       eventProvider = Provider.of<EventProvider>(context, listen: false);
       eventProvider?.getAllEvents();
+      eventProvider?.getMyEvents();
     });
   }
 
@@ -45,14 +48,14 @@ class _LifestyleScreenState extends State<LifestyleScreen> {
 
   Widget _buildTabContent(BuildContext context) {
     if (selectedTab == 'Upcoming') {
-      return const Center(child: Text("Upcoming Events"));
+      return const UpcomingEventWidget();
     }
 
-    if (selectedTab == 'Past') {
-      return const Center(child: Text("Past Events"));
+    if (selectedTab == 'My Events') {
+      return const MyEventWidget();
     }
 
-    if (selectedTab == 'Live Event') {
+    if (selectedTab == 'Live Events') {
       return const LiveEventWidget();
     }
 
@@ -92,7 +95,7 @@ class LiveEventWidget extends StatelessWidget {
     }
 
     if (eventProvider.allEventsState == ViewState.NoDataAvailable ||
-        (eventProvider.allEvents?.isEmpty ?? true)) {
+        (eventProvider.liveEvents?.isEmpty ?? true)) {
       return const Center(child: Text("No live events available"));
     }
 
@@ -111,20 +114,118 @@ class LiveEventWidget extends StatelessWidget {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: eventProvider.allEvents?.length ?? 0,
-      itemBuilder: (context, index) {
-        final event = eventProvider.allEvents![index];
-        return LiveEventCard(event: event);
+    return RefreshIndicator(
+      onRefresh: () async {
+        await eventProvider.getAllEvents();
+        await eventProvider.getMyEvents();
       },
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: eventProvider.liveEvents?.length ?? 0,
+        itemBuilder: (context, index) {
+          final event = eventProvider.liveEvents![index];
+          return LiveEventCard(
+            event: event,
+            isRsvpedEvent: eventProvider.isRsvpedEvent(event.id),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class UpcomingEventWidget extends StatelessWidget {
+  const UpcomingEventWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final eventProvider = Provider.of<EventProvider>(context);
+
+    if (eventProvider.allEventsState == ViewState.Busy) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (eventProvider.allEventsState == ViewState.NoDataAvailable ||
+        (eventProvider.upcomingEvents?.isEmpty ?? true)) {
+      return const Center(child: Text("No upcoming events available"));
+    }
+
+    if (eventProvider.allEventsState == ViewState.Error) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text("Failed to load events"),
+            TextButton(
+              onPressed: () => eventProvider.getAllEvents(),
+              child: const Text("Retry"),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        await eventProvider.getAllEvents();
+        await eventProvider.getMyEvents();
+      },
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: eventProvider.upcomingEvents?.length ?? 0,
+        itemBuilder: (context, index) {
+          final event = eventProvider.upcomingEvents![index];
+          return LiveEventCard(
+            event: event,
+            isRsvpedEvent: eventProvider.isRsvpedEvent(event.id),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class MyEventWidget extends StatelessWidget {
+  const MyEventWidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final eventProvider = Provider.of<EventProvider>(context);
+
+    return ResponsiveState(
+      state: eventProvider.myEventsState,
+      busyWidget: UiBusyWidget(),
+      noDataAvailableWidget: UiNoDataAvailableWidget(
+        height: SizeConfig.heightOf(30),
+      ),
+      successWidget: RefreshIndicator.adaptive(
+        onRefresh: () async {
+          await eventProvider.getAllEvents();
+          await eventProvider.getMyEvents();
+        },
+        child: ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: eventProvider.myEvents?.length ?? 0,
+          itemBuilder: (context, index) {
+            final event = eventProvider.myEvents![index];
+            return LiveEventCard(event: event, isMyEvent: true);
+          },
+        ),
+      ),
     );
   }
 }
 
 class LiveEventCard extends StatefulWidget {
-  final AllEventModel event;
-  const LiveEventCard({super.key, required this.event});
+  final EventDatum event;
+  final bool isMyEvent;
+  final bool isRsvpedEvent;
+  const LiveEventCard({
+    super.key,
+    required this.event,
+    this.isMyEvent = false,
+    this.isRsvpedEvent = false,
+  });
 
   @override
   State<LiveEventCard> createState() => _LiveEventCardState();
@@ -166,18 +267,11 @@ class _LiveEventCardState extends State<LiveEventCard> {
     super.dispose();
   }
 
-  String _formatCurrency(num value) {
-    return NumberFormat.compactCurrency(
-      symbol: "₦",
-      decimalDigits: 0,
-    ).format(value);
-  }
-
   @override
   Widget build(BuildContext context) {
     final progress =
         (widget.event.amountRaised ?? 0) / (widget.event.targetAmount ?? 1);
-    final percent = (progress * 100).toInt();
+    final percent = int.tryParse((progress * 100).toString()) ?? 0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -231,7 +325,7 @@ class _LiveEventCardState extends State<LiveEventCard> {
                           ),
                           if (widget.event.hashtag != null)
                             Text(
-                              "#${widget.event.hashtag}",
+                              "#${widget.event.hashtag?.replaceFirst("#", "")}",
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Theme.of(context).primaryColor,
@@ -243,50 +337,87 @@ class _LiveEventCardState extends State<LiveEventCard> {
                     ),
                     ElevatedButton(
                       onPressed: () {
-                        // RSVP logic
+                        if (!widget.isMyEvent) {
+                          if (widget.isRsvpedEvent) {
+                            Get.to(
+                              () =>
+                                  RsvpDetailsScreen(eventId: widget.event.id!),
+                            );
+                          } else {
+                            Get.to(
+                              () => EventRSVPScreen(eventId: widget.event.id!),
+                            );
+                          }
+                        } else {
+                          if (widget.event.pageNumber == 4 ||
+                              widget.event.pageNumber == 5) {
+                            Get.to(
+                              () => MyEventDetailsScreen(
+                                eventId: widget.event.id!,
+                              ),
+                            );
+                          } else {
+                            Get.to(
+                              () => CreateventPage(draftEvent: widget.event),
+                            );
+                          }
+                        }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
+                        backgroundColor: appPrimaryColor,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      child: const Text("RSVP"),
+                      child: Text(
+                        widget.isMyEvent
+                            ? "Manage"
+                            : widget.isRsvpedEvent
+                            ? "View Event"
+                            : "RSVP",
+                      ),
                     ),
                   ],
                 ),
                 const Gap(12),
 
                 // Amount Raised
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "${_formatCurrency(widget.event.amountRaised ?? 0)} raised of ${_formatCurrency(widget.event.targetAmount ?? 0)}",
-                      style: const TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
-                    Text(
-                      "$percent%",
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const Gap(8),
 
                 // Progress Bar
-                LinearProgressIndicator(
-                  value: progress.clamp(0.0, 1.0),
-                  backgroundColor: Colors.grey[200],
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    Theme.of(context).primaryColor,
+                if ((widget.event.targetAmount ?? 0) > 0)
+                  Column(
+                    children: [
+                      LinearProgressIndicator(
+                        value: progress.clamp(0.0, 1.0),
+                        backgroundColor: Colors.grey[200],
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).primaryColor,
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      Gap(5),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "${convertStringToCurrency("${widget.event.amountRaised}")} raised of ${convertStringToCurrency("${widget.event.targetAmount}")}",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            "$percent%",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ).paddingOnly(bottom: 12),
+                    ],
                   ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                const Gap(12),
 
                 // Participants
                 Row(

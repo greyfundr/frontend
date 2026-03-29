@@ -6,8 +6,8 @@ class ApiRoute {
   // ──────────────────────────────────────────────────────────────
   // Auth Routes
   // ──────────────────────────────────────────────────────────────
- 
-   static final String signupRoute = "$baseUrl/auth/signup";
+
+  static final String signupRoute = "$baseUrl/auth/signup";
   static final String loginRoute = "$baseUrl/auth/login";
   static final String refreshTokenRoute = "$baseUrl/auth/refresh";
   static final String verifyOtpRoute = "$baseUrl/auth/verify-otp";
@@ -22,16 +22,12 @@ class ApiRoute {
   static final String changePinRoute = "$baseUrl/auth/change-pin";
   static final String searchUserRoute = "$baseUrl/users";
   static final String uploadSingleImageRoute = "$baseUrl/upload/image";
-  static final String getAllEventsRoute = "$baseUrl/events";
-
-
-
-
+  static final String getAllEventsRoute =
+      "$baseUrl/events?visibilityStatus=public";
 
   // ──────────────────────────────────────────────────────────────
   // Two Factor Authentication Routes
   // ──────────────────────────────────────────────────────────────
-
 
   // Two Factor Authentication Routes
   static final String generateTwoFactorRoute = "$baseUrl/auth/generate";
@@ -39,7 +35,6 @@ class ApiRoute {
   static final String validateTwoFactorRoute = "$baseUrl/auth/validate";
   static final String disableTwoFactorRoute = "$baseUrl/auth/disable";
 
-  
   // Settings Routes
   static final String getSettingsRoute = "$baseUrl/settings";
   static final String updateSettingsRoute = "$baseUrl/settings/update";
@@ -70,9 +65,32 @@ class ApiRoute {
   static final String donateToCampaignRoute = "$baseUrl/campaigns/{id}/donate";
   static final String uploadImageRoute = "$baseUrl/upload/campaign-images";
   // static const String uploadImagesRoute = "$baseUrl/upload/image";
-  static final String getCampaignApprovalRoute = "$baseUrl/campaigns/getApprovalStatus";
+  static final String getCampaignApprovalRoute =
+      "$baseUrl/campaigns/getApprovalStatus";
 
   static final String getCampaignCategories = "$baseUrl/campaigns/categories";
+  static final String getMyEventsRoute = "$baseUrl/events/my-events";
+  static final String getMyRsvpedEventsRoute = "$baseUrl/events/my-rsvps/all";
+  static String updateEventDraftRoute(String id) => "$baseUrl/events/$id/draft";
+  static String getEventByIdRoute(String id) => "$baseUrl/events/$id";
+  static String contributeToEventRoute(String id) =>
+      "$baseUrl/events/$id/contribute";
+  static String getEventLeaderboardRoute(String id) =>
+      "$baseUrl/events/$id/leaderboard";
+
+  // RSVP Routes
+  static String rsvpToEventRoute(String eventId) =>
+      "$baseUrl/events/$eventId/rsvp";
+  static String rsvpGuestToEventRoute(String eventId) =>
+      "$baseUrl/events/$eventId/rsvp/guest";
+  static String updateRsvpRoute(String eventId, String rsvpId) =>
+      "$baseUrl/events/$eventId/event/rsvp/$rsvpId";
+  static String deleteRsvpRoute(String eventId, String rsvpId) =>
+      "$baseUrl/events/$eventId/event/rsvp/$rsvpId";
+  static String getMyRsvpRoute(String eventId) =>
+      "$baseUrl/events/$eventId/event/rsvp/me";
+  static String getAllRsvpsRoute(String eventId) =>
+      "$baseUrl/events/$eventId/event/rsvp";
 
   // You can add more campaign-related routes here later, for example:
   static final String getCampaignRoute = "$baseUrl/campaigns/{id}";
@@ -80,14 +98,14 @@ class ApiRoute {
   // static final String getCampaignApprovalRoute = "$baseUrl/campaign/{id}/approval";
   static final String updateCampaignRoute = "$baseUrl/campaigns/{id}";
 
-
-// ──────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────
   // Split Bill Routes (NEW)
   // ──────────────────────────────────────────────────────────────
   static final String uploadBillReceiptRoute = "$baseUrl/upload/image";
   static final String createSplitBillRoute = "$baseUrl/split-bills";
   static final String getSplitBillRoute = "$baseUrl/split-bills";
-  static final String updateSplitBillRoute = "$baseUrl/split-bills/{id}"; 
-  static final String payParticipantRoute = "$baseUrl/split-bills/{id}/participants/{participantId}/pay";
+  static final String updateSplitBillRoute = "$baseUrl/split-bills/{id}";
+  static final String payParticipantRoute =
+      "$baseUrl/split-bills/{id}/participants/{participantId}/pay";
   static final String cancelSplitBillRoute = "$baseUrl/split-bills/{id}/cancel";
 }

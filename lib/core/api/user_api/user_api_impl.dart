@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/user_api/user_api.dart';
@@ -73,4 +76,20 @@ class UserApiImpl implements UserApi {
     );
     return response;
   }
+
+   @override
+  Future<Map> getCustomDynamicLinkDetails({String? shortCode}) async{
+    String url = "https://free-dynamic-link.onrender.com/api/links/$shortCode";
+
+    log("::::::::$url");
+    var responsebody = await _apiClient.get(
+      url,
+      headers: header,
+      hideLog: false
+    );
+    Map<String, dynamic> responseMap = jsonDecode(responsebody);
+
+    return responseMap["data"];
+  }
+
 }

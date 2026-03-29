@@ -127,56 +127,62 @@ class CupertinoDatePickerSheet extends StatelessWidget {
               horizontal: SizeConfig.widthOf(5),
               vertical: 20,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Select date', style: txStyle16),
-                    InkWell(
-                      onTap: () {
-                        Get.close(1);
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: borderColor,
-                          shape: BoxShape.circle,
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Select date', style: txStyle16),
+                      InkWell(
+                        onTap: () {
+                          Get.close(1);
+                        },
+                        child: Container(
+                          padding: EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: borderColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            color: Colors.black,
+                            size: 15,
+                          ),
                         ),
-                        child: Icon(Icons.close, color: Colors.black, size: 15),
                       ),
-                    ),
-                  ],
-                ),
-                Gap(10),
-                Divider(),
-                Gap(10),
-                SizedBox(
-                  height: 200,
-                  child: CupertinoDatePicker(
-                    mode: CupertinoDatePickerMode.date,
-                    initialDateTime: initialDate ?? DateTime(2000),
-                    minimumDate: minimumDate ?? DateTime(1900, 1, 1),
-                    maximumDate:
-                        maximumDate ??
-                        DateTime(
-                          DateTime.now().year - 10,
-                          DateTime.now().month,
-                          DateTime.now().day,
-                        ),
-                    onDateTimeChanged: (value) => onDateChanged?.call(value),
+                    ],
                   ),
-                ),
-                Gap(30),
-                CustomButton(
-                  onTap: () {
-                    Get.close(1);
-                  },
-                  label: "Done",
-                ),
-                Gap(10),
-              ],
+                  Gap(10),
+                  Divider(),
+                  Gap(10),
+                  SizedBox(
+                    height: 200,
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.date,
+                      initialDateTime: initialDate ?? DateTime(2000),
+                      minimumDate: minimumDate ?? DateTime(1900, 1, 1),
+                      maximumDate:
+                          maximumDate ??
+                          DateTime(
+                            DateTime.now().year - 10,
+                            DateTime.now().month,
+                            DateTime.now().day,
+                          ),
+                      onDateTimeChanged: (value) => onDateChanged?.call(value),
+                    ),
+                  ),
+                  Gap(30),
+                  CustomButton(
+                    onTap: () {
+                      Get.close(1);
+                    },
+                    label: "Done",
+                  ),
+                  Gap(10),
+                ],
+              ),
             ),
           ),
         ),

@@ -51,6 +51,7 @@ class _SigninScreenState extends State<SigninScreen> {
           hintText: "Enter Email or Phone",
           labelText: "Email or Phone",
           controller: _emailController,
+          textInputType: TextInputType.emailAddress,
         ),
         Gap(20),
         CustomTextField(
@@ -58,6 +59,7 @@ class _SigninScreenState extends State<SigninScreen> {
           labelText: "Password",
           obscureText: true,
           controller: _passwordController,
+          textInputType: TextInputType.visiblePassword,
         ),
         Gap(10),
         Row(

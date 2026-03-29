@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:greyfundr/components/custom_circular_progress_indicator.dart';
+import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/shared/responsiveState/responsive_state.dart';
 import 'package:provider/provider.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
@@ -57,6 +58,7 @@ class _Step4LocationAndVenueState extends State<Step4LocationAndVenue> {
             labelText: "Venue Name",
             hintText: "e.g. Eko Convention Center",
             controller: provider.venueNameCtrl,
+            onChanged: (_) => provider.notifyListeners(),
           ),
           const Gap(20),
 
@@ -118,6 +120,8 @@ class _Step4LocationAndVenueState extends State<Step4LocationAndVenue> {
                           provider.locationAddressCtrl.text =
                               prediction.description ?? "";
                           provider.clearAddressSuggestions();
+                          provider.updateLocation(0.0, 0.1, "Adetokunbo ademola");
+
                           // Additional logic to get Lat/Lng from placeId could be added here
                         },
                       );

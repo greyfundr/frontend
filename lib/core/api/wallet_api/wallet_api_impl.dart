@@ -108,7 +108,20 @@ class WalletApiImpl implements WalletApi {
     return response;
   }
 
-   @override
+  @override
+  Future<Map<String, dynamic>> contributeToEvent({
+    required String id,
+    required Map<String, dynamic> payload,
+  }) async {
+    final response = await _apiClient.post(
+      ApiRoute.contributeToEventRoute(id),
+      headers: header,
+      body: payload,
+    );
+    return Map<String, dynamic>.from(jsonDecode(response));
+  }
+
+  @override
   Future<TransactionModel> getTransactions({
     int page = 1,
     int limit = 20,

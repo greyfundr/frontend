@@ -10,7 +10,6 @@ import 'package:greyfundr/core/models/login_response_model.dart';
 import 'package:greyfundr/features/auth/signup_personal/signup_personal_outlet.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/shared/responsiveState/base_view_model.dart';
-import 'package:greyfundr/shared/responsiveState/view_state.dart';
 import 'package:greyfundr/shared/validator.dart';
 
 class AuthProvider extends BaseNotifier with Validators {
@@ -174,7 +173,7 @@ class AuthProvider extends BaseNotifier with Validators {
   }) async {
     EasyLoading.show();
     try {
-      var response = await authApi.signUpApi(
+      await authApi.signUpApi(
         email: email,
         phoneNumber: phoneNumber,
         password: password,
@@ -197,7 +196,7 @@ class AuthProvider extends BaseNotifier with Validators {
   }) async {
     EasyLoading.show();
     try {
-      var response = await authApi.verifyOtpApi(emailOrPhone: email, otp: otp);
+      await authApi.verifyOtpApi(emailOrPhone: email, otp: otp);
       notifyListeners();
       return true;
     } catch (e) {
@@ -212,7 +211,7 @@ class AuthProvider extends BaseNotifier with Validators {
   Future<bool> resendOtpApi({required String email}) async {
     EasyLoading.show();
     try {
-      var response = await authApi.resendOtpApi(emailOrPhone: email);
+      await authApi.resendOtpApi(emailOrPhone: email);
       notifyListeners();
       showSuccessToast("OTP resent successfully");
       return true;
@@ -232,7 +231,7 @@ class AuthProvider extends BaseNotifier with Validators {
   }) async {
     EasyLoading.show();
     try {
-      var response = await authApi.completeKycApi(
+      await authApi.completeKycApi(
         cacNumber: cacNumber,
         companyName: companyName,
         tin: tin,
@@ -255,7 +254,7 @@ class AuthProvider extends BaseNotifier with Validators {
   }) async {
     EasyLoading.show();
     try {
-      var response = await authApi.submitBasicInfoApi(
+      await authApi.submitBasicInfoApi(
         firstName: firstName,
         lastName: lastName,
         username: username,
@@ -275,7 +274,7 @@ class AuthProvider extends BaseNotifier with Validators {
   Future<bool> forgotPassword({required String email}) async {
     EasyLoading.show();
     try {
-      var response = await authApi.forgotPasswordApi(emailOrPhone: email);
+      await authApi.forgotPasswordApi(emailOrPhone: email);
       notifyListeners();
       return true;
     } catch (e) {
@@ -290,7 +289,7 @@ class AuthProvider extends BaseNotifier with Validators {
   Future<bool> createPassword({required String password}) async {
     EasyLoading.show();
     try {
-      var response = await authApi.createPasswordApi(password: password);
+      await authApi.createPasswordApi(password: password);
       notifyListeners();
       return true;
     } catch (e) {
@@ -329,7 +328,7 @@ class AuthProvider extends BaseNotifier with Validators {
   Future<bool> createPin({required String pin}) async {
     EasyLoading.show();
     try {
-      var response = await authApi.setPinApi(pin: pin);
+      await authApi.setPinApi(pin: pin);
       notifyListeners();
       return true;
     } catch (e) {
@@ -347,10 +346,7 @@ class AuthProvider extends BaseNotifier with Validators {
   }) async {
     EasyLoading.show();
     try {
-      var response = await authApi.loginPinApi(
-        pin: pin,
-        emailOrPhone: emailOrPhone,
-      );
+      await authApi.loginPinApi(pin: pin, emailOrPhone: emailOrPhone);
       notifyListeners();
       return true;
     } catch (e) {
@@ -371,10 +367,7 @@ class AuthProvider extends BaseNotifier with Validators {
   }) async {
     EasyLoading.show();
     try {
-      var response = await authApi.changePinApi(
-        currentPin: currentPin,
-        newPin: newPin,
-      );
+      await authApi.changePinApi(currentPin: currentPin, newPin: newPin);
       notifyListeners();
       return true;
     } catch (e) {

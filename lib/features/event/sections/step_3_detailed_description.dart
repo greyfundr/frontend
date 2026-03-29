@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/route_manager.dart';
@@ -109,6 +108,7 @@ class Step3DetailedDescription extends StatelessWidget {
                   // Media Section
                   CustomMediaPicker(
                     images: section.media,
+                    networkImages: section.existingMediaUrls,
                     onAddMedia: () async {
                       final picked = await ImagePicker().pickMultiImage();
                       if (picked.isNotEmpty)
@@ -116,6 +116,8 @@ class Step3DetailedDescription extends StatelessWidget {
                     },
                     onRemoveMedia: (mIndex) =>
                         provider.removeMediaFromDetailSection(index, mIndex),
+                    onRemoveNetworkMedia: (mIndex) => provider
+                        .removeExistingMediaFromDetailSection(index, mIndex),
                   ),
                 ],
               );

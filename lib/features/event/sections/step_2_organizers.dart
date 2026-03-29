@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_svg/svg.dart';
@@ -84,6 +86,7 @@ class Step2Organizers extends StatelessWidget {
                     provider.checkPhoneField();
                   }
                 } catch (e) {
+                  log("CONTACT SELECTION ERROR $e");
                   // Ignore picking errors or show snackbar
                 }
               },

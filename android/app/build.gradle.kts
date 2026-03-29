@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -5,10 +7,26 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keyPropertiesFile = rootProject.file("key.properties")
+val keyProperties = Properties().apply {
+    if (keyPropertiesFile.exists()) {
+        load(keyPropertiesFile.inputStream())
+    }
+}
+
 android {
-    namespace = "com.example.greyfundr"
+    namespace = "com.greyfundr.android"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    signingConfigs {
+        create("release") {
+            keyAlias = keyProperties.getProperty("keyAlias")
+            keyPassword = keyProperties.getProperty("keyPassword")
+            storeFile = keyProperties.getProperty("storeFile")?.let { rootProject.file("app/$it") }
+            storePassword = keyProperties.getProperty("storePassword")
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -22,7 +40,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID
-        applicationId = "com.example.greyfundr"
+        applicationId = "com.greyfundr.android"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -32,8 +50,7 @@ android {
 
     buildTypes {
         release {
-            // Signing with the debug keys for now
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

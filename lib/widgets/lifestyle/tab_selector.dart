@@ -20,18 +20,27 @@ class TabSelector extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
-        children: ['Live Event', 'Upcoming', 'Past'].map((tab) {
+        children: ['Live Events', 'Upcoming', 'My Events'].map((tab) {
           final bool isActive = selectedTab == tab;
           return Expanded(
             child: GestureDetector(
               onTap: () => onTabChanged(tab),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 16,
+                ),
                 decoration: BoxDecoration(
                   color: isActive ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: isActive
-                      ? [BoxShadow(color: Colors.grey.withOpacity(0.5), blurRadius: 4, offset: const Offset(0, 2))]
+                      ? [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.5),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
                       : [],
                 ),
                 child: Text(
@@ -39,7 +48,9 @@ class TabSelector extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                    color: isActive ? Colors.black : const Color.fromARGB(255, 84, 84, 84),
+                    color: isActive
+                        ? Colors.black
+                        : const Color.fromARGB(255, 84, 84, 84),
                   ),
                 ),
               ),

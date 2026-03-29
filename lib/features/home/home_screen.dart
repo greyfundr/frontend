@@ -12,6 +12,7 @@ import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/features/createnew/create_new_screen.dart';
 import 'package:greyfundr/features/event/event_home.dart';
+import 'package:greyfundr/features/event/event_provider.dart';
 import 'package:greyfundr/features/event/event_screen.dart';
 import 'package:greyfundr/features/invoice/invoice_screen.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
@@ -36,12 +37,11 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+    final eventProvider = Provider.of<EventProvider>(context);
     final walletProvider = Provider.of<WalletProvider>(context);
     var userProfile = userProvider.userProfileModel;
     var walletModel = walletProvider.walletModel;
-    final bool noAncestorNav =
-        context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
-    userProvider.setSuppressAppNav(noAncestorNav);
+    
 
     return Scaffold(
       // Render a compact 3-tab bottom nav only when no ancestor
@@ -158,6 +158,7 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
+            Gap(10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -186,8 +187,8 @@ class HomeScreen extends StatelessWidget {
               ],
             ).paddingSymmetric(horizontal: SizeConfig.widthOf(5)),
             Gap(5),
-            Divider(),
-            Gap(5),
+            Divider(height: 0,),
+            // Gap(5),
 
             Expanded(
               child: RefreshIndicator.adaptive(
@@ -206,12 +207,11 @@ class HomeScreen extends StatelessWidget {
                     Row(
                       children: [
                         CustomOnTap(
-                          onTap: () {
-                            Get.to(
-                              () =>
-                                  EventHome(), // ← replace with your actual screen/widget
-                              transition: Transition.rightToLeft,
-                            );
+                          onTap: () async {
+                            userProvider.updateSelectedIndex(1);
+                            await Future.delayed(Duration(seconds: 1));
+                            eventProvider.billOutletTabController.animateTo(2);
+                            eventProvider.notifyListeners();
                           },
                           child: Image.asset(
                             "assets/images/lifestyle.png",
@@ -416,10 +416,10 @@ class IncompleteKycBadge extends StatelessWidget {
     final userProvider = Provider.of<UserProvider>(context);
     return CustomOnTap(
       onTap: () async {
-        // bool res = await userProvider.completeKycTemp();
-        // if (res) {
-        userProvider.fetchUserProfileApi();
-        // }
+        bool res = await userProvider.completeKycTemp();
+        if (res) {
+          userProvider.fetchUserProfileApi();
+        }
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),

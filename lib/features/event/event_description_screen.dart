@@ -28,7 +28,7 @@ class WaveCornerClipper extends CustomClipper<Path> {
       w * 0.75,
       h * 1.05, // Deep belly towards the right
       w,
-      h * 0.82, // Sharp swoop up to the right edge
+      h * 0.9, // Sharp swoop up to the right edge
     );
     basePath.lineTo(w, 0);
     basePath.close();
@@ -147,7 +147,7 @@ class CustomEventImages extends StatelessWidget {
                     left: 30,
                     right: 0,
                     child: Text(
-                      "BASHIR Weds John",
+                      "BASHIR Weds John".toUpperCase(),
                       style: txStyle24SemiBold.copyWith(color: Colors.white),
                     ),
                   ),

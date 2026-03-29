@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'dart:developer';
 
-import 'package:greyfundr/core/models/login_response_model.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
 import 'package:greyfundr/services/shared_preference_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,6 +8,7 @@ class UserLocalStorageService {
   static final UserLocalStorageService _userInfo =
       UserLocalStorageService._internal();
   static final SharedPreferences _prefs = SharedPreferenceService.prefs;
+  static const String _activateLoginBiometricKey = 'activateLoginBiometric';
 
   factory UserLocalStorageService() {
     return _userInfo;
@@ -46,11 +45,19 @@ class UserLocalStorageService {
   }
 
   void setUserBiometric(bool biometric) async {
-    bool res = await _prefs.setBool('user_biometric', biometric);
+    await _prefs.setBool('user_biometric', biometric);
+  }
+
+  Future<void> setUseLoginBiometric(bool value) async {
+    await _prefs.setBool(_activateLoginBiometricKey, value);
+  }
+
+  bool getUseLoginBiometricValue() {
+    return _prefs.getBool(_activateLoginBiometricKey) ?? false;
   }
 
   void setHapticFeedback(bool haptic) async {
-    bool res = await _prefs.setBool('user_haptic_feedback', haptic);
+    await _prefs.setBool('user_haptic_feedback', haptic);
   }
 
   bool getUserBiometric() {
@@ -78,7 +85,7 @@ class UserLocalStorageService {
   }
 
   void clearUserData() async {
-    bool res = await _prefs.clear();
+    await _prefs.clear();
   }
 
   UserProfileModel? getUserData() {

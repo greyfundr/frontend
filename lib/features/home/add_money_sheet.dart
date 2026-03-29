@@ -30,70 +30,91 @@ class _AddMoneySheetState extends State<AddMoneySheet> {
     final walletProvider = Provider.of<WalletProvider>(context);
     return Padding(
       padding: MediaQuery.of(context).viewInsets,
-      child: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/images/wallet_bg.png"),
-            fit: BoxFit.cover,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset("assets/images/bottom_sheet_curve_primary.png"),
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/images/wallet_bg.png"),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: SafeArea(
+              child:
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: SvgPicture.asset("assets/svgs/sheet_drag.svg"),
+                      ),
+                      Gap(20),
+                      Text(
+                        "Enter Amount",
+                        style: txStyle18Bold.copyWith(color: Colors.white),
+                      ),
+                      Text(
+                        "how much do you want to add to you GreyFundr wallet",
+                        style: txStyle14wt,
+                      ),
+                      Gap(20),
+                      CustomTextField(
+                        // labelText: "Amount",
+                        hintText: "₦0.00",
+                        textInputType: TextInputType.number,
+                        autoFocus: true,
+                        formatters: MoneyInputFormatter(),
+                        controller: amountController,
+                        onChanged: (value) {
+                          setState(() {});
+                        },
+                      ),
+                      Gap(20),
+                      CustomButton(
+                        enabled: amountController.text.isNotEmpty,
+                        onTap: () async {
+                          String res = await walletProvider
+                              .initiateWalletFunding(
+                                amount: amountController.text.replaceAll(
+                                  ",",
+                                  "",
+                                ),
+                              );
+                          if (res.isNotEmpty) {
+                            Get.close(1);
+                            showCustomBottomSheet(
+                              PaystackUrlSheet(
+                                url: res,
+                                onSuccess: () {
+                                  Get.to(
+                                    PaymentSuccessScreen(
+                                      amount: amountController.text.replaceAll(
+                                        ",",
+                                        "",
+                                      ),
+                                    ),
+                                    transition: Transition.rightToLeft,
+                                  );
+                                  walletProvider.fetchUserWallet();
+                                },
+                              ),
+                              context,
+                            );
+                          }
+                        },
+                        label: "Add Money",
+                        backgroundColor: appSecondaryColor,
+                      ),
+                    ],
+                  ).paddingSymmetric(
+                    horizontal: SizeConfig.widthOf(5),
+                    vertical: 20,
+                  ),
+            ),
           ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: SvgPicture.asset("assets/svgs/sheet_drag.svg")),
-            Gap(20),
-            Text(
-              "Enter Amount",
-              style: txStyle18Bold.copyWith(color: Colors.white),
-            ),
-            Text(
-              "how much do you want to add to you GreyFundr wallet",
-              style: txStyle14wt,
-            ),
-            Gap(20),
-            CustomTextField(
-              // labelText: "Amount",
-              hintText: "₦0.00",
-              textInputType: TextInputType.number,
-              autoFocus: true,
-              formatters: MoneyInputFormatter(),
-              controller: amountController,
-              onChanged: (value) {
-                setState(() {});
-              },
-            ),
-            Gap(20),
-            CustomButton(
-              enabled: amountController.text.isNotEmpty,
-              onTap: () async {
-                String res = await walletProvider.initiateWalletFunding(
-                  amount: amountController.text.replaceAll(",", ""),
-                );
-                if (res.isNotEmpty) {
-                  Get.close(1);
-                  showCustomBottomSheet(
-                    PaystackUrlSheet(
-                      url: res,
-                      onSuccess: () {
-                        Get.to(
-                          PaymentSuccessScreen(
-                            amount: amountController.text.replaceAll(",", ""),
-                          ),
-                          transition: Transition.rightToLeft,
-                        );
-                        walletProvider.fetchUserWallet();
-                      },
-                    ),
-                    context,
-                  );
-                }
-              },
-              label: "Add Money",
-              backgroundColor: appSecondaryColor,
-            ),
-          ],
-        ).paddingSymmetric(horizontal: SizeConfig.widthOf(5), vertical: 20),
+        ],
       ),
     );
   }
@@ -103,11 +124,13 @@ class PaystackUrlSheet extends StatefulWidget {
   final String url;
   final VoidCallback? onSuccess;
   final VoidCallback? onError;
+  final String title;
   const PaystackUrlSheet({
     super.key,
     required this.url,
     this.onSuccess,
     this.onError,
+    this.title = "Fund Wallet",
   });
 
   @override
@@ -215,30 +238,40 @@ class _PaystackUrlSheetState extends State<PaystackUrlSheet> {
             ),
           )
         : SizedBox(
-            height: SizeConfig.heightOf(90),
-            child: Column(
-              children: [
-                Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: SizeConfig.widthOf(2),
-                    vertical: 20,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text("Fund wallet", style: txStyle20Bold),
-                      IconButton(
-                        onPressed: () {
-                          Get.close(1);
-                        },
-                        icon: const Icon(Icons.close),
+            height: SizeConfig.heightOf(85),
+            child: Padding(
+              padding: MediaQuery.of(context).viewInsets,
+
+              child: Column(
+                children: [
+                  Image.asset("assets/images/bottom_sheet_cureve_right.png"),
+                  Container(
+                    color: Color(0xffF1F1F7),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: SizeConfig.widthOf(2),
+                        vertical: 20,
                       ),
-                    ],
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(widget.title, style: txStyle20Bold),
+                          IconButton(
+                            onPressed: () {
+                              Get.close(1);
+                            },
+                            icon: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                // Gap(10),
-                Expanded(child: WebViewWidget(controller: _webViewController)),
-              ],
+                  // Gap(10),
+                  Expanded(
+                    child: WebViewWidget(controller: _webViewController),
+                  ),
+                ],
+              ),
             ),
           );
   }

@@ -1,17 +1,21 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_app_bar.dart';
-import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_num_pad.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
+import 'package:greyfundr/components/custom_snackbars.dart';
+import 'package:greyfundr/core/api/api_utils/token_manager.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
+import 'package:greyfundr/core/providers/user_provider.dart';
+import 'package:greyfundr/core/providers/wallet_provider.dart';
+import 'package:greyfundr/features/auth/auth_outlet.dart';
 import 'package:greyfundr/features/auth/auth_provider.dart';
 import 'package:greyfundr/features/shared/bottom_nav.dart';
 import 'package:greyfundr/features/shared/bottom_sheets.dart';
+import 'package:greyfundr/services/local_auth.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/text_style.dart';
@@ -20,7 +24,8 @@ import 'package:greyfundr/shared/utils.dart';
 import 'package:provider/provider.dart';
 
 class SignInWithPinScreen extends StatefulWidget {
-  const SignInWithPinScreen({super.key});
+  final bool fromSplash;
+  const SignInWithPinScreen({super.key, this.fromSplash = true});
 
   @override
   State<SignInWithPinScreen> createState() => _SignInWithPinScreenState();
@@ -35,15 +40,84 @@ class _SignInWithPinScreenState extends State<SignInWithPinScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (UserLocalStorageService().getUseLoginBiometricValue()) {
+        loginWithBiometric(triggeredAutomatically: true);
+      }
     });
   }
 
   @override
   void dispose() {
+    pinController.dispose();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       authProvider?.disposePin();
     });
     super.dispose();
+  }
+
+  Future<void> loginWithBiometric({bool triggeredAutomatically = false}) async {
+    EasyLoading.show();
+    try {
+      final user = UserLocalStorageService().getUserData();
+      if (user == null || (user.email?.isEmpty ?? true)) {
+        if (!triggeredAutomatically) {
+          showErrorToast('No active user session found');
+        }
+        return;
+      }
+
+      final hasBiometric = await LocalAuth.hasEnrolledBiometrics();
+      if (!hasBiometric) {
+        if (!triggeredAutomatically) {
+          showErrorToast(
+            'Biometric is unavailable or not enrolled on this device',
+          );
+        }
+        return;
+      }
+
+      final isAuthenticated = await LocalAuth.authenticateLogin(
+        'Use your biometric to login',
+        'Biometric Sign In',
+      );
+
+      if (!isAuthenticated) {
+        if (!triggeredAutomatically) {
+          showErrorToast('Biometric authentication failed or was cancelled');
+        }
+        return;
+      }
+
+      if (!widget.fromSplash) {
+        // In-app unlock flow: simply dismiss the lock surface.
+        if (mounted) Navigator.of(context).maybePop(true);
+        return;
+      }
+
+      final tokenManager = TokenManager();
+      final refreshTokenExpired = await tokenManager.isRefreshTokenExpired();
+      if (refreshTokenExpired) {
+        if (!mounted) return;
+        Get.offAll(const AuthOutlet(), transition: Transition.rightToLeft);
+        return;
+      }
+
+      if (!mounted) return;
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final walletProvider = Provider.of<WalletProvider>(
+        context,
+        listen: false,
+      );
+      await userProvider.fetchUserProfileApi();
+      await walletProvider.fetchUserWallet();
+      await walletProvider.fetchTransactions();
+
+      if (!mounted) return;
+      Get.offAll(const BottomNav(), transition: Transition.rightToLeft);
+    } catch (e) {
+    } finally {
+      EasyLoading.dismiss();
+    }
   }
 
   @override
@@ -73,15 +147,31 @@ class _SignInWithPinScreenState extends State<SignInWithPinScreen> {
                           Gap(20),
                           CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
                           Gap(10),
-        
+
                           Text(
                             '${user?.firstName ?? ""} ${user?.lastName ?? ""}',
-                            style: txStyle27Bold.copyWith(color: appPrimaryColor),
+                            style: txStyle27Bold.copyWith(
+                              color: appPrimaryColor,
+                            ),
                           ),
                           Gap(50),
                           PinCodeText(pin: authProvider.newPin),
+                          // Gap(10),
+                          // TextButton.icon(
+                          //   onPressed: () => loginWithBiometric(),
+                          //   icon: const Icon(
+                          //     Icons.fingerprint,
+                          //     color: appPrimaryColor,
+                          //   ),
+                          //   label: Text(
+                          //     'Use biometric',
+                          //     style: txStyle14.copyWith(color: appPrimaryColor),
+                          //   ),
+                          // ),
                           Spacer(),
                           NumPad(
+                            isForLogin: true,
+                            onBiometricClicked: () => loginWithBiometric(),
                             onValue: (value) async {
                               authProvider.addToPin(value);
                               // log("Value: $value");
@@ -92,7 +182,7 @@ class _SignInWithPinScreenState extends State<SignInWithPinScreen> {
                                 );
                                 if (res) {
                                   Get.offAll(
-                                    BottomNav(),
+                                    const BottomNav(),
                                     transition: Transition.rightToLeft,
                                   );
                                 }
@@ -149,6 +239,7 @@ class _SignInWithPinScreenState extends State<SignInWithPinScreen> {
                               ),
                             ),
                           ),
+                          Gap(10),
                         ],
                       ),
                     ),

@@ -21,4 +21,7 @@ abstract class UserApi {
   Future updateUserNotificationPreference({
     required Map<String, dynamic> payload,
   });
+
+    Future<Map> getCustomDynamicLinkDetails({String shortCode});
+
 }

@@ -48,6 +48,7 @@ class Step1NamesAndCo extends StatelessWidget {
             controller: provider.nameCtrl,
             isRequired: true,
             maxLength: 20,
+            onChanged: (_) => provider.notifyListeners(),
           ),
           const Gap(20),
 
@@ -70,6 +71,7 @@ class Step1NamesAndCo extends StatelessWidget {
               // Open BottomSheet with categories
               showCustomBottomSheet(
                 _CategorySelectionSheet(
+                  title: "Select Category",
                   categories: categories.isEmpty
                       ? [
                           "Concert",
@@ -80,7 +82,7 @@ class Step1NamesAndCo extends StatelessWidget {
                         ] // Fallback
                       : categories,
                   onSelected: (cat) {
-                    provider.categoryCtrl.text = cat;
+                    provider.setCategory(cat);
                     Navigator.pop(context);
                   },
                 ),
@@ -103,6 +105,41 @@ class Step1NamesAndCo extends StatelessWidget {
           ),
           const Gap(20),
 
+          GestureDetector(
+            onTap: () {
+              // Open BottomSheet with visibility status
+              showCustomBottomSheet(
+                _CategorySelectionSheet(
+                  title: "Select Event Type",
+                  categories: const [
+                    "Public (Anyone can RSVP)",
+                    "Private (Invite Only)",
+                  ],
+                  onSelected: (status) {
+                    provider.visibilityStatusCtrl.text = status;
+                    provider.notifyListeners();
+                    Navigator.pop(context);
+                  },
+                ),
+                context,
+                backgroundColor: Colors.transparent,
+              );
+            },
+            child: AbsorbPointer(
+              child: CustomTextField(
+                labelText: "Event Type",
+                hintText: "Select event type",
+                controller: provider.visibilityStatusCtrl,
+                isRequired: true,
+                suffixIcon: const Icon(
+                  Icons.arrow_drop_down,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+          ),
+          const Gap(20),
+
           Text(
             "Cover Image",
             style: txStyle13.copyWith(fontWeight: FontWeight.w600),
@@ -110,11 +147,14 @@ class Step1NamesAndCo extends StatelessWidget {
           Gap(5),
           CustomMediaPicker(
             images: provider.coverImages,
+            networkImages: provider.existingCoverImageUrls,
             onAddMedia: () async {
               final picked = await ImagePicker().pickMultiImage();
               if (picked.isNotEmpty) provider.addCoverImages(picked);
             },
             onRemoveMedia: (index) => provider.removeCoverImage(index),
+            onRemoveNetworkMedia: (index) =>
+                provider.removeExistingCoverImageUrl(index),
           ),
           const Gap(20),
 
@@ -187,10 +227,12 @@ class Step1NamesAndCo extends StatelessWidget {
 }
 
 class _CategorySelectionSheet extends StatelessWidget {
+  final String title;
   final List<String> categories;
   final Function(String) onSelected;
 
   const _CategorySelectionSheet({
+    this.title = 'Select Category',
     required this.categories,
     required this.onSelected,
   });
@@ -206,52 +248,54 @@ class _CategorySelectionSheet extends StatelessWidget {
           Expanded(
             child: Container(
               color: Color(0xffF1F1F7),
-              child:
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Select Category', style: txStyle16SemiBold),
-                          InkWell(
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              padding: const EdgeInsets.all(5),
-                              decoration: const BoxDecoration(
-                                color: borderColor,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.black,
-                                size: 15,
+              child: SafeArea(
+                child:
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(title, style: txStyle16SemiBold),
+                            InkWell(
+                              onTap: () => Navigator.pop(context),
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: const BoxDecoration(
+                                  color: borderColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close,
+                                  color: Colors.black,
+                                  size: 15,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const Gap(15),
-                      Expanded(
-                        child: ListView.separated(
-                          itemCount: categories.length,
-                          separatorBuilder: (_, __) => const Divider(),
-                          itemBuilder: (context, index) {
-                            final cat = categories[index];
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(cat, style: txStyle15),
-                              onTap: () => onSelected(cat),
-                            );
-                          },
+                          ],
                         ),
-                      ),
-                    ],
-                  ).paddingSymmetric(
-                    horizontal: SizeConfig.widthOf(5),
-                    vertical: 20,
-                  ),
+                        const Gap(15),
+                        Expanded(
+                          child: ListView.separated(
+                            itemCount: categories.length,
+                            separatorBuilder: (_, __) => const Divider(),
+                            itemBuilder: (context, index) {
+                              final cat = categories[index];
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(cat, style: txStyle15),
+                                onTap: () => onSelected(cat),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ).paddingSymmetric(
+                      horizontal: SizeConfig.widthOf(5),
+                      vertical: 20,
+                    ),
+              ),
             ),
           ),
         ],

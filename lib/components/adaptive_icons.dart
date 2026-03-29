@@ -9,11 +9,13 @@ class AdaptiveIcons extends StatelessWidget {
   final String iconName;
   final IconData iconData;
   final VoidCallback? onTap;
+  final Color? iconColor;
   const AdaptiveIcons({
     super.key,
     required this.iconName,
     required this.iconData,
     this.onTap,
+    this.iconColor,
   });
 
   @override
@@ -33,7 +35,11 @@ class AdaptiveIcons extends StatelessWidget {
                 // border: Border.all(color: Colors.grey),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(iconData, size: 25, color: appPrimaryColor),
+              child: Icon(
+                iconData,
+                size: 25,
+                color: iconColor ?? appPrimaryColor,
+              ),
             ),
           );
   }

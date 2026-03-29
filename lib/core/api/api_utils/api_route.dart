@@ -22,6 +22,7 @@ class ApiRoute {
   static final String changePinRoute = "$baseUrl/auth/change-pin";
   static final String searchUserRoute = "$baseUrl/users";
   static final String uploadSingleImageRoute = "$baseUrl/upload/image";
+  static final String uploadAvatarRoute = "$baseUrl/upload/avatar";
   static final String getAllEventsRoute =
       "$baseUrl/events?visibilityStatus=public";
 

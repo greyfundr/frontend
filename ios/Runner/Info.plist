@@ -51,5 +51,7 @@
 		<false />
 		<key>NSFaceIDUsageDescription</key>
 		<string>Enable biometric for seamless and secure sign in</string>
+		<key>NSContactsUsageDescription</key>
+<string>Find event organizers faster by selecting them from your contact</string>
 	</dict>
 </plist>

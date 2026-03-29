@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/user_api/user_api.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
 import 'package:greyfundr/core/models/user_settings_model.dart';
+import 'package:http_parser/http_parser.dart';
+import 'package:mime/mime.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 
 class UserApiImpl implements UserApi {
@@ -77,19 +81,57 @@ class UserApiImpl implements UserApi {
     return response;
   }
 
-   @override
-  Future<Map> getCustomDynamicLinkDetails({String? shortCode}) async{
+  @override
+  Future<String?> uploadAvatar({required String filePath}) async {
+    try {
+      final file = File(filePath);
+      final multipart = await MultipartFile.fromFile(
+        file.path,
+        filename: file.path.split('/').last,
+        contentType: lookupMimeType(file.path) != null
+            ? MediaType.parse(lookupMimeType(file.path)!)
+            : MediaType('image', 'jpeg'),
+      );
+
+      final formData = FormData.fromMap({'file': multipart});
+
+      final responseBody = await _apiClient.post(
+        ApiRoute.uploadAvatarRoute,
+        headers: {'Accept': 'application/json'},
+        formData: formData,
+        requiresToken: true,
+      );
+
+      final decoded = jsonDecode(responseBody);
+      final data = decoded is Map<String, dynamic> ? decoded['data'] : null;
+
+      if (data is Map<String, dynamic>) {
+        return (data['imageUrl'] ?? data['url'] ?? data['image'])?.toString();
+      }
+
+      if (data is String && data.isNotEmpty) {
+        return data;
+      }
+
+      return null;
+    } catch (e, stack) {
+      log('ERROR UPLOADING AVATAR: $e', stackTrace: stack);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map> getCustomDynamicLinkDetails({String? shortCode}) async {
     String url = "https://free-dynamic-link.onrender.com/api/links/$shortCode";
 
     log("::::::::$url");
     var responsebody = await _apiClient.get(
       url,
       headers: header,
-      hideLog: false
+      hideLog: false,
     );
     Map<String, dynamic> responseMap = jsonDecode(responsebody);
 
     return responseMap["data"];
   }
-
 }

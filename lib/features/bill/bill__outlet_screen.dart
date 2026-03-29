@@ -5,6 +5,7 @@ import 'package:greyfundr/features/bill/bill_screen.dart';
 import 'package:greyfundr/features/bill/lifestyle_screen.dart';
 import 'package:greyfundr/features/event/event_screen.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
+import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:get/get.dart';
@@ -1110,7 +1111,12 @@ class _BillOutletScreenState extends State<BillOutletScreen>
               children: [
                 // Bill sub-tab (shows secondary tabs + list)
                 BillScreen(),
-                Container(color: Colors.green),
+                // Container(color: Colors.green),
+                UiNoDataAvailableWidget(
+                  height: SizeConfig.heightOf(30),
+                  message: "Coming soon",
+                  subtitle: "You will be notified when this feature is ready ",
+                ),
                 LifestyleScreen(),
                 // EventHome(),
               ],

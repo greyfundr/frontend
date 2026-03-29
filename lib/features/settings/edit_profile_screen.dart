@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
@@ -6,9 +8,11 @@ import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
+import 'package:greyfundr/features/settings/interest_selection_screen.dart';
+import 'package:greyfundr/shared/utils.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:provider/provider.dart';
-import 'package:greyfundr/features/settings/interest_selection_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -22,8 +26,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   var lastNameController = TextEditingController();
   var usernameController = TextEditingController();
   var bioController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
 
   List<String> selectedInterests = [];
+  String? _localAvatarPath;
 
   UserProvider? userProvider;
   bool isChanged = false;
@@ -89,17 +95,96 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     usernameController.text = userProfile?.username ?? "";
     bioController.text = userProfile?.profile?.bio ?? "";
     selectedInterests = List.from(userProfile?.profile?.interests ?? []);
+    _localAvatarPath = null;
     setState(() {});
+  }
+
+  Future<void> _pickAndUploadAvatar(ImageSource source) async {
+    final pickedFile = await _imagePicker.pickImage(
+      source: source,
+      imageQuality: 85,
+    );
+
+    if (pickedFile == null || !mounted) return;
+
+    setState(() {
+      _localAvatarPath = pickedFile.path;
+    });
+
+    final success =
+        await userProvider?.updateProfileAvatar(filePath: pickedFile.path) ??
+        false;
+
+    if (success && mounted) {
+      initController();
+    }
+  }
+
+  void _showImageSourceBottomSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return UploadImageOption(
+          fromGallery: () => _pickAndUploadAvatar(ImageSource.gallery),
+          fromCamera: () => _pickAndUploadAvatar(ImageSource.camera),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+    final avatarUrl =
+        userProvider.userProfileModel?.profile?.image?.toString() ?? "";
+
     return Scaffold(
       appBar: CustomAppBar(title: "Edit Profile"),
       body: ListView(
         children: [
-          Center(child: CustomNetworkImage(imageUrl: "", radius: 100)),
+          Center(
+            child: Stack(
+              children: [
+                ClipOval(
+                  child: SizedBox(
+                    height: 100,
+                    width: 100,
+                    child: _localAvatarPath != null
+                        ? Image.file(File(_localAvatarPath!), fit: BoxFit.cover)
+                        : CustomNetworkImage(imageUrl: avatarUrl, radius: 100),
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: InkWell(
+                    onTap: _showImageSourceBottomSheet,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.black,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Gap(8),
+          Center(
+            child: TextButton(
+              onPressed: _showImageSourceBottomSheet,
+              child: const Text("Change profile image"),
+            ),
+          ),
           Gap(20),
           CustomTextField(
             labelText: "First Name",

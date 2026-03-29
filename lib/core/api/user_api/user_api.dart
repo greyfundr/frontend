@@ -22,6 +22,7 @@ abstract class UserApi {
     required Map<String, dynamic> payload,
   });
 
-    Future<Map> getCustomDynamicLinkDetails({String shortCode});
+  Future<String?> uploadAvatar({required String filePath});
 
+  Future<Map> getCustomDynamicLinkDetails({String shortCode});
 }

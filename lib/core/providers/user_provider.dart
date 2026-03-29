@@ -8,7 +8,6 @@ import 'package:greyfundr/core/api/user_api/user_api.dart';
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
 import 'package:greyfundr/services/locator.dart';
-import 'package:greyfundr/shared/responsiveState/view_state.dart';
 
 class UserProvider with ChangeNotifier {
   // Services
@@ -141,6 +140,22 @@ class UserProvider with ChangeNotifier {
     }
   }
 
+  Future<bool> updateProfileAvatar({required String filePath}) async {
+    EasyLoading.show();
+    try {
+      await _userApi.uploadAvatar(filePath: filePath);
+      await fetchUserProfileApi();
+      showSuccessToast("Profile image updated successfully");
+      return true;
+    } catch (e, stack) {
+      log("ERROR ON UPDATE PROFILE IMAGE: $e", stackTrace: stack);
+      showErrorToast("Failed to update profile image");
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
   Future<bool> updateUserNotificationPreference(
     Map<String, dynamic> payload,
   ) async {
@@ -174,10 +189,9 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-
   Future<Map> getCustomDynamicLinkDetails({required String shortCode}) async {
-     EasyLoading.show();
-     try {
+    EasyLoading.show();
+    try {
       Map data = await _userApi.getCustomDynamicLinkDetails(
         shortCode: shortCode,
       );
@@ -185,11 +199,9 @@ class UserProvider with ChangeNotifier {
       return data;
     } catch (e) {
       showErrorToast("$e");
-       log("$e");
-    }
-    finally{
-    EasyLoading.dismiss();
-      
+      log("$e");
+    } finally {
+      EasyLoading.dismiss();
     }
     return {};
   }

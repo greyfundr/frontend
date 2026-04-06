@@ -42,10 +42,10 @@ class WalletModel {
 }
 
 class Balance {
-  String? available;
-  String? ledger;
-  String? escrow;
-  String? currency;
+  dynamic available;
+  dynamic ledger;
+  dynamic escrow;
+  dynamic currency;
 
   Balance({this.available, this.ledger, this.escrow, this.currency});
 

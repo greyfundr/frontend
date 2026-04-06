@@ -55,7 +55,7 @@ class WalletApiImpl implements WalletApi {
     final response = await _apiClient.post(
       ApiRoute.fundInitiateRoute,
       headers: header,
-      body: {"amount": int.parse(amount) * 100},
+      body: {"amount": int.parse(amount)},
     );
     var decodedResponse = jsonDecode(response);
     return decodedResponse['authorizationUrl'];

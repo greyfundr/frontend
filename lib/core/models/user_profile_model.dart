@@ -36,6 +36,7 @@ class UserProfileModel {
     dynamic passwordResetTokenExpiry;
     Profile? profile;
     dynamic kyc;
+    String? image;
 
     UserProfileModel({
         this.id,
@@ -65,6 +66,7 @@ class UserProfileModel {
         this.passwordResetTokenExpiry,
         this.profile,
         this.kyc,
+        this.image
     });
 
     factory UserProfileModel.fromJson(Map<String, dynamic> json) => UserProfileModel(
@@ -95,6 +97,8 @@ class UserProfileModel {
         passwordResetTokenExpiry: json["passwordResetTokenExpiry"],
         profile: json["profile"] == null ? null : Profile.fromJson(json["profile"]),
         kyc: json["kyc"],
+        image: json["image"],
+
     );
 
     Map<String, dynamic> toJson() => {

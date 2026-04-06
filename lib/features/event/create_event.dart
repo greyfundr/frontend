@@ -79,6 +79,7 @@ class _CreateEventContentState extends State<_CreateEventContent> {
           FocusScope.of(context).unfocus();
         },
         child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: [
             Gap(10),
             // Elegant Stepper Indicator
@@ -120,6 +121,7 @@ class _CreateEventContentState extends State<_CreateEventContent> {
               onTap: () => _nextPage(provider),
               label: isLastStep ? "Publish Event" : "Next Step",
             ).paddingSymmetric(horizontal: SizeConfig.widthOf(5)),
+            Gap(10),
           ],
         ),
       ),

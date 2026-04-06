@@ -28,6 +28,7 @@ class Step1NamesAndCo extends StatelessWidget {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -68,6 +69,7 @@ class Step1NamesAndCo extends StatelessWidget {
 
           GestureDetector(
             onTap: () {
+              FocusScope.of(context).unfocus();
               // Open BottomSheet with categories
               showCustomBottomSheet(
                 _CategorySelectionSheet(
@@ -116,6 +118,8 @@ class Step1NamesAndCo extends StatelessWidget {
                     "Private (Invite Only)",
                   ],
                   onSelected: (status) {
+                    FocusScope.of(context).unfocus();
+
                     provider.visibilityStatusCtrl.text = status;
                     provider.notifyListeners();
                     Navigator.pop(context);

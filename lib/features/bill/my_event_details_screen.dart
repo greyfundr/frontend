@@ -39,10 +39,11 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
     final eventProvider = Provider.of<EventProvider>(context);
     var event = eventProvider.eventDetailsModel;
 
-    void continueEventFlow() {
+    void continueEventFlow({int? targetStep}) {
       if (event == null) return;
       final draftJson = event.toJson();
-      draftJson['pageNumber'] = event.pageNumber ?? 0;
+      final step = targetStep ?? event.pageNumber ?? 0;
+      draftJson['pageNumber'] = step.clamp(0, 4);
       final draftEvent = EventDatum.fromJson(draftJson);
       Get.to(() => CreateventPage(draftEvent: draftEvent));
     }
@@ -446,173 +447,40 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                           ),
                         ],
                         Gap(24),
-
-                        // Location Card
-                        if (event?.location != null ||
-                            event?.venueName != null) ...[
-                          Text(
-                            "VENUE",
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[500],
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                          Gap(10),
-                          _buildCompactCard(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  height: 40,
-                                  width: 40,
-                                  decoration: BoxDecoration(
-                                    color: appPrimaryColor.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    Icons.location_on_outlined,
-                                    color: appPrimaryColor,
-                                    size: 20,
-                                  ),
-                                ),
-                                Gap(12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        event?.venueName ?? "Venue",
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      Gap(4),
-                                      Text(
-                                        event?.location?.address ??
-                                            "No address specified",
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      if (event
-                                              ?.location
-                                              ?.locationDescription !=
-                                          null) ...[
-                                        Gap(4),
-                                        Text(
-                                          event!.location!.locationDescription!,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: appPrimaryColor,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Gap(24),
-                        ],
-
-                        // About Section
-                        if (event?.shortDescription != null &&
-                            event!.shortDescription!.isNotEmpty) ...[
-                          Text(
-                            "ABOUT",
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[500],
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                          Gap(10),
-                          _buildCompactCard(
-                            child: Text(
-                              event.shortDescription!,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
-                                height: 1.6,
-                              ),
-                            ),
-                          ),
-                          Gap(24),
-                        ],
-
-                        // Detailed Description
-                        if (event?.detailedDescription != null &&
-                            event!.detailedDescription!.isNotEmpty) ...[
-                          Text(
-                            "EVENT STORY",
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[500],
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                          Gap(10),
-                          ...event.detailedDescription!.map((section) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12.0),
-                              child: _buildCompactCard(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      section.title?.isNotEmpty == true
-                                          ? section.title!
-                                          : "Section",
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    Gap(8),
-                                    Text(
-                                      section.text ?? "",
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[700],
-                                        height: 1.6,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          Gap(12),
-                        ],
-
                         // Financial Info
                         if ((event?.targetAmount ?? 0) > 0) ...[
-                          Text(
-                            "FINANCIAL TARGET",
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[500],
-                              letterSpacing: 0.6,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "FINANCIAL TARGET",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[500],
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => continueEventFlow(targetStep: 4),
+                                child: Text(
+                                  "Edit",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: appPrimaryColor,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           Gap(10),
-                          Row(
+                          Wrap(
+                            spacing: 5,
+                            runSpacing: 10,
                             children: [
-                              Expanded(
+                              SizedBox(
+                                width: SizeConfig.widthOf(44),
                                 child: _buildCompactCard(
                                   child: Column(
                                     crossAxisAlignment:
@@ -643,7 +511,8 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                                 ),
                               ),
                               Gap(12),
-                              Expanded(
+                              SizedBox(
+                                width: SizeConfig.widthOf(44),
                                 child: _buildCompactCard(
                                   child: Column(
                                     crossAxisAlignment:
@@ -671,6 +540,38 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                                       ),
                                     ],
                                   ),
+                                ),
+                              ),
+                              Gap(12),
+                              _buildCompactCard(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "VISIBILITY",
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey[500],
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    Gap(6),
+                                    Text(
+                                      event?.hideDonationAmount == true
+                                          ? "Hidden"
+                                          : "Visible",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: event?.hideDonationAmount ==
+                                                true
+                                            ? Colors.amber[700]
+                                            : Colors.green,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -818,6 +719,195 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                             ),
                           ],
                         ),
+                        Gap(24),
+
+                        // Location Card
+                        if (event?.location != null ||
+                            event?.venueName != null) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "VENUE",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[500],
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                              GestureDetector(
+                                onTap: () => continueEventFlow(targetStep: 3),
+                                child: Text(
+                                  "Edit",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: appPrimaryColor,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Gap(10),
+                          _buildCompactCard(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  height: 40,
+                                  width: 40,
+                                  decoration: BoxDecoration(
+                                    color: appPrimaryColor.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.location_on_outlined,
+                                    color: appPrimaryColor,
+                                    size: 20,
+                                  ),
+                                ),
+                                Gap(12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        event?.venueName ?? "Venue",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      Gap(4),
+                                      Text(
+                                        event?.location?.address ??
+                                            "No address specified",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      if (event
+                                              ?.location
+                                              ?.locationDescription !=
+                                          null) ...[
+                                        Gap(4),
+                                        Text(
+                                          event!.location!.locationDescription!,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: appPrimaryColor,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Gap(24),
+                        ],
+
+                        // About Section
+                        if (event?.shortDescription != null &&
+                            event!.shortDescription!.isNotEmpty) ...[
+                          Text(
+                            "ABOUT",
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[500],
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          Gap(10),
+                          _buildCompactCard(
+                            child: Text(
+                              event.shortDescription!,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                                height: 1.6,
+                              ),
+                            ),
+                          ),
+                          Gap(24),
+                        ],
+
+                        // Detailed Description
+                        if (event?.detailedDescription != null &&
+                            event!.detailedDescription!.isNotEmpty) ...[
+                          Text(
+                            "EVENT STORY",
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[500],
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          Gap(10),
+                          ...event.detailedDescription!.map((section) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12.0),
+                              child: _buildCompactCard(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            section.title?.isNotEmpty == true
+                                                ? section.title!
+                                                : "Section",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                        GestureDetector(
+                                          onTap: () =>
+                                              continueEventFlow(targetStep: 2),
+                                          child: Text(
+                                            "Edit",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: appPrimaryColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Gap(8),
+                                    Text(
+                                      section.text ?? "",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[700],
+                                        height: 1.6,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                          Gap(12),
+                        ],
+
                         Gap(40),
                         Row(
                           children: [

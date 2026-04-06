@@ -110,14 +110,17 @@ class _EventRSVPScreenState extends State<EventRSVPScreen> {
                       ),
                     ),
                     Positioned(
-                      top: SizeConfig.heightOf(9),
+                      top: 0,
                       bottom: 0,
-                      left: 30,
+                      left: 0,
                       right: 0,
-                      child: Text(
-                        "${event?.name}".toUpperCase(),
-                        style: txStyle24SemiBold.copyWith(fontSize: 20),
-                        maxLines: 1,
+                      child: Center(
+                        child: Text(
+                          "${event?.name}".toUpperCase(),
+                          style: txStyle24SemiBold.copyWith(fontSize: 20),
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                        ),
                       ),
                     ),
                   ],

@@ -49,6 +49,18 @@ class Step5FinancingAndActivities extends StatelessWidget {
           const Gap(20),
 
           if (provider.acceptDonations) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Hide Donation Amount?", style: txStyle15),
+                Switch(
+                  value: provider.hideDonationAmount,
+                  activeThumbColor: appPrimaryColor,
+                  onChanged: provider.toggleHideDonationAmount,
+                ),
+              ],
+            ),
+            const Gap(12),
             CustomTextField(
               labelText: "Target Gift Amount",
               hintText: "~10,000,000",
@@ -252,7 +264,7 @@ class _AddPurchasableItemSheetState extends State<_AddPurchasableItemSheet> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Image.asset("assets/images/bottom_sheet_cureve_left.png"),
+        Image.asset("assets/images/bottom_sheet_cureve_right.png"),
         Container(
           color: Color(0xffF1F1F7),
           child: Padding(
@@ -369,13 +381,14 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
   final amountCtrl = TextEditingController();
   XFile? image;
   DateTime? selectedTime;
+  bool setTargetAmount = true;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Image.asset("assets/images/bottom_sheet_cureve_left.png"),
+        Image.asset("assets/images/bottom_sheet_cureve_right.png"),
         Container(
           color: Color(0xffF1F1F7),
           padding: EdgeInsets.only(
@@ -402,16 +415,37 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
                 CustomTextField(labelText: "Description", controller: descCtrl),
                 const Gap(12),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: CustomTextField(
-                        labelText: "Target Amount",
-                        controller: amountCtrl,
-                        textInputType: TextInputType.number,
-                        formatters: MoneyInputFormatter(),
-                      ),
+                    Text("Set Target Amount", style: txStyle15),
+                    Switch(
+                      value: setTargetAmount,
+                      activeThumbColor: appPrimaryColor,
+                      onChanged: (value) {
+                        setState(() {
+                          setTargetAmount = value;
+                          if (!setTargetAmount) {
+                            amountCtrl.clear();
+                          }
+                        });
+                      },
                     ),
-                    const Gap(12),
+                  ],
+                ),
+                const Gap(12),
+                Row(
+                  children: [
+                    if (setTargetAmount) ...[
+                      Expanded(
+                        child: CustomTextField(
+                          labelText: "Target Amount",
+                          controller: amountCtrl,
+                          textInputType: TextInputType.number,
+                          formatters: MoneyInputFormatter(),
+                        ),
+                      ),
+                      const Gap(12),
+                    ],
                     Expanded(
                       child: CustomTimePickerTextFiled(
                         labelText: "Time",
@@ -454,7 +488,9 @@ class _AddActivitySheetState extends State<_AddActivitySheet> {
                           EventActivity(
                             name: nameCtrl.text,
                             description: descCtrl.text,
-                            targetAmount: double.tryParse(rawAmount) ?? 0,
+                            targetAmount: setTargetAmount
+                                ? (double.tryParse(rawAmount) ?? 0)
+                                : 0,
                             time: selectedTime?.toIso8601String() ?? "TBD",
                             image: image,
                           ),

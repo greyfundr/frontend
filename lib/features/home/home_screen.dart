@@ -40,8 +40,9 @@ class HomeScreen extends StatelessWidget {
     final eventProvider = Provider.of<EventProvider>(context);
     final walletProvider = Provider.of<WalletProvider>(context);
     var userProfile = userProvider.userProfileModel;
+    final avatarUrl =
+        userProvider.userProfileModel?.profile?.image?.toString() ?? "";
     var walletModel = walletProvider.walletModel;
-    
 
     return Scaffold(
       // Render a compact 3-tab bottom nav only when no ancestor
@@ -171,7 +172,10 @@ class HomeScreen extends StatelessWidget {
                   },
                   child: Row(
                     children: [
-                      CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
+                      CustomNetworkImage(
+                        imageUrl: "$avatarUrl",
+                        radius: 40,
+                      ),
                       Gap(5),
                       Column(
                         children: [
@@ -187,9 +191,9 @@ class HomeScreen extends StatelessWidget {
               ],
             ).paddingSymmetric(horizontal: SizeConfig.widthOf(5)),
             Gap(5),
-            Divider(height: 0,),
-            // Gap(5),
+            Divider(height: 0),
 
+            // Gap(5),
             Expanded(
               child: RefreshIndicator.adaptive(
                 onRefresh: () async {
@@ -363,12 +367,12 @@ class HomeScreen extends StatelessWidget {
                       Text("Total Balance", style: txStyle12wt),
                       Gap(5),
                       Text(
-                        "${convertStringToCurrency(walletModel?.balance?.available ?? "0")}",
+                        "${convertStringToCurrency("${walletModel?.balance?.available}")}",
                         style: txStyle18SemiBold.copyWith(color: Colors.white),
                       ),
                       Gap(5),
                       Text(
-                        "Ledger:  ${convertStringToCurrency("${walletModel?.balance?.ledger ?? "0"}")}",
+                        "Ledger:  ${convertStringToCurrency("${walletModel?.balance?.ledger}")}",
                         style: txStyle12wt,
                       ),
                     ],
@@ -378,7 +382,7 @@ class HomeScreen extends StatelessWidget {
                     children: [
                       SizedBox(height: 27),
                       Text(
-                        "Escrow:  ${convertStringToCurrency("${walletModel?.balance?.escrow ?? "0"}")}",
+                        "Escrow:  ${convertStringToCurrency("${walletModel?.balance?.escrow}")}",
                         style: txStyle12wt,
                       ),
                     ],

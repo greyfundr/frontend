@@ -178,14 +178,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ],
             ),
           ),
-          const Gap(8),
-          Center(
-            child: TextButton(
-              onPressed: _showImageSourceBottomSheet,
-              child: const Text("Change profile image"),
-            ),
-          ),
-          Gap(20),
+          // const Gap(8),
+          // Center(
+          //   child: TextButton(
+          //     onPressed: _showImageSourceBottomSheet,
+          //     child: const Text("Change profile image"),
+          //   ),
+          // ),
+          Gap(30),
           CustomTextField(
             labelText: "First Name",
             hintText: "Enter your first name",

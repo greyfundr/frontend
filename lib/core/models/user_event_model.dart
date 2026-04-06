@@ -57,6 +57,7 @@ class EventDatum {
   int? targetAmount;
   int? amountRaised;
   bool? acceptDonations;
+  bool? hideDonationAmount;
   DateTime? startDateTime;
   DateTime? endDateTime;
   String? startTime;
@@ -94,6 +95,7 @@ class EventDatum {
     this.targetAmount,
     this.amountRaised,
     this.acceptDonations,
+    this.hideDonationAmount,
     this.startDateTime,
     this.endDateTime,
     this.startTime,
@@ -152,6 +154,7 @@ class EventDatum {
     targetAmount: json["targetAmount"],
     amountRaised: json["amountRaised"],
     acceptDonations: json["acceptDonations"],
+    hideDonationAmount: json["hideDonationAmount"],
     startDateTime: json["startDateTime"] == null
         ? null
         : DateTime.parse(json["startDateTime"]),
@@ -206,6 +209,7 @@ class EventDatum {
     "targetAmount": targetAmount,
     "amountRaised": amountRaised,
     "acceptDonations": acceptDonations,
+    "hideDonationAmount": hideDonationAmount,
     "startDateTime": startDateTime?.toIso8601String(),
     "endDateTime": endDateTime,
     "startTime": startTime,
@@ -336,8 +340,8 @@ class DetailedDescription {
 }
 
 class Location {
-  dynamic? lat;
-  dynamic? lng;
+  dynamic lat;
+  dynamic lng;
   String? address;
   String? venueName;
   String? locationDescription;

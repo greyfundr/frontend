@@ -145,7 +145,7 @@ class _SignInWithPinScreenState extends State<SignInWithPinScreen> {
                           Gap(0),
                           Text('Welcome Back', style: txStyle14),
                           Gap(20),
-                          CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
+                          CustomNetworkImage(imageUrl: "${user?.profile?.image}", radius: 40),
                           Gap(10),
 
                           Text(

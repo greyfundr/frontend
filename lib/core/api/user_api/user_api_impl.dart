@@ -50,6 +50,7 @@ class UserApiImpl implements UserApi {
     String? state,
     String? city,
     String? address,
+    String? image,
   }) async {
     final response = await _apiClient.patch(
       ApiRoute.userProfileRoute,
@@ -64,6 +65,7 @@ class UserApiImpl implements UserApi {
         "state": state,
         "city": city,
         "address": address,
+        "image": image,
       }..removeWhere((key, value) => value == null || value == ""),
     );
     return response;

@@ -57,8 +57,8 @@ class WalletProvider extends BaseNotifier {
       );
       transactionState = ViewState.Success;
       notifyListeners();
-    } catch (e) {
-      log("ERROR ON FETCH TRANSACTIONS $e ");
+    } catch (e, stacktrace) {
+      log("ERROR ON FETCH TRANSACTIONS $e :::: $stacktrace");
       showErrorToast("${e}");
       transactionState = ViewState.Error;
       notifyListeners();

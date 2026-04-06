@@ -143,7 +143,10 @@ class UserProvider with ChangeNotifier {
   Future<bool> updateProfileAvatar({required String filePath}) async {
     EasyLoading.show();
     try {
-      await _userApi.uploadAvatar(filePath: filePath);
+      final imageUrl = await _userApi.uploadAvatar(filePath: filePath);
+      if (imageUrl != null) {
+        await _userApi.updateUserProfile(image: imageUrl);
+      }
       await fetchUserProfileApi();
       showSuccessToast("Profile image updated successfully");
       return true;

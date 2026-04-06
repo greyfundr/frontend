@@ -29,6 +29,7 @@ class EventDetailsModel {
   int? targetAmount;
   int? amountRaised;
   bool? acceptDonations;
+  bool? hideDonationAmount;
   DateTime? startDateTime;
   dynamic endDateTime;
   DateTime? startTime;
@@ -66,6 +67,7 @@ class EventDetailsModel {
     this.targetAmount,
     this.amountRaised,
     this.acceptDonations,
+    this.hideDonationAmount,
     this.startDateTime,
     this.endDateTime,
     this.startTime,
@@ -127,6 +129,7 @@ class EventDetailsModel {
         targetAmount: json["targetAmount"],
         amountRaised: json["amountRaised"],
         acceptDonations: json["acceptDonations"],
+        hideDonationAmount: json["hideDonationAmount"],
         startDateTime: json["startDateTime"] == null
             ? null
             : DateTime.parse(json["startDateTime"]),
@@ -184,6 +187,7 @@ class EventDetailsModel {
     "targetAmount": targetAmount,
     "amountRaised": amountRaised,
     "acceptDonations": acceptDonations,
+    "hideDonationAmount": hideDonationAmount,
     "startDateTime": startDateTime?.toIso8601String(),
     "endDateTime": endDateTime,
     "startTime": startTime?.toIso8601String(),

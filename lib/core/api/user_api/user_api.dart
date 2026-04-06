@@ -14,6 +14,7 @@ abstract class UserApi {
     String? state,
     String? city,
     String? address,
+    String? image,
   });
 
   Future<UserSettingsModel> fetchUserSettings();

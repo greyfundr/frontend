@@ -120,7 +120,7 @@ class _Step4LocationAndVenueState extends State<Step4LocationAndVenue> {
                           provider.locationAddressCtrl.text =
                               prediction.description ?? "";
                           provider.clearAddressSuggestions();
-                          provider.updateLocation(0.0, 0.1, "Adetokunbo ademola");
+                          provider.updateLocation(0.0, 0.0, "${prediction.description}");
 
                           // Additional logic to get Lat/Lng from placeId could be added here
                         },

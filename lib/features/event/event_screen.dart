@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/state_manager.dart';
 import 'package:greyfundr/shared/app_colors.dart';
+import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:provider/provider.dart';
 import 'package:greyfundr/components/custom_network_image%20copy.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
@@ -122,122 +123,125 @@ class _EventScreenState extends State<EventScreen>
 
           // Bottom Half - Welcome Text
           Positioned(
-            top: size.height * 0.5 - 30, // Start a bit higher to overlap
+            top: size.height * 0.55 - 30, // Start a bit higher to overlap
             left: 0,
             right: 0,
             bottom: 0,
-            child: Column(
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                Image.asset(
-                  "assets/images/bottom_sheet_curve_primary.png",
+                Container(
                   width: double.infinity,
-                  fit: BoxFit.fill,
-                ),
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.centerLeft,
-                        end: Alignment.centerRight,
-                        colors: [
-                          Color(0xff004449),
-                          Color(0xff00747C),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [
+                        Color(0xff004449),
+                        Color(0xff00747C),
 
-                          Color(0xff00A3AF),
-                        ],
-                      ),
+                        Color(0xff00A3AF),
+                      ],
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TweenAnimationBuilder<double>(
-                          duration: const Duration(milliseconds: 1200),
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          builder: (_, opacity, __) => Opacity(
-                            opacity: opacity,
-                            child: const Text(
-                              "Welcome to",
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w300,
-                                letterSpacing: 1.5,
-                              ),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 1200),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (_, opacity, __) => Opacity(
+                          opacity: opacity,
+                          child: const Text(
+                            "Welcome to",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w300,
+                              letterSpacing: 1.5,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          "Events By Greyfundr",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 10,
-                                color: Colors.deepPurple,
-                                offset: Offset(0, 0),
-                              ),
-                            ],
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "Events By Greyfundr",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                          shadows: [
+                            Shadow(
+                              blurRadius: 10,
+                              color: Colors.deepPurple,
+                              offset: Offset(0, 0),
+                            ),
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 30),
+
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 800),
+                        transitionBuilder: (child, animation) =>
+                            FadeTransition(opacity: animation, child: child),
+                        child: Text(
+                          rotatingTexts[currentTextIndex],
+                          key: ValueKey(currentTextIndex),
+                          style: const TextStyle(
+                            color: appSecondaryColor,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w600,
+                            height: 1.4,
                           ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 30),
+                      ),
 
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 800),
-                          transitionBuilder: (child, animation) =>
-                              FadeTransition(opacity: animation, child: child),
-                          child: Text(
-                            rotatingTexts[currentTextIndex],
-                            key: ValueKey(currentTextIndex),
-                            style: const TextStyle(
-                              color: appSecondaryColor,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w600,
-                              height: 1.4,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-
-                        const SizedBox(height: 50),
-                        TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          duration: const Duration(seconds: 2),
-                          builder: (_, value, __) => Opacity(
-                            opacity: value,
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "Taking you in",
-                                  style: TextStyle(
-                                    color: Colors.white54,
-                                    fontSize: 16,
+                      const SizedBox(height: 50),
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        duration: const Duration(seconds: 2),
+                        builder: (_, value, __) => Opacity(
+                          opacity: value,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                "Taking you in",
+                                style: TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              SizedBox(
+                                width: 10,
+                                height: 10,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation(
+                                    Colors.deepPurpleAccent,
                                   ),
                                 ),
-                                SizedBox(width: 8),
-                                SizedBox(
-                                  width: 10,
-                                  height: 10,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation(
-                                      Colors.deepPurpleAccent,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  top: -20,
+                  child: Image.asset(
+                    "assets/images/bottom_sheet_curve_primary.png",
+                    width: SizeConfig.screenWidth,
+                    fit: BoxFit.fill,
+                    
                   ),
                 ),
               ],

@@ -213,6 +213,7 @@ class EventProvider extends BaseNotifier {
     expectedParticipantsCtrl.text =
         event.expectedParticipants?.toString() ?? "";
     acceptDonations = event.acceptDonations ?? false;
+    hideDonationAmount = event.hideDonationAmount ?? false;
   }
 
   double _toDouble(dynamic value) {
@@ -327,6 +328,7 @@ class EventProvider extends BaseNotifier {
       payload['pageNumber'] = currentStep + 1;
 
       await _eventApi.updateEventDraft(id: eventId!, payload: payload);
+      getMyEvents();
       return true;
     } catch (e) {
       log("Error updating event draft: $e");
@@ -409,6 +411,7 @@ class EventProvider extends BaseNotifier {
               int.tryParse(expectedParticipantsCtrl.text) ?? 0,
           "purchasableItems": items,
           "acceptDonations": acceptDonations,
+          "hideDonationAmount": hideDonationAmount,
           "activities": acts,
         };
       default:
@@ -518,6 +521,8 @@ class EventProvider extends BaseNotifier {
       detailedDescription.add(EventDetailSection(title: "Bride", text: ""));
       detailTitleControllers.add(TextEditingController(text: "Bride"));
       detailControllers.add(TextEditingController());
+
+      log("Groom and bride section added ${detailedDescription.length}");
     }
     notifyListeners();
   }
@@ -664,6 +669,12 @@ class EventProvider extends BaseNotifier {
     notifyListeners();
   }
 
+  bool hideDonationAmount = false;
+  void toggleHideDonationAmount(bool val) {
+    hideDonationAmount = val;
+    notifyListeners();
+  }
+
   List<PurchasableItem> purchasableItems = [];
   List<EventActivity> activities = [];
 
@@ -785,6 +796,7 @@ class EventProvider extends BaseNotifier {
             int.tryParse(expectedParticipantsCtrl.text) ?? 0,
         "purchasableItems": purchasableItemsData,
         "acceptDonations": acceptDonations,
+        "hideDonationAmount": hideDonationAmount,
         "activities": activitiesData,
       },
     };

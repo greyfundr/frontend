@@ -167,17 +167,38 @@ class CustomEventImages extends StatelessWidget {
               ),
             ),
             Gap(20),
-            CurvedCornerContainer(
-              corner: CurveCorner.topLeft,
-              child: Container(
-                height: SizeConfig.heightOf(50),
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("assets/images/couples.png"),
-                    fit: BoxFit.cover,
+            Stack(
+              children: [
+                CurvedCornerContainer(
+                  corner: CurveCorner.topLeft,
+                  child: Container(
+                    height: SizeConfig.heightOf(50),
+                    decoration: BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage("assets/images/bride.png"),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                Positioned(
+                  bottom: 0,
+                  child: Container(
+                    width: SizeConfig.screenWidth,
+                    padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(.4),
+                    ),
+                    child: Text(
+                      "The Bride",
+                      style: txStyle24.copyWith(
+                        fontStyle: FontStyle.italic,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             Stack(
               children: [
@@ -196,21 +217,45 @@ class CustomEventImages extends StatelessWidget {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.only(top: SizeConfig.heightOf(20)),
-                  child: CurvedCornerContainer(
-                    corner: CurveCorner.topRight,
-                    child: Container(
-                      height: SizeConfig.heightOf(50),
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        image: DecorationImage(
-                          image: AssetImage("assets/images/couples.png"),
-                          fit: BoxFit.cover,
+                Stack(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.only(top: SizeConfig.heightOf(20)),
+                      child: CurvedCornerContainer(
+                        corner: CurveCorner.topRight,
+                        child: Container(
+                          height: SizeConfig.heightOf(60),
+                          width: double.infinity,
+                          decoration: const BoxDecoration(
+                            image: DecorationImage(
+                              image: AssetImage("assets/images/groom.png"),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    Positioned(
+                      bottom: 0,
+                      child: Container(
+                        width: SizeConfig.screenWidth,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(.4),
+                        ),
+                        child: Text(
+                          "The Groom",
+                          style: txStyle24.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

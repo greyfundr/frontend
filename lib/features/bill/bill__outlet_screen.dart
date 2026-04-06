@@ -450,7 +450,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.easeInOut,
                   width: double.infinity,
-                  height: _isHeaderCollapsed ? 200 : 340,
+                  height: _isHeaderCollapsed ? 170 : 340,
                   child: Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
@@ -596,6 +596,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                             ),
                                             Text(
                                               "${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}",
+                                              style: txStyle13wt,
                                             ),
                                           ],
                                         ),
@@ -730,7 +731,9 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                             Row(
                                               children: [
                                                 Text(
-                                                  "${convertStringToCurrency(walletModel?.balance?.available ?? "0")}",
+                                                  convertStringToCurrency(
+                                                    "${walletModel?.balance?.available}",
+                                                  ),
                                                   style: txStyle18SemiBold
                                                       .copyWith(
                                                         color: Colors.white,
@@ -758,7 +761,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                               ],
                                             ),
                                             Text(
-                                              "Escrow:  ${convertStringToCurrency("${walletModel?.balance?.escrow ?? "0"}")}",
+                                              "Escrow:  ${convertStringToCurrency("${walletModel?.balance?.escrow}")}",
                                               style: txStyle12wt,
                                             ),
                                           ],

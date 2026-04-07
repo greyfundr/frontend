@@ -685,6 +685,58 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                           Gap(24),
                         ],
 
+                        if (((event?.venueCount?? 0) > 0) ||
+                            ((event?.onlineCount?? 0) > 0)) ...[
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "ATTENDANCE",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[500],
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                              Text(
+                                "VENUE & ONLINE",
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: appPrimaryColor,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Gap(10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildAttendanceStatCard(
+                                  icon: Icons.location_on_outlined,
+                                  label: "VENUE COUNT",
+                                  value: "${event?.venueCount}",
+                                  accentColor: appPrimaryColor,
+                                  helperText: "In-person attendance",
+                                ),
+                              ),
+                              Gap(12),
+                              Expanded(
+                                child: _buildAttendanceStatCard(
+                                  icon: Icons.wifi_outlined,
+                                  label: "ONLINE COUNT",
+                                  value: "${event?.onlineCount}",
+                                  accentColor: Colors.blue,
+                                  helperText: "Remote attendance",
+                                ),
+                              ),
+                            ],
+                          ),
+                          Gap(24),
+                        ],
+
                         // Additional Info
                         Row(
                           children: [
@@ -1298,6 +1350,63 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
         ],
       ),
       child: child,
+    );
+  }
+
+  Widget _buildAttendanceStatCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color accentColor,
+    required String helperText,
+  }) {
+    return _buildCompactCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 36,
+            width: 36,
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: accentColor,
+              size: 18,
+            ),
+          ),
+          Gap(10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[500],
+              letterSpacing: 0.5,
+            ),
+          ),
+          Gap(4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: Colors.black87,
+            ),
+          ),
+          Gap(4),
+          Text(
+            helperText,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[600],
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -47,6 +47,8 @@ class EventDetailsModel {
   Category? category;
   Creator? creator;
   List<Organizer>? organizers;
+  int? venueCount;
+  int? onlineCount;
 
   EventDetailsModel({
     this.coverImages,
@@ -85,6 +87,8 @@ class EventDetailsModel {
     this.category,
     this.creator,
     this.organizers,
+    this.onlineCount,
+    this.venueCount,
   });
 
   factory EventDetailsModel.fromJson(Map<String, dynamic> json) =>
@@ -148,6 +152,8 @@ class EventDetailsModel {
         visibilityStatus: json["visibilityStatus"],
         isPublished: json["isPublished"],
         shareLink: json["shareLink"],
+        onlineCount: json["onlineCount"],
+        venueCount: json["venueCount"],
         category: json["category"] == null
             ? null
             : Category.fromJson(json["category"]),

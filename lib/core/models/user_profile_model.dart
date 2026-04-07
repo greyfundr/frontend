@@ -37,7 +37,7 @@ class UserProfileModel {
   dynamic passwordResetToken;
   dynamic passwordResetTokenExpiry;
   Profile? profile;
-  dynamic kyc;
+  List<Kyc>? kyc;
   String? image;
   String? dateOfBirth;
 
@@ -107,10 +107,11 @@ class UserProfileModel {
         profile: json["profile"] == null
             ? null
             : Profile.fromJson(json["profile"]),
-        kyc: json["kyc"],
+        kyc: json["kycs"] == null
+            ? []
+            : List<Kyc>.from(json["kycs"]!.map((x) => Kyc.fromJson(x))),
         image: json["image"],
         dateOfBirth: json["dateOfBirth"],
-
       );
 
   Map<String, dynamic> toJson() => {
@@ -141,6 +142,78 @@ class UserProfileModel {
     "passwordResetTokenExpiry": passwordResetTokenExpiry,
     "profile": profile?.toJson(),
     "kyc": kyc,
+  };
+}
+
+class Kyc {
+  String? id;
+  DateTime? createdAt;
+  DateTime? updatedAt;
+  dynamic deletedAt;
+  String? userId;
+  String? name;
+  String? verificationType;
+  String? idNumber;
+  dynamic documentImage;
+  String? status;
+  dynamic rejectionReason;
+  int? attemptCount;
+  dynamic verifiedAt;
+  dynamic rejectedAt;
+
+  Kyc({
+    this.id,
+    this.createdAt,
+    this.updatedAt,
+    this.deletedAt,
+    this.userId,
+    this.name,
+    this.verificationType,
+    this.idNumber,
+    this.documentImage,
+    this.status,
+    this.rejectionReason,
+    this.attemptCount,
+    this.verifiedAt,
+    this.rejectedAt,
+  });
+
+  factory Kyc.fromJson(Map<String, dynamic> json) => Kyc(
+    id: json["id"],
+    createdAt: json["createdAt"] == null
+        ? null
+        : DateTime.parse(json["createdAt"]),
+    updatedAt: json["updatedAt"] == null
+        ? null
+        : DateTime.parse(json["updatedAt"]),
+    deletedAt: json["deletedAt"],
+    userId: json["userId"],
+    name: json["name"],
+    verificationType: json["verificationType"],
+    idNumber: json["idNumber"],
+    documentImage: json["documentImage"],
+    status: json["status"],
+    rejectionReason: json["rejectionReason"],
+    attemptCount: json["attemptCount"],
+    verifiedAt: json["verifiedAt"],
+    rejectedAt: json["rejectedAt"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "createdAt": createdAt?.toIso8601String(),
+    "updatedAt": updatedAt?.toIso8601String(),
+    "deletedAt": deletedAt,
+    "userId": userId,
+    "name": name,
+    "verificationType": verificationType,
+    "idNumber": idNumber,
+    "documentImage": documentImage,
+    "status": status,
+    "rejectionReason": rejectionReason,
+    "attemptCount": attemptCount,
+    "verifiedAt": verifiedAt,
+    "rejectedAt": rejectedAt,
   };
 }
 

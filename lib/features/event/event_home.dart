@@ -351,7 +351,7 @@ class _EventHomeState extends State<EventHome> {
     if (noAncestorNav && userProvider.selectedIndex != 1) {
       userProvider.updateSelectedIndex(1);
     }
-    userProvider.setSuppressAppNav(noAncestorNav);
+    // userProvider.setSuppressAppNav(noAncestorNav);
 
     return Scaffold(
       backgroundColor: Colors.grey[100],

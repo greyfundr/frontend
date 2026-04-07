@@ -377,7 +377,7 @@ Widget build(BuildContext context) {
   }
 
   final bool noAncestorNav = context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
-  userProvider.setSuppressAppNav(noAncestorNav);
+  // userProvider.setSuppressAppNav(noAncestorNav);
 
   return Scaffold(
     backgroundColor: Colors.grey[100],

@@ -42,6 +42,16 @@ class _CreateEventContent extends StatefulWidget {
 }
 
 class _CreateEventContentState extends State<_CreateEventContent> {
+  EventProvider? eventProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero, () {
+      eventProvider = Provider.of<EventProvider>(context, listen: false);
+    });
+  }
+
   void _nextPage(EventProvider provider) async {
     if (provider.currentStep < 4) {
       await provider.nextStep();
@@ -50,6 +60,7 @@ class _CreateEventContentState extends State<_CreateEventContent> {
       bool success = await provider.processStepApi();
       if (success) {
         showSuccessToast("Event published successfully");
+        eventProvider?.getMyEvents();
         Get.back();
       }
     }

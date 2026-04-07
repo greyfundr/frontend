@@ -69,13 +69,14 @@ class Step2Organizers extends StatelessWidget {
               onTap: () async {
                 FocusScope.of(context).unfocus();
                 try {
-                  var contact = await FlutterContacts.openExternalPick();
-                  if (contact == null) {
-                    final granted = await FlutterContacts.requestPermission(readonly: true);
-                    if (granted) {
-                      contact = await FlutterContacts.openExternalPick();
-                    }
+                  final granted = await FlutterContacts.requestPermission(
+                    readonly: true,
+                  );
+                  if (!granted) {
+                    return;
                   }
+
+                  final contact = await FlutterContacts.openExternalPick();
 
                   if (contact != null && contact.phones.isNotEmpty) {
                     final phone = contact.phones.first.number;

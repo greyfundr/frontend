@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:get/utils.dart';
-import 'package:greyfundr/components/adaptive_icons.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/features/auth/auth_provider.dart';
-import 'package:greyfundr/features/auth/create_pin_screen.dart';
-import 'package:greyfundr/features/auth/signup_role_selection_screen.dart';
+ import 'package:greyfundr/features/auth/signup_role_selection_screen.dart';
 import 'package:greyfundr/features/shared/bottom_nav.dart';
 import 'package:greyfundr/shared/app_colors.dart';
-import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:provider/provider.dart';
 
@@ -86,7 +83,6 @@ class _SigninScreenState extends State<SigninScreen> {
               emailOrPhone: _emailController.text,
               password: _passwordController.text,
             );
-
             if (res) {
               Get.offAll(BottomNav(), transition: Transition.rightToLeft);
             }

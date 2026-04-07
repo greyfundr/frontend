@@ -2,11 +2,14 @@ import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/route_manager.dart';
+import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/user_api/user_api.dart';
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
+import 'package:greyfundr/features/auth/create_pin_screen.dart';
 import 'package:greyfundr/services/locator.dart';
 
 class UserProvider with ChangeNotifier {
@@ -61,6 +64,9 @@ class UserProvider with ChangeNotifier {
 
     try {
       _userProfileModel = await _userApi.fetchUserProfile();
+      if (_userProfileModel?.pin == null) {
+        Get.offAll(CreatePinScreen(), transition: Transition.rightToLeft);
+      }
       notifyListeners();
       return true;
     } catch (e, stack) {
@@ -98,6 +104,7 @@ class UserProvider with ChangeNotifier {
     String? state,
     String? city,
     String? address,
+    String? dateOfBirth,
     List<String>? interests,
   }) async {
     EasyLoading.show();
@@ -112,6 +119,7 @@ class UserProvider with ChangeNotifier {
         city: city,
         address: address,
         interest: interests,
+        dateOfBirth: dateOfBirth,
       );
       // Refresh profile after edit
       await fetchUserProfileApi();
@@ -153,6 +161,40 @@ class UserProvider with ChangeNotifier {
     } catch (e, stack) {
       log("ERROR ON UPDATE PROFILE IMAGE: $e", stackTrace: stack);
       showErrorToast("Failed to update profile image");
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  Future<String?> createKycSession() async {
+    EasyLoading.show();
+    try {
+      final sessionUrl = await _userApi.createKycSession();
+      return sessionUrl;
+    } catch (e, stack) {
+      log("ERROR CREATING KYC SESSION: $e", stackTrace: stack);
+      showErrorToast("Failed to create KYC session");
+      return null;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> submitBvn({required String bvn}) async {
+    EasyLoading.show();
+    try {
+      final success = await _userApi.submitBvn(bvn: bvn);
+      if (success) {
+        showSuccessToast("BVN submitted successfully");
+        await fetchUserProfileApi(); // Refresh profile after BVN submission
+      } else {
+        showErrorToast("Failed to submit BVN");
+      }
+      return success;
+    } catch (e, stack) {
+      log("ERROR SUBMITTING BVN: $e", stackTrace: stack);
+      showErrorToast("Failed to submit BVN");
       return false;
     } finally {
       EasyLoading.dismiss();

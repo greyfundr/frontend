@@ -10,6 +10,7 @@ import 'package:greyfundr/features/settings/change_password_screen.dart';
 import 'package:greyfundr/features/settings/change_pin_flow_screen.dart';
 import 'package:greyfundr/features/settings/notification_preference_screen.dart';
 import 'package:greyfundr/features/settings/transaction_history_screen.dart';
+import 'package:greyfundr/features/settings/verification_screen.dart';
 import 'package:greyfundr/features/shared/bottom_sheets.dart';
 import 'package:greyfundr/services/local_auth.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
@@ -98,6 +99,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Edit Profile',
             onTap: () {
               Get.to(EditProfileScreen(), transition: Transition.rightToLeft);
+            },
+          ),
+           _buildMenuItem(
+            icon: Icons.verified_user_outlined,
+            title: 'Verification',
+            onTap: () {
+              Get.to(VerificationScreen(), transition: Transition.rightToLeft);
             },
           ),
           _buildMenuItem(

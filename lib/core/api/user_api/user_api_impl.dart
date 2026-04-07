@@ -51,6 +51,7 @@ class UserApiImpl implements UserApi {
     String? city,
     String? address,
     String? image,
+    String? dateOfBirth,
   }) async {
     final response = await _apiClient.patch(
       ApiRoute.userProfileRoute,
@@ -66,6 +67,7 @@ class UserApiImpl implements UserApi {
         "city": city,
         "address": address,
         "image": image,
+        "dateOfBirth": dateOfBirth,
       }..removeWhere((key, value) => value == null || value == ""),
     );
     return response;
@@ -135,5 +137,36 @@ class UserApiImpl implements UserApi {
     Map<String, dynamic> responseMap = jsonDecode(responsebody);
 
     return responseMap["data"];
+  }
+
+  @override
+  Future<String> createKycSession() async {
+    final response = await _apiClient.post(
+      ApiRoute.kycSessionRoute,
+      headers: header,
+      hideLog: false,
+    );
+    final decoded = jsonDecode(response);
+    final sessionUrl = decoded['data']?['url'];
+    if (sessionUrl != null && sessionUrl is String) {
+      return sessionUrl;
+    } else {
+      return "";
+    }
+  }
+
+  @override
+  Future<bool> submitBvn({required String bvn}) async {
+    try {
+      await _apiClient.post(
+        ApiRoute.submitBvnRoute,
+        headers: header,
+        body: {"bvn": bvn},
+      );
+      return true;
+    } catch (e) {
+      log('ERROR SUBMITTING BVN: $e');
+      return false;
+    }
   }
 }

@@ -25,6 +25,8 @@ import 'package:greyfundr/core/providers/wallet_provider.dart';
 import 'package:greyfundr/features/home/add_money_sheet.dart';
 import 'package:greyfundr/features/settings/settings_screen.dart';
 import 'package:greyfundr/features/settings/transaction_history_screen.dart';
+import 'package:greyfundr/features/settings/verification_screen.dart';
+import 'package:greyfundr/features/shared/bottom_sheets.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
@@ -172,10 +174,7 @@ class HomeScreen extends StatelessWidget {
                   },
                   child: Row(
                     children: [
-                      CustomNetworkImage(
-                        imageUrl: "$avatarUrl",
-                        radius: 40,
-                      ),
+                      CustomNetworkImage(imageUrl: "$avatarUrl", radius: 40),
                       Gap(5),
                       Column(
                         children: [
@@ -418,12 +417,21 @@ class IncompleteKycBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
+    var userProfile = userProvider.userProfileModel;
     return CustomOnTap(
       onTap: () async {
-        bool res = await userProvider.completeKycTemp();
-        if (res) {
-          userProvider.fetchUserProfileApi();
+        if (userProfile?.dateOfBirth == null) {
+          showCustomBottomSheet(
+            SubmitDateOfBirthSheet(userName: "${userProfile?.firstName}"),
+            context,
+          );
+        } else {
+          Get.to(VerificationScreen(), transition: Transition.rightToLeft);
         }
+        // bool res = await userProvider.completeKycTemp();
+        // if (res) {
+        //   userProvider.fetchUserProfileApi();
+        // }
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),

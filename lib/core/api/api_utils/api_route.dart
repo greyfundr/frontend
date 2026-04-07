@@ -45,6 +45,8 @@ class ApiRoute {
   // ──────────────────────────────────────────────────────────────
   static final String userProfileRoute = "$baseUrl/users/profile";
   static final String getUserRoute = "$baseUrl/users";
+  static final String kycSessionRoute = "$baseUrl/users/kyc/session";
+  static final String submitBvnRoute = "$baseUrl/users/kyc/bvn";
 
   // Wallet Routes
   static final String walletRoute = "$baseUrl/wallet";

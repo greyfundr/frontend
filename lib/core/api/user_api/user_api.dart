@@ -15,6 +15,7 @@ abstract class UserApi {
     String? city,
     String? address,
     String? image,
+    String? dateOfBirth,
   });
 
   Future<UserSettingsModel> fetchUserSettings();
@@ -24,6 +25,10 @@ abstract class UserApi {
   });
 
   Future<String?> uploadAvatar({required String filePath});
+
+  Future<String> createKycSession();
+
+  Future<bool> submitBvn({required String bvn});
 
   Future<Map> getCustomDynamicLinkDetails({String shortCode});
 }

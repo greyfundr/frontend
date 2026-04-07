@@ -25,14 +25,32 @@ class AuthProvider extends BaseNotifier with Validators {
   int passwordStrength = 0;
 
   String newPin = "";
+  String confirmNewPin = "";
 
-  void addToPin(String value) {
-    newPin += value;
+
+  void addToPin(String value, {bool isConfirm = false}) {
+    if (isConfirm) {
+      if (confirmNewPin.length < 6) {
+        confirmNewPin += value;
+      }
+    } else {
+      if (newPin.length < 6) {
+        newPin += value;
+      }
+    }
     notifyListeners();
   }
 
-  void deleteFromPin() {
-    newPin = newPin.substring(0, newPin.length - 1);
+  void deleteFromPin({bool isConfirm = false}) {
+    if (isConfirm) {
+      if (confirmNewPin.isNotEmpty) {
+        confirmNewPin = confirmNewPin.substring(0, confirmNewPin.length - 1);
+      }
+    } else {
+      if (newPin.isNotEmpty) {
+        newPin = newPin.substring(0, newPin.length - 1);
+      }
+    }
     notifyListeners();
   }
 

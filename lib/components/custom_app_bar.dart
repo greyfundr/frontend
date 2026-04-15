@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
-import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/adaptive_icons.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';

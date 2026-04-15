@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
 import 'package:dio/dio.dart';
-import 'package:get/get.dart';
 import 'package:greyfundr/services/shared_preference_service.dart';
 import 'package:greyfundr/shared/environment.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -17,7 +16,7 @@ class TokenManager {
   final Dio _dio = Dio();
 
   // Replace with your actual refresh token endpoint
-  static String _refreshTokenEndpoint = '${env.host}/auth/refresh';
+  static final String _refreshTokenEndpoint = '${env.host}/auth/refresh';
 
   Future<String>? _refreshing; // shared in-flight refresh
 
@@ -124,7 +123,7 @@ class TokenManager {
       final data = response.data;
       String newAccessToken = data['accessToken'];
       String newRefreshToken = data['refreshToken'];
-      log("NEW REFRESH TOKEN GOTTEN :::: ${newRefreshToken}");
+      log("NEW REFRESH TOKEN GOTTEN :::: $newRefreshToken");
 
       // Calculate expiry from JWT or from response
       DateTime? expiry;

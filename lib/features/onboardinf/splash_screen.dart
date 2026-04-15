@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/features/onboardinf/onboarding_screen.dart';
 import 'package:greyfundr/features/onboardinf/sign_in_with_pin_screen.dart';
-import 'package:greyfundr/features/shared/bottom_nav.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 
@@ -30,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> {
     });
   }
 
-  goToHome() async {
+  Future<void> goToHome() async {
     Get.off(SignInWithPinScreen(), transition: Transition.rightToLeft);
   }
 

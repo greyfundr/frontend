@@ -4,11 +4,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:greyfundr/features/splitbill/splitbill_provider.dart';
-import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:greyfundr/features/auth/auth_provider.dart'; // ← this fixes the error
+// ← this fixes the error
 
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
@@ -61,7 +60,7 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
   bool _isLoadingUsers = false;
 
   // Flag to know if users have been fetched at least once
-  bool _usersFetched = false;
+  final bool _usersFetched = false;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -95,9 +94,8 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
           userData = Map<String, dynamic>.from(decoded['data']);
         } else if (decoded['user'] is Map<String, dynamic>) {
           userData = Map<String, dynamic>.from(decoded['user']);
-        } else if (decoded is Map<String, dynamic>) {
-          userData = Map<String, dynamic>.from(decoded);
-        }
+        } else        userData = Map<String, dynamic>.from(decoded);
+      
       }
 
       if (userData != null && userData.isNotEmpty && mounted) {
@@ -266,7 +264,7 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
             id: e.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
             firstName: e.firstName ?? '',
             lastName: e.lastName ?? '',
-            username: (e.username ?? '')?.toString() ?? '',
+            username: (e.username ?? '').toString() ?? '',
             email: e.email ?? '',
             phoneNumber: e.phoneNumber ?? '',
             profilePic: e.profile?.toString() ?? 'assets/images/personal.png',
@@ -276,7 +274,9 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
         // Fallback: try dynamic fields
         final dyn = e as dynamic;
         return User(
-          id: dyn.id?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+          id:
+              dyn.id?.toString() ??
+              DateTime.now().millisecondsSinceEpoch.toString(),
           firstName: dyn.firstName ?? dyn.first_name ?? '',
           lastName: dyn.lastName ?? dyn.last_name ?? '',
           username: (dyn.username ?? '')?.toString() ?? '',
@@ -316,16 +316,21 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
     final amount = double.tryParse(amountText) ?? 0.0;
 
     if (title.isEmpty) return _showErrorAndReturnFalse("Please enter a title");
-    if (title.length > 100)
+    if (title.length > 100) {
       return _showErrorAndReturnFalse("Title must be under 100 characters");
-    if (desc.isEmpty)
+    }
+    if (desc.isEmpty) {
       return _showErrorAndReturnFalse("Please enter a description");
-    if (amount <= 0)
+    }
+    if (amount <= 0) {
       return _showErrorAndReturnFalse("Please enter a valid bill amount");
-    if (_billImageUrl == null)
+    }
+    if (_billImageUrl == null) {
       return _showErrorAndReturnFalse("Please upload a receipt");
-    if (_selectedUsers.isEmpty)
+    }
+    if (_selectedUsers.isEmpty) {
       return _showErrorAndReturnFalse("Add at least one participant");
+    }
     if (_dueDate == null) return _showErrorAndReturnFalse("Set a due date");
 
     return true;
@@ -422,19 +427,22 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
       }
 
       // Debug: print payload summary to console to aid debugging
-      debugPrint('createManualSplit payload: total=$totalAmount, due=$_dueDate, participants=${_selectedUsers.length}, userAmounts=$sanitized');
-
-      final Map<String, dynamic>? result = await _splitBillApi.createManualSplitBill(
-        title: _titleController.text.trim(),
-        description: _descriptionController.text.trim(),
-        totalAmount: totalAmount,
-        imageUrl: _billImageUrl,
-        dueDateIso8601: _dueDate!,
-        userAmounts: sanitized,
-        participants: _selectedUsers,
-        recipientUserId: _currentUser?.id,
-        billReceipt: _billImageUrl,
+      debugPrint(
+        'createManualSplit payload: total=$totalAmount, due=$_dueDate, participants=${_selectedUsers.length}, userAmounts=$sanitized',
       );
+
+      final Map<String, dynamic>? result = await _splitBillApi
+          .createManualSplitBill(
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            totalAmount: totalAmount,
+            imageUrl: _billImageUrl,
+            dueDateIso8601: _dueDate!,
+            userAmounts: sanitized,
+            participants: _selectedUsers,
+            recipientUserId: _currentUser?.id,
+            billReceipt: _billImageUrl,
+          );
 
       debugPrint('createManualSplit result: $result');
 
@@ -515,7 +523,10 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text("Create New Split Bill", style: TextStyle(color: Colors.black87)),
+        title: const Text(
+          "Create New Split Bill",
+          style: TextStyle(color: Colors.black87),
+        ),
         centerTitle: true,
       ),
       body: _isLoadingUsers

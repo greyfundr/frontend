@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
-import 'package:greyfundr/components/adaptive_icons.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/features/auth/auth_provider.dart';

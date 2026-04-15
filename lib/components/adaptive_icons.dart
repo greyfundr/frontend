@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:cupertino_native/components/button.dart';
 import 'package:cupertino_native/cupertino_native.dart';
 import 'package:flutter/material.dart';
 import 'package:greyfundr/shared/app_colors.dart';

@@ -3,11 +3,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 
-import 'package:greyfundr/features/home/add_money_sheet.dart';
 import 'package:greyfundr/features/shared/notification.dart';
 import 'package:greyfundr/features/settings/settings_screen.dart';
-import 'package:greyfundr/shared/text_style.dart';
-import 'package:greyfundr/shared/utils.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 
 class ConcaveBottomClipper extends CustomClipper<Path> {
@@ -52,7 +49,7 @@ class BillHeader extends StatelessWidget {
   final VoidCallback onCreateBill;
 
   const BillHeader({
-    Key? key,
+    super.key,
     required this.isCollapsed,
     required this.tabController,
     this.userProfile,
@@ -61,7 +58,7 @@ class BillHeader extends StatelessWidget {
     required this.onToggleBalance,
     required this.onAddMoney,
     required this.onCreateBill,
-  }) : super(key: key);
+  });
 
   Widget _headerTabButton(String title, bool isActive) {
     return GestureDetector(
@@ -178,7 +175,7 @@ class BillHeader extends StatelessWidget {
                               children: [
                                 const Text("Hello!", style: TextStyle(color: Colors.white70, fontSize: 13)),
                                 Text(
-                                  "${'{userProfile?.firstName ?? ''} {userProfile?.lastName ?? ''}'}",
+                                  '{userProfile?.firstName ?? ''} {userProfile?.lastName ?? ''}',
                                   style: const TextStyle(color: Colors.white, fontSize: 13),
                                 ),
                               ],

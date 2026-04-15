@@ -30,10 +30,8 @@ class CampaignApiImpl implements CampaignApi {
   Future<Map<String, dynamic>> donateToCampaign(String campaignId, Map<String, dynamic> payload) async {
     final url = ApiRoute.donateToCampaignRoute.replaceAll('{id}', campaignId);
     final response = await _apiClient.post(url, body: payload, requiresToken: true);
-    if (response is String) {
-      return jsonDecode(response) as Map<String, dynamic>;
-    }
-    return response as Map<String, dynamic>;
+    return jsonDecode(response) as Map<String, dynamic>;
+      return response as Map<String, dynamic>;
   }
 
   Map<String, String> get header => {
@@ -94,7 +92,7 @@ class CampaignApiImpl implements CampaignApi {
         requiresToken: true,
       );
 
-      final data = response is String ? jsonDecode(response) : response;
+      final data = jsonDecode(response);
 
       if (data is! Map<String, dynamic>) {
         throw Exception('Invalid campaign response format: expected Map');
@@ -253,7 +251,7 @@ class CampaignApiImpl implements CampaignApi {
         );
 
         final decoded = jsonDecode(responseBody);
-        if (responseBody != null && !decoded.toString().contains('error')) {
+        if (!decoded.toString().contains('error')) {
           return true;
         }
       } catch (e) {
@@ -296,7 +294,7 @@ class CampaignApiImpl implements CampaignApi {
         );
 
         final decoded2 = jsonDecode(resp);
-        return resp != null && !decoded2.toString().contains('error');
+        return !decoded2.toString().contains('error');
       } catch (e, st) {
         log('Fallback donateToCampaign failed: $e', stackTrace: st);
         return false;
@@ -324,7 +322,7 @@ class CampaignApiImpl implements CampaignApi {
         // Use the safe extension – completely null-safe
         final String fileName = imageFile.safeFileName;
 
-        final String? mimeType = lookupMimeType(fileName) ?? 'image/jpeg';
+        final String mimeType = lookupMimeType(fileName) ?? 'image/jpeg';
 
         // Only add if path is valid
         if (imageFile.path.isNotEmpty) {
@@ -333,7 +331,7 @@ class CampaignApiImpl implements CampaignApi {
               imageFile.path,
               filename: fileName,
               contentType: MediaType(
-                mimeType!.split('/')[0],
+                mimeType.split('/')[0],
                 mimeType.split('/')[1],
               ),
             ),
@@ -388,7 +386,7 @@ class CampaignApiImpl implements CampaignApi {
 
         dynamic decodedCat;
         try {
-          decodedCat = catResp is String ? jsonDecode(catResp) : catResp;
+          decodedCat = jsonDecode(catResp);
         } catch (_) {
           decodedCat = catResp;
         }
@@ -499,10 +497,8 @@ class CampaignApiImpl implements CampaignApi {
         requiresToken: true,
       );
 
-      if (response is String) {
-        return jsonDecode(response);
-      }
-    } catch (e, stackTrace) {
+      return jsonDecode(response);
+        } catch (e, stackTrace) {
       log('createCampaignApi failed: $e  :::::: $stackTrace');
        rethrow;
     }
@@ -520,12 +516,10 @@ class CampaignApiImpl implements CampaignApi {
     );
 
     // If _apiClient returns raw String (JSON), decode it
-    if (response is String) {
-      final decoded = jsonDecode(response);
-      // Match your old code: return the "campaign" key if present
-      return decoded is Map<String, dynamic> ? decoded['campaign'] : decoded;
-    }
-
+    final decoded = jsonDecode(response);
+    // Match your old code: return the "campaign" key if present
+    return decoded is Map<String, dynamic> ? decoded['campaign'] : decoded;
+  
     // If already decoded map/list
     return response;
   } catch (e, stackTrace) {
@@ -618,7 +612,7 @@ class CampaignApiImpl implements CampaignApi {
         requiresToken: true,
       );
 
-      final data = response is String ? jsonDecode(response) : response;
+      final data = jsonDecode(response);
 
       if (data is Map<String, dynamic>) {
         final list = data['data'] ?? data['campaigns'] ?? data['payload'];

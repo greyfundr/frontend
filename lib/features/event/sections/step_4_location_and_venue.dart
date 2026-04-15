@@ -2,13 +2,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:greyfundr/components/custom_circular_progress_indicator.dart';
-import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/shared/responsiveState/responsive_state.dart';
 import 'package:provider/provider.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
 import 'package:greyfundr/shared/app_colors.dart';
-import 'package:greyfundr/shared/responsiveState/view_state.dart';
 import 'package:greyfundr/shared/text_style.dart';
 
 class Step4LocationAndVenue extends StatefulWidget {
@@ -71,7 +69,7 @@ class _Step4LocationAndVenueState extends State<Step4LocationAndVenue> {
                 controller: provider.locationAddressCtrl,
                 onChanged: (value) {
                   _onSearchChanged(value ?? "", provider);
-                  return null;
+                  return;
                 },
               ),
 

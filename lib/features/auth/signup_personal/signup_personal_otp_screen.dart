@@ -69,6 +69,7 @@ class _SignupPersonalOtpScreenState extends State<SignupPersonalOtpScreen> {
             inputLenght: 6,
             onChanged: (value) {
               setState(() {});
+              return null;
             },
           ),
         ),

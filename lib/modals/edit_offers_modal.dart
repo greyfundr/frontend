@@ -49,7 +49,7 @@ void showEditOffersModal(
                         Text("Reward: ${offer['reward'] ?? ''}", style: TextStyle(color: Color.fromRGBO(0, 164, 175, 1))),
                       ]),
                     );
-                  }).toList(),
+                  }),
                   const SizedBox(height: 16),
                   OutlinedButton.icon(
                     onPressed: () {

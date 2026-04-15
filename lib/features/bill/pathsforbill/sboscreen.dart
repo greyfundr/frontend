@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
 
-import 'package:greyfundr/core/models/ny_split_bill_model.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 
-import 'package:greyfundr/features/bill/pathsforbill/sbuscreen.dart';
 
 // import 'package:greyfundr/core/models/split_user_model.dart';
 

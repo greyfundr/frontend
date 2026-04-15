@@ -182,7 +182,7 @@ class _OffersBottomSheetContentState extends State<OffersBottomSheetContent> {
             const Text('Select a standard condition to auto-verify', style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 12),
             DropdownButtonFormField<int>(
-              value: _selectedPresetIndex,
+              initialValue: _selectedPresetIndex,
               items: _autoPresets.asMap().entries.map((e) {
                 return DropdownMenuItem<int>(
                   value: e.key,

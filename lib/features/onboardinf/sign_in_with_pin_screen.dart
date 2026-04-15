@@ -114,7 +114,6 @@ class _SignInWithPinScreenState extends State<SignInWithPinScreen> {
 
       if (!mounted) return;
       Get.offAll(const BottomNav(), transition: Transition.rightToLeft);
-    } catch (e) {
     } finally {
       EasyLoading.dismiss();
     }
@@ -215,7 +214,7 @@ class _SignInWithPinScreenState extends State<SignInWithPinScreen> {
                             onTap: () {
                               showCustomBottomSheet(
                                 LogoutAppSheet(
-                                  userName: "${user?.firstName ?? ""}",
+                                  userName: user?.firstName ?? "",
                                 ),
                                 context,
                               );

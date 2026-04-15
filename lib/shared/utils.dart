@@ -1,7 +1,6 @@
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:family_bottom_sheet/family_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/svg.dart';
@@ -11,15 +10,12 @@ import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_circular_progress_indicator.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/features/auth/auth_outlet.dart';
-import 'package:greyfundr/features/auth/signin_widget.dart';
-import 'package:greyfundr/features/onboardinf/onboarding_screen.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_phone_field/countries.dart';
-import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Future<void> doHepticFeedback() async {

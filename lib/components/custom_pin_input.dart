@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:pinput/pinput.dart';
@@ -34,12 +35,12 @@ class _PINCodeInput2State extends State<PINCodeInput2> {
       onCompleted: widget.onComplete ?? (val) {},
       defaultPinTheme: defaultPinTheme,
       focusedPinTheme: defaultPinTheme.copyDecorationWith(
-        // border: Border.all(color: AppColors.primary),
+        border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(8),
         color: Colors.white,
       ),
       submittedPinTheme: defaultPinTheme.copyDecorationWith(
-        // border: Border.all(color: AppColors.primary),
+        border: Border.all(color: borderColor),
         borderRadius: BorderRadius.circular(8),
         color: Colors.white,
       ),
@@ -58,7 +59,7 @@ class _PINCodeInput2State extends State<PINCodeInput2> {
     textStyle: txStyle20Bold,
     decoration: BoxDecoration(
       color: Colors.white,
-      border: Border.all(color: Colors.transparent),
+      border: Border.all(color: borderColor),
       borderRadius: BorderRadius.circular(7),
     ),
   );

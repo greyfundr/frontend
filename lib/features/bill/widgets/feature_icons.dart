@@ -4,10 +4,9 @@ import 'package:greyfundr/features/bill/bill-stack/pay_bill.dart';
 import 'package:greyfundr/features/bill/bill-stack/transfer_bill.dart';
 import 'package:greyfundr/features/bill/bill-stack/split_bill.dart';
 import 'package:greyfundr/features/bill/bill-stack/request_bill.dart';
-import 'package:greyfundr/features/bill/bill-stack/scan_bill.dart';
 
 class FeatureIcons extends StatelessWidget {
-  const FeatureIcons({Key? key}) : super(key: key);
+  const FeatureIcons({super.key});
 
   Widget _featureIcon(String label, IconData icon, Color color, VoidCallback onTap) {
     return InkWell(

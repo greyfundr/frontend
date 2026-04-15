@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_string_interpolations
+
 import 'dart:convert';
 
 import 'package:greyfundr/core/api/api_utils/api_route.dart';
@@ -131,5 +133,38 @@ class WalletApiImpl implements WalletApi {
       headers: header,
     );
     return transactionModelFromJson(response);
+  }
+
+  @override
+  Future<bool> setTransactionPin({
+    required String pin,
+    required String confirmPin,
+  }) async {
+    await _apiClient.post(
+      "${ApiRoute.setTransactionPinRoute}",
+      headers: header,
+      body: {"pin": pin, "confirmPin": confirmPin},
+      requiresToken: true,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> changeTransactionPin({
+    required String currentPin,
+    required String newPin,
+    required String confirmPin,
+  }) async {
+    await _apiClient.patch(
+      "${ApiRoute.changeTransactionPin}",
+      headers: header,
+      body: {
+        "currentPin": currentPin,
+        "newPin": newPin,
+        "confirmPin": confirmPin,
+      },
+      requiresToken: true,
+    );
+    return true;
   }
 }

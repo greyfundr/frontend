@@ -11,9 +11,8 @@ import 'package:greyfundr/features/shared/notification.dart';
 import 'package:greyfundr/shared/utils.dart'; // for showCustomBottomSheet & convertStringToCurrency
 
 // Import your screens (adjust paths if needed)
-import 'package:greyfundr/features/bill/bill__outlet_screen.dart'; // ← add this
-import 'package:greyfundr/features/event/event_home.dart'; // ← add this (or event_screen.dart)
-import 'package:greyfundr/features/charity/charity_screen.dart';
+// ← add this
+// ← add this (or event_screen.dart)
 
 
 

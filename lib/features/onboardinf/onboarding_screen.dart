@@ -5,7 +5,6 @@ import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/features/auth/auth_outlet.dart';
-import 'package:greyfundr/features/auth/signin_widget.dart';
 import 'package:greyfundr/features/auth/signup_role_selection_screen.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';

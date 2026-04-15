@@ -96,7 +96,7 @@ class EventProvider extends BaseNotifier {
   String selectedNameValue = "";
   bool isSelected(String identity) => selectedNameToRsvp == identity;
 
-  setNameToRsvp(String name, value) {
+  void setNameToRsvp(String name, value) {
     selectedNameToRsvp = name;
     selectedNameValue = value;
     notifyListeners();
@@ -475,7 +475,7 @@ class EventProvider extends BaseNotifier {
     }
   }
 
-  initBillOutletController(TickerProvider ticker) {
+  void initBillOutletController(TickerProvider ticker) {
     billOutletTabController = TabController(
       length: 3,
       vsync: ticker,
@@ -563,7 +563,7 @@ class EventProvider extends BaseNotifier {
   final TextEditingController organizerPhoneCtrl = TextEditingController();
   List<UserSearchModel> organizers = [];
 
-  checkPhoneField() {
+  void checkPhoneField() {
     if (organizerPhoneCtrl.text.length == 11) {
       searchUserViaPhone(phone: formatPhoneNumber(organizerPhoneCtrl.text));
     } else {
@@ -1066,7 +1066,7 @@ class EventProvider extends BaseNotifier {
     }
   }
 
-  disposeRsvp() {
+  void disposeRsvp() {
     selectedNameToRsvp = "";
     selectedNameValue = "";
     notifyListeners();

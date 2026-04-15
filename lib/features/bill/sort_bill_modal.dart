@@ -5,7 +5,6 @@ import 'package:greyfundr/shared/utils.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
-import 'package:greyfundr/core/models/ny_split_bill_model.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/features/bill/pathsforbill/sboscreen.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
@@ -41,11 +40,11 @@ class SortBillModal extends StatefulWidget {
 
         return StatefulBuilder(
           builder: (ctx, setState) {
-            var _isProcessing = false;
+            var isProcessing = false;
 
-            Future<void> _confirmPay() async {
-              if (_isProcessing) return;
-              setState(() => _isProcessing = true);
+            Future<void> confirmPay() async {
+              if (isProcessing) return;
+              setState(() => isProcessing = true);
               try {
                 EasyLoading.show();
 
@@ -178,7 +177,7 @@ class SortBillModal extends StatefulWidget {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: _isProcessing
+                            onPressed: isProcessing
                                 ? null
                                 : () => Navigator.of(ctx).pop(),
                             child: const Text('Cancel'),
@@ -187,11 +186,11 @@ class SortBillModal extends StatefulWidget {
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: _isProcessing ? null : _confirmPay,
+                            onPressed: isProcessing ? null : confirmPay,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF007A74),
                             ),
-                            child: _isProcessing
+                            child: isProcessing
                                 ? const SizedBox(
                                     height: 18,
                                     width: 18,
@@ -570,7 +569,7 @@ class _SortBillModalState extends State<SortBillModal> {
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  hasValue ? value! : defaultText,
+                  hasValue ? value : defaultText,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,

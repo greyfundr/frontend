@@ -59,6 +59,9 @@ class ApiRoute {
   static final String bankAccountsRoute = "$baseUrl/wallet/bank-accounts";
   static final String withdrawRoute = "$baseUrl/wallet/withdraw";
   static final String transactionsRoute = "$baseUrl/transactions";
+  static final String setTransactionPinRoute = "$baseUrl/wallet/pin/set";
+  static final String changeTransactionPin = "$baseUrl/wallet/pin/change";
+  
 
   // ──────────────────────────────────────────────────────────────
   // Campaign Routes (NEW)

@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/route_manager.dart';
-import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/models/login_response_model.dart';
@@ -26,7 +25,6 @@ class AuthProvider extends BaseNotifier with Validators {
 
   String newPin = "";
   String confirmNewPin = "";
-
 
   void addToPin(String value, {bool isConfirm = false}) {
     if (isConfirm) {
@@ -160,7 +158,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return checkIfUserIsVerified(response);
     } catch (e, stacktrace) {
       log("ERROR ON SIGN IN $e :::; $stacktrace");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -201,7 +199,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON SIGN UP $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -219,7 +217,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON VERIFY OTP $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -235,7 +233,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON RESEND OTP $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -258,7 +256,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON COMPLETE KYC $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -282,7 +280,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON COMPLETE KYC $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -297,7 +295,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON FORGOT PASSWORD $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -312,7 +310,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON CREATE PASSWORD $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -335,7 +333,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON CHANGE PASSWORD $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       notifyListeners();
       return false;
     } finally {
@@ -351,7 +349,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON CREATE PIN $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
@@ -369,7 +367,7 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON SIGN IN WITH PIN $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       disposePin();
@@ -390,14 +388,14 @@ class AuthProvider extends BaseNotifier with Validators {
       return true;
     } catch (e) {
       log("ERROR ON CHANGE PIN $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       EasyLoading.dismiss();
     }
   }
 
-  clearSignup() {
+  void clearSignup() {
     emailController.clear();
     phoneController.clear();
     passwordController.clear();
@@ -407,7 +405,7 @@ class AuthProvider extends BaseNotifier with Validators {
     notifyListeners();
   }
 
-  disposePin() {
+  void disposePin() {
     newPin = "";
     notifyListeners();
   }

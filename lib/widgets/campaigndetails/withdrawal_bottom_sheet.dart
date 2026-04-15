@@ -101,7 +101,7 @@ class WithdrawalBottomSheet extends StatefulWidget {
 class _WithdrawalBottomSheetState extends State<WithdrawalBottomSheet> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _reasonController = TextEditingController(); // ← NEW
-  Set<int> _selectedBudgetIds = {};
+  final Set<int> _selectedBudgetIds = {};
 
   late final List<Budget> _budgets;
 

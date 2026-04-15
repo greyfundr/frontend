@@ -44,7 +44,7 @@ class CampaignOptionScreen extends StatelessWidget {
               // Intro text
               Text(
                 'Who are you starting this Campaign for ?',
-                style: txStyle12?.copyWith(   // adjust to your actual small text style
+                style: txStyle12.copyWith(   // adjust to your actual small text style
                   color: Colors.grey.shade700,
                   fontWeight: FontWeight.w500,
                 ),
@@ -139,7 +139,7 @@ class CampaignOptionScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: txStyle14SemiBold?.copyWith(   // adjust to your semi-bold style
+                      style: txStyle14SemiBold.copyWith(   // adjust to your semi-bold style
                         color: Colors.black87,
                       ) ?? const TextStyle(
                         fontSize: 15,
@@ -149,7 +149,7 @@ class CampaignOptionScreen extends StatelessWidget {
                     Gap(6),
                     Text(
                       description,
-                      style: txStyle12?.copyWith(          // small descriptive text
+                      style: txStyle12.copyWith(          // small descriptive text
                         color: Colors.grey.shade700,
                         height: 1.4,
                       ) ?? const TextStyle(

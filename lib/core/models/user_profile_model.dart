@@ -33,13 +33,14 @@ class UserProfileModel {
   dynamic companyName;
   dynamic tin;
   String? refreshToken;
-  String? pin;
+  bool? isPinSet;
   dynamic passwordResetToken;
   dynamic passwordResetTokenExpiry;
   Profile? profile;
   List<Kyc>? kyc;
   String? image;
   String? dateOfBirth;
+  Wallet? wallet;
 
   UserProfileModel({
     this.id,
@@ -64,13 +65,14 @@ class UserProfileModel {
     this.companyName,
     this.tin,
     this.refreshToken,
-    this.pin,
+    this.isPinSet,
     this.passwordResetToken,
     this.passwordResetTokenExpiry,
     this.profile,
     this.kyc,
     this.image,
     this.dateOfBirth,
+    this.wallet,
   });
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) =>
@@ -101,7 +103,7 @@ class UserProfileModel {
         companyName: json["companyName"],
         tin: json["tin"],
         refreshToken: json["refreshToken"],
-        pin: json["pin"],
+        isPinSet: json["isPinSet"],
         passwordResetToken: json["passwordResetToken"],
         passwordResetTokenExpiry: json["passwordResetTokenExpiry"],
         profile: json["profile"] == null
@@ -112,6 +114,7 @@ class UserProfileModel {
             : List<Kyc>.from(json["kycs"]!.map((x) => Kyc.fromJson(x))),
         image: json["image"],
         dateOfBirth: json["dateOfBirth"],
+        wallet: json["wallet"] == null ? null : Wallet.fromJson(json["wallet"]),
       );
 
   Map<String, dynamic> toJson() => {
@@ -137,7 +140,7 @@ class UserProfileModel {
     "companyName": companyName,
     "tin": tin,
     "refreshToken": refreshToken,
-    "pin": pin,
+    "isPinSet": isPinSet,
     "passwordResetToken": passwordResetToken,
     "passwordResetTokenExpiry": passwordResetTokenExpiry,
     "profile": profile?.toJson(),
@@ -214,6 +217,38 @@ class Kyc {
     "attemptCount": attemptCount,
     "verifiedAt": verifiedAt,
     "rejectedAt": rejectedAt,
+  };
+}
+
+class Wallet {
+  String? id;
+  int? availableBalance;
+  String? currency;
+  String? status;
+  bool? isTransactionPinSet;
+
+  Wallet({
+    this.id,
+    this.availableBalance,
+    this.currency,
+    this.status,
+    this.isTransactionPinSet,
+  });
+
+  factory Wallet.fromJson(Map<String, dynamic> json) => Wallet(
+    id: json["id"],
+    availableBalance: json["availableBalance"],
+    currency: json["currency"],
+    status: json["status"],
+    isTransactionPinSet: json["isTransactionPinSet"],
+  );
+
+  Map<String, dynamic> toJson() => {
+    "id": id,
+    "availableBalance": availableBalance,
+    "currency": currency,
+    "status": status,
+    "isTransactionPinSet": isTransactionPinSet,
   };
 }
 

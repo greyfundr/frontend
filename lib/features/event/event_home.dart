@@ -8,12 +8,6 @@ import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 import 'package:gap/gap.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/services/locator.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:greyfundr/shared/app_colors.dart';
-import 'package:greyfundr/shared/utils.dart';
-import 'package:greyfundr/features/home/home_screen.dart';
-import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
-import 'package:greyfundr/features/profile/profile_screen.dart';
 
 import 'package:greyfundr/features/event/start_event.dart';
 
@@ -21,7 +15,6 @@ import 'package:greyfundr/features/event/event_screen.dart';
 
 import 'package:greyfundr/widgets/lifestyle/header_section.dart';
 
-import 'package:greyfundr/widgets/lifestyle/tab_selector.dart';
 import 'package:greyfundr/widgets/lifestyle/event_card.dart';
 
 // import 'package:greyfundr/widgets/charity/horizontal_campaign_carousel.dart';

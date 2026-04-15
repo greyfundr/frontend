@@ -7,13 +7,11 @@ import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
 import 'package:greyfundr/core/models/all_user_model.dart';
-import 'package:greyfundr/core/models/ny_split_bill_model.dart' as splitBill;
-import 'package:greyfundr/core/models/ny_split_bill_model.dart';
-import 'package:greyfundr/core/models/single_split_split_bill_model.dart';
+import 'package:greyfundr/core/models/split_bill_details_model.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/core/models/split_user_model.dart' as splitUser;
-import 'package:http_parser/http_parser.dart';
-import 'package:mime/mime.dart';
+import 'package:greyfundr/core/models/my_split_bill_model.dart';
+import 'package:greyfundr/core/models/split_bill_invite_model.dart';
 
 class SplitBillApiImpl implements SplitBillApi {
   final ApiClient _apiClient = ApiClient();
@@ -24,14 +22,14 @@ class SplitBillApiImpl implements SplitBillApi {
   // Get Split Bill Details
   // ──────────────────────────────────────────────────────────────
   @override
-  Future<SingleSplitBillModel> getSplitBillDetails(String splitBillId) async {
+  Future<SplitBillDetailsModel> getSplitBillDetails(String splitBillId) async {
     final url = '${ApiRoute.createSplitBillRoute}/$splitBillId';
     final responseBody = await _apiClient.get(
       url,
       requiresToken: true,
       hideLog: false,
     );
-    return singleSplitBillModelFromJson(responseBody);
+    return splitBillDetailsModelFromJson(responseBody);
   }
 
   // ──────────────────────────────────────────────────────────────
@@ -76,13 +74,9 @@ class SplitBillApiImpl implements SplitBillApi {
       final multipart = await MultipartFile.fromFile(
         file.path,
         filename: file.path.split('/').last,
-        contentType: lookupMimeType(file.path) != null
-            ? MediaType.parse(lookupMimeType(file.path)!)
-            : MediaType('image', 'jpeg'),
-      ); 
-      final fileSize = File(file.path).lengthSync(); 
+      );
       final formData = FormData.fromMap({'file': multipart});
-       final responseBody = await _apiClient.post(
+      final responseBody = await _apiClient.post(
         ApiRoute.uploadBillReceiptRoute,
         headers: header,
         formData: formData,
@@ -92,9 +86,7 @@ class SplitBillApiImpl implements SplitBillApi {
       // Try to decode JSON safely, fall back to raw body
       dynamic decoded;
       try {
-        decoded = responseBody is String
-            ? jsonDecode(responseBody)
-            : responseBody;
+        decoded = jsonDecode(responseBody);
       } catch (e) {
         decoded = responseBody;
       }
@@ -177,8 +169,8 @@ class SplitBillApiImpl implements SplitBillApi {
         final user = participants[i];
         // Treat as guest only when id looks like a short temp id (e.g. generated timestamp)
         final isGuest = user.id.toString().length < 5;
-        var name = user.displayName?.trim() ?? '';
-        final phone = user.phoneNumber?.trim() ?? '';
+        var name = user.displayName.trim() ?? '';
+        final phone = user.phoneNumber.trim() ?? '';
         if (isGuest) {
           if (name.length < 2) {
             // fallback to phone or default 'Guest'
@@ -220,9 +212,7 @@ class SplitBillApiImpl implements SplitBillApi {
         requiresToken: true,
       );
 
-      final decoded = responseBody is String
-          ? jsonDecode(responseBody)
-          : responseBody;
+      final decoded = jsonDecode(responseBody);
 
       return decoded is Map<String, dynamic> ? decoded : null;
     } catch (e) {
@@ -262,8 +252,8 @@ class SplitBillApiImpl implements SplitBillApi {
 
         // Treat as guest only when id looks like a short temp id (e.g. generated timestamp)
         final isGuest = user.id.toString().length < 5;
-        var name = user.displayName?.trim() ?? '';
-        final phone = user.phoneNumber?.trim() ?? '';
+        var name = user.displayName.trim() ?? '';
+        final phone = user.phoneNumber.trim() ?? '';
         if (isGuest && name.length < 2) {
           name = phone.isNotEmpty ? phone : 'Guest';
         }
@@ -302,8 +292,8 @@ class SplitBillApiImpl implements SplitBillApi {
         "visibility": "private",
         "allowPartialPayment": true,
         "minPaymentAmount": null,
-        if (billReceipt != null) "billReceipt": billReceipt,
-        if (recipientUserId != null) "recipientUserId": recipientUserId,
+        "billReceipt": ?billReceipt,
+        "recipientUserId": ?recipientUserId,
       };
 
       // Debug: print payload summary as compact JSON
@@ -326,9 +316,7 @@ class SplitBillApiImpl implements SplitBillApi {
       // ignore: avoid_print
       print('ManualSplit responseBody: $responseBody');
 
-      final decoded = responseBody is String
-          ? jsonDecode(responseBody)
-          : responseBody;
+      final decoded = jsonDecode(responseBody);
 
       return decoded is Map<String, dynamic> ? decoded : null;
     } catch (e) {
@@ -361,9 +349,7 @@ class SplitBillApiImpl implements SplitBillApi {
 
       dynamic decoded;
       try {
-        decoded = responseBody is String
-            ? jsonDecode(responseBody)
-            : responseBody;
+        decoded = jsonDecode(responseBody);
       } catch (e) {
         // If decoding fails, keep the raw response around
         decoded = responseBody;
@@ -415,9 +401,7 @@ class SplitBillApiImpl implements SplitBillApi {
         requiresToken: true,
       );
 
-      final decoded = responseBody is String
-          ? jsonDecode(responseBody)
-          : responseBody;
+      final decoded = jsonDecode(responseBody);
       if (decoded is Map<String, dynamic>) return decoded;
       return {'raw': decoded};
     } catch (e, stack) {
@@ -448,9 +432,7 @@ class SplitBillApiImpl implements SplitBillApi {
           requiresToken: true,
         );
 
-        final decoded = responseBody is String
-            ? jsonDecode(responseBody)
-            : responseBody;
+        final decoded = jsonDecode(responseBody);
         if (decoded is Map<String, dynamic> && decoded.containsKey('data')) {
           final data = decoded['data'];
           if (data is List) {
@@ -473,18 +455,17 @@ class SplitBillApiImpl implements SplitBillApi {
             body: p,
             requiresToken: true,
           );
-          final decoded = responseBody is String
-              ? jsonDecode(responseBody)
-              : responseBody;
+          final decoded = jsonDecode(responseBody);
           if (decoded is Map<String, dynamic>) {
             // try extract created participant from data or raw map
             if (decoded.containsKey('data')) {
               final d = decoded['data'];
-              if (d is Map<String, dynamic>)
+              if (d is Map<String, dynamic>) {
                 created.add(d);
-              else if (d is List) {
-                for (final it in d)
+              } else if (d is List) {
+                for (final it in d) {
                   if (it is Map<String, dynamic>) created.add(it);
+                }
               }
             } else {
               created.add(decoded);
@@ -521,9 +502,7 @@ class SplitBillApiImpl implements SplitBillApi {
 
       // If server returned JSON with success marker, consider it success
       try {
-        final decoded = responseBody is String
-            ? jsonDecode(responseBody)
-            : responseBody;
+        final decoded = jsonDecode(responseBody);
         if (decoded is Map<String, dynamic> &&
             (decoded['success'] == true || decoded['status'] == 'success')) {
           return true;
@@ -550,8 +529,9 @@ class SplitBillApiImpl implements SplitBillApi {
     try {
       final url = '${ApiRoute.getSplitBillRoute}/$splitBillId/cancel';
       final body = <String, dynamic>{'reason': reason};
-      if (description != null && description.isNotEmpty)
+      if (description != null && description.isNotEmpty) {
         body['description'] = description;
+      }
 
       final responseBody = await _apiClient.post(
         url,
@@ -562,9 +542,7 @@ class SplitBillApiImpl implements SplitBillApi {
 
       // Try decode and check for success markers
       try {
-        final decoded = responseBody is String
-            ? jsonDecode(responseBody)
-            : responseBody;
+        final decoded = jsonDecode(responseBody);
         if (decoded is Map<String, dynamic>) {
           if (decoded['success'] == true) return true;
           if (decoded['status'] == 'success') return true;
@@ -587,42 +565,24 @@ class SplitBillApiImpl implements SplitBillApi {
     try {
       final url = '${ApiRoute.createSplitBillRoute}/my-bills';
       final responseBody = await _apiClient.get(url, requiresToken: true);
-
-      // // Decode safely
-      // dynamic decoded;
-      // try {
-      //   decoded = responseBody is String ? jsonDecode(responseBody) : responseBody;
-      // } catch (e) {
-      //   // fallback to trying jsonEncode -> decode
-      //   decoded = jsonDecode(jsonEncode(responseBody));
-      // }
-
-      // // The server may return different shapes. Common shapes:
-      // // 1) { data: [ ... ] }
-      // // 2) { data: { bills: [ ... ], ... } }
-      // // 3) { bills: [ ... ] }
-      // // 4) [ ... ]
-      // List<dynamic> billList = [];
-
-      // if (decoded is Map<String, dynamic>) {
-      //   final dataNode = decoded['data'];
-      //   if (dataNode is List) {
-      //     billList = dataNode;
-      //   } else if (dataNode is Map && dataNode['bills'] is List) {
-      //     billList = dataNode['bills'];
-      //   } else if (decoded['bills'] is List) {
-      //     billList = decoded['bills'];
-      //   }
-      // } else if (decoded is List) {
-      //   billList = decoded;
-      // }
-
-      // Log decoded for easier debugging when shapes differ
-      // log('getMySplitBills decoded shape: ${decoded.runtimeType}');
-
       return mySplitBillModelFromJson(responseBody);
     } catch (e) {
       log('getMySplitBills failed: $e');
+      rethrow;
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Get Split Bill Invites
+  // ──────────────────────────────────────────────────────────────
+  @override
+  Future<SplitBillInviteModel> getSplitBillInvites() async {
+    try {
+      final url = '${ApiRoute.createSplitBillRoute}/invites';
+      final responseBody = await _apiClient.get(url, requiresToken: true);
+      return splitBillInviteModelFromJson(responseBody);
+    } catch (e) {
+      log('getSplitBillInvites failed: $e');
       rethrow;
     }
   }
@@ -634,5 +594,137 @@ class SplitBillApiImpl implements SplitBillApi {
       requiresToken: true,
     );
     return splitBillResponseModelFromJson(responseBody);
+  }
+
+  @override
+  Future createNewSplitBill({
+    required String title,
+    required String description,
+    required double totalAmount,
+    String? imageUrl,
+    required String dueDate,
+    required List<Map> participants,
+    String? recipientUserId,
+    String? billReceipt,
+    bool? allowPartialPayments,
+    double? minPaymentAmountForPartial,
+    String? splitMethod,
+  }) async {
+    Map val = {
+      "title": title,
+      "description": description,
+      "currency": "NGN",
+      "amount": totalAmount.toInt(),
+      "imageUrl": imageUrl ?? "",
+      "dueDate": dueDate,
+      "participants": participants,
+      "recipientUserId": recipientUserId,
+      "billReceipt": billReceipt,
+      "allowPartialPayment": allowPartialPayments,
+      "minPaymentAmount": minPaymentAmountForPartial ?? 0.0,
+      "splitMethod": splitMethod,
+    };
+    log("createNewSplitBill payload: $val");
+    final responseBody = await _apiClient.post(
+      ApiRoute.createSplitBillRoute,
+      requiresToken: true,
+      hideLog: false,
+      body: val,
+    );
+    return responseBody;
+  }
+
+  @override
+  Future<List<AllUsersModel>> searchForUser({
+    String? email,
+    String? phoneNumber,
+    String? username,
+  }) async {
+    try {
+      String queryParam = "";
+      if (email != null && email.isNotEmpty) {
+        queryParam = "?email=$email";
+      } else if (phoneNumber != null && phoneNumber.isNotEmpty) {
+        queryParam = "?phoneNumber=$phoneNumber";
+      } else if (username != null && username.isNotEmpty) {
+        queryParam = "?username=$username";
+      }
+
+      final responseBody = await _apiClient.get(
+        "${ApiRoute.getUserRoute}$queryParam",
+        headers: header,
+        requiresToken: true,
+        hideLog: false,
+      );
+      return allUsersModelFromJson(responseBody);
+    } catch (e, stack) {
+      log('Error in getUsers(): $e', stackTrace: stack);
+      rethrow;
+    }
+  }
+
+  @override
+  Future payForBillWithWallet({
+    String? participantId,
+    String? billId,
+    String? amount,
+    String? transactionPin,
+  }) async {
+    final responseBody = await _apiClient.post(
+      "${ApiRoute.getSplitBillRoute}/$billId/participants/$participantId/pay",
+      body: {
+        "amount": amount != null ? double.tryParse(amount.replaceAll(',', '')) ?? 0.0 : 0.0,
+        "paymentMethod": "wallet",
+        if (transactionPin != null) "transactionPin": transactionPin,
+      },
+      headers: header,
+      hideLog: false,
+      requiresToken: true,
+    );
+    return (responseBody);
+  }
+
+  @override
+  Future payForBillWithPaystack({
+    String? participantId,
+    String? billId,
+    String? amount,
+  }) async {
+    final responseBody = await _apiClient.post(
+      "${ApiRoute.getSplitBillRoute}/$billId/$billId/participants/$participantId/pay",
+      body: {
+        "amount": amount != null ? double.tryParse(amount)?.toInt() ?? 0 : 0,
+        "paymentMethod": "paystack",
+      },
+      requiresToken: true,
+    );
+    return (responseBody);
+  }
+
+  @override
+  Future<bool> acceptSplitBillInvite(String billId) async {
+    await _apiClient.patch(
+      "${ApiRoute.getSplitBillRoute}/$billId/accept",
+      requiresToken: true,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> declineSplitBillInvite(String billId) async {
+    await _apiClient.patch(
+      "${ApiRoute.getSplitBillRoute}/$billId/decline",
+      requiresToken: true,
+    );
+    return true;
+  }
+
+  @override
+  Future sendSplitBillReminder(String billId) async {
+    await _apiClient.post(
+      "${ApiRoute.createSplitBillRoute}/$billId/reminders",
+      requiresToken: true,
+    );
+    return true;
   }
 }

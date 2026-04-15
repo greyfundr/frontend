@@ -6,7 +6,6 @@ import 'package:greyfundr/components/custom_app_bar.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/features/auth/auth_provider.dart';
-import 'package:greyfundr/shared/responsiveState/responsive_state.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:greyfundr/shared/app_colors.dart';
@@ -101,12 +100,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 obscureText: true,
                 onChanged: (val) {
                   authProvider.checkPasswordStrength(val ?? "");
-                  return null;
+                  return;
                 },
                 validator: (val) {
                   if (val == null || val.isEmpty) return 'Required';
-                  if (val.length < 6)
+                  if (val.length < 6) {
                     return 'Password must be at least 6 characters';
+                  }
                   return null;
                 },
               ),

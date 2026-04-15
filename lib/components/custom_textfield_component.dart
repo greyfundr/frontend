@@ -217,14 +217,20 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
 class CustomSearchField extends StatelessWidget {
   final TextEditingController textEditingController;
-  final Function(String) onChange;
-  final Function(String) onSubmit;
+  final Function(String)? onChange;
+  final Function(String)? onSubmit;
+  final String hintText;
+  final TextInputType? textInputType;
+  final Widget? suffixIcon;
 
   const CustomSearchField({
     super.key,
     required this.textEditingController,
-    required this.onChange,
-    required this.onSubmit,
+    this.onChange,
+    this.onSubmit,
+    this.hintText = "Search...",
+    this.textInputType,
+    this.suffixIcon,
   });
 
   @override
@@ -242,11 +248,13 @@ class CustomSearchField extends StatelessWidget {
         onChanged: onChange,
         onFieldSubmitted: onSubmit,
         textInputAction: TextInputAction.search,
-        keyboardType: TextInputType.text,
+        keyboardType: textInputType ?? TextInputType.text,
         autocorrect: false,
+
         decoration: InputDecoration(
+          suffixIcon: suffixIcon,
           contentPadding: EdgeInsets.only(right: 10, top: 10, bottom: 10),
-          hintText: "Search...",
+          hintText: hintText,
           isDense: true,
           hintStyle: txStyle14.copyWith(color: greyTextColor),
           prefixIcon: Padding(
@@ -267,6 +275,7 @@ class CustomChatTextField extends StatefulWidget {
   final Widget? suffixIcon;
   final bool autoFocus;
   final Function(String)? onChanged;
+  final TextInputType? textInputType;
 
   const CustomChatTextField({
     super.key,
@@ -275,6 +284,7 @@ class CustomChatTextField extends StatefulWidget {
     this.suffixIcon,
     this.autoFocus = false,
     this.onChanged,
+    this.textInputType,
   });
 
   @override
@@ -314,6 +324,7 @@ class _CustomChatTextFieldState extends State<CustomChatTextField> {
                 onChanged: widget.onChanged,
                 style: txStyle15,
                 cursorColor: appPrimaryColor,
+
                 decoration: InputDecoration(
                   contentPadding: EdgeInsets.zero,
                   border: InputBorder.none,

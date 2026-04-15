@@ -169,4 +169,13 @@ class UserApiImpl implements UserApi {
       return false;
     }
   }
+
+  @override
+  Future<void> updateFcmToken(String token) async {
+    await _apiClient.patch(
+      ApiRoute.userProfileRoute,
+      headers: header,
+      body: {"token": token},
+    );
+  }
 }

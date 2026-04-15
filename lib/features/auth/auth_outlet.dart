@@ -1,9 +1,6 @@
 import 'package:expandable_page_view/expandable_page_view.dart';
 import 'package:flutter/material.dart';
-import 'package:gap/gap.dart';
 import 'package:greyfundr/components/adaptive_icons.dart';
-import 'package:greyfundr/components/custom_button.dart';
-import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/features/auth/auth_provider.dart';
 import 'package:greyfundr/features/auth/create_password_widget.dart';
 import 'package:greyfundr/features/auth/forgot_password_widget.dart';

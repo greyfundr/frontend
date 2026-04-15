@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/core/models/split_user_model.dart';
 import 'package:greyfundr/core/models/all_user_model.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +8,7 @@ import 'package:greyfundr/core/models/phone_contact.dart';
 import 'package:greyfundr/features/splitbill/splitbill_provider.dart';
 import 'package:greyfundr/services/custom_alert.dart';
 import 'package:greyfundr/shared/app_colors.dart';
+import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:provider/provider.dart';
 
@@ -30,7 +32,7 @@ class AddParticipantModal extends StatefulWidget {
 }
 
 class _AddParticipantModalState extends State<AddParticipantModal> {
-  List<PhoneContact> _selectedPhoneContacts = [];
+  final List<PhoneContact> _selectedPhoneContacts = [];
   bool _isLoadingContacts = false;
 
   @override
@@ -42,26 +44,7 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
   void dispose() {
     super.dispose();
   }
-
-  // List<User> get _filteredUsers {
-  //   final query = widget.searchController.text.trim().toLowerCase();
-
-  //   if (query.isEmpty) {
-  //     return widget.allUsers
-  //         .where((u) => !widget.selectedUsers.any((s) => s.id == u.id))
-  //         .toList();
-  //   }
-
-  //   return widget.allUsers
-  //       .where((user) {
-  //         return user.displayName.toLowerCase().contains(query) ||
-  //             (user.email?.toLowerCase().contains(query) ?? false) ||
-  //             (user.phoneNumber?.toLowerCase().contains(query) ?? false);
-  //       })
-  //       .where((user) => !widget.selectedUsers.any((s) => s.id == user.id))
-  //       .toList();
-  // }
-
+  
   Future<void> _pickContactFromDevice() async {
     setState(() => _isLoadingContacts = true);
 
@@ -79,9 +62,14 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
             context: context,
             builder: (dctx) => AlertDialog(
               title: const Text('Contacts Permission'),
-              content: const Text('Contact permission is denied. Please enable Contacts permission in system settings to pick from your device contacts.'),
+              content: const Text(
+                'Contact permission is denied. Please enable Contacts permission in system settings to pick from your device contacts.',
+              ),
               actions: [
-                TextButton(onPressed: () => Navigator.of(dctx).pop(), child: const Text('OK')),
+                TextButton(
+                  onPressed: () => Navigator.of(dctx).pop(),
+                  child: const Text('OK'),
+                ),
               ],
             ),
           );
@@ -92,7 +80,9 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
         if (contact == null) return;
       }
 
-      final phone = contact.phones.isNotEmpty ? contact.phones.first.number : null;
+      final phone = contact.phones.isNotEmpty
+          ? contact.phones.first.number
+          : null;
       if (phone == null || phone.trim().isEmpty) {
         CustomMessageModal.show(
           context: context,
@@ -212,7 +202,9 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0D7377)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0D7377),
+                  ),
                   onPressed: () {
                     final name = nameCtrl.text.trim();
                     final phone = phoneCtrl.text.trim();
@@ -236,9 +228,10 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
                         : '';
 
                     String username = phone.replaceAll(RegExp(r'[^0-9]'), '');
-                    if (username.isEmpty)
+                    if (username.isEmpty) {
                       username =
                           'guest_${DateTime.now().millisecondsSinceEpoch}';
+                    }
 
                     final newAllUser = AllUsersModel(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -246,11 +239,14 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
                       lastName: lastName,
                       username: username,
                       phoneNumber: phone,
-                      profile: "assets/images/personal.png",
+                      // profile: ,
                     );
 
                     // Add to provider-selected users so it shows in the top strip
-                    final splitBillProvider = Provider.of<SplitBillProvider>(context, listen: false);
+                    final splitBillProvider = Provider.of<SplitBillProvider>(
+                      context,
+                      listen: false,
+                    );
                     splitBillProvider.addCustomSelectedUser(newAllUser);
 
                     Navigator.pop(context);
@@ -279,6 +275,7 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
     const primaryColor = Color(0xFF007A74);
 
     return Container(
+      padding: EdgeInsets.symmetric(horizontal: SizeConfig.widthOf(5)),
       height: MediaQuery.of(context).size.height * 0.92,
       decoration: const BoxDecoration(
         color: Color(0xFFDFDFDF),
@@ -304,7 +301,8 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
           ),
 
           const SizedBox(height: 20),
-
+          splitBillProvider.selectedUsers.isEmpty ?
+          SizedBox():
           SizedBox(
             height: 110,
             child: ListView.builder(
@@ -374,45 +372,38 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
 
           const SizedBox(height: 24),
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: TextField(
-              controller: splitBillProvider.searchController,
-              decoration: InputDecoration(
-                hintText: "Search friends by name or email",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
+          TextField(
+            controller: splitBillProvider.searchController,
+            decoration: InputDecoration(
+              hintText: "Search friends by name or email",
+              prefixIcon: const Icon(Icons.search),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
 
           const SizedBox(height: 24),
 
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                
-                _buildOptionTile(
-                  Icons.person_add,
-                  "Add Manually",
-                  "Enter name & phone",
-                  _addManualContact,
-                ),
-                const SizedBox(height: 12),
-                _buildOptionTile(
-                  Icons.contacts,
-                  "Select from Contacts",
-                  "Pick from device",
-                  _pickContactFromDevice,
-                ),
-              ],
-            ),
+          Column(
+            children: [
+              _buildOptionTile(
+                Icons.person_add,
+                "Add Manually",
+                "Enter name & phone",
+                _addManualContact,
+              ),
+              const SizedBox(height: 12),
+              _buildOptionTile(
+                Icons.contacts,
+                "Select from Contacts",
+                "Pick from device",
+                _pickContactFromDevice,
+              ),
+            ],
           ),
 
           const SizedBox(height: 16),
@@ -429,28 +420,37 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: displayUsers.length,
+                   itemCount: displayUsers.length,
                   itemBuilder: (context, index) {
                     final user = displayUsers[index];
+                    if (user.lastName == null || user.firstName == null) {
+                      return const SizedBox();
+                    }
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFF0D7377),
-                          child: Text(
-                            (user.firstName?.isNotEmpty ?? false)
-                                ? user.firstName![0]
-                                : "U",
-                            // style: txStyle20SemiBold
-                            style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                          ),
+                        leading: (user.profile?.image?.isNotEmpty ?? false)
+                            ? CustomNetworkImage(
+                                radius: 45,
+                                imageUrl: "${user.profile?.image}",
+                              )
+                            : CircleAvatar(
+                                backgroundColor: const Color(0xFF0D7377),
+                                child: Text(
+                                  (user.firstName?.isNotEmpty ?? false)
+                                      ? user.firstName![0]
+                                      : "U",
+                                  // style: txStyle20SemiBold
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                        title: Text(
+                          user.username ?? "${user.firstName} ${user.lastName}",
                         ),
-                        title: Text(user.username ?? "${user.firstName} ${user.lastName}"),
                         subtitle: Text(user.phoneNumber ?? user.email ?? ""),
                         trailing: ElevatedButton(
                           onPressed: () {
@@ -470,17 +470,20 @@ class _AddParticipantModalState extends State<AddParticipantModal> {
                 );
               },
             ),
-            ),
+          ),
 
           Padding(
             padding: const EdgeInsets.all(24),
-                child: SizedBox(
+            child: SizedBox(
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
                 onPressed: splitBillProvider.selectedUsers.isEmpty
                     ? null
-                    : () => Navigator.pop(context, splitBillProvider.selectedUsers),
+                    : () => Navigator.pop(
+                        context,
+                        splitBillProvider.selectedUsers,
+                      ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: primaryColor,
                   shape: RoundedRectangleBorder(

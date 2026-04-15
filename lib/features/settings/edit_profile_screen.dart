@@ -5,6 +5,7 @@ import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_app_bar.dart';
 import 'package:greyfundr/components/custom_button.dart';
+import 'package:greyfundr/components/custom_date_picker_textField.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
@@ -30,6 +31,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   List<String> selectedInterests = [];
   String? _localAvatarPath;
+  DateTime? selectedDateOfBirth;
 
   UserProvider? userProvider;
   bool isChanged = false;
@@ -68,6 +70,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           lastNameController.text != (userProfile.lastName ?? "") ||
           usernameController.text != (userProfile.username ?? "") ||
           bioController.text != (userProfile.profile?.bio ?? "") ||
+          selectedDateOfBirth !=
+              (userProfile.dateOfBirth != null
+                  ? DateTime.tryParse(userProfile.dateOfBirth!)
+                  : null) ||
           !_areListsEqual(
             selectedInterests,
             userProfile.profile?.interests ?? [],
@@ -88,13 +94,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return true;
   }
 
-  initController() {
+  void initController() {
     var userProfile = userProvider!.userProfileModel;
     firstNameController.text = userProfile?.firstName ?? "";
     lastNameController.text = userProfile?.lastName ?? "";
     usernameController.text = userProfile?.username ?? "";
     bioController.text = userProfile?.profile?.bio ?? "";
     selectedInterests = List.from(userProfile?.profile?.interests ?? []);
+    selectedDateOfBirth = userProfile?.dateOfBirth != null
+        ? DateTime.tryParse(userProfile!.dateOfBirth!)
+        : null;
     _localAvatarPath = null;
     setState(() {});
   }
@@ -210,6 +219,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             controller: bioController,
           ),
           Gap(20),
+          CustomDatePickerTextFiled(
+            labelText: "Date of Birth",
+            hintText: "Select your date of birth",
+            selectedDate: selectedDateOfBirth?.toIso8601String() ?? "",
+            initialDate: DateTime.now().subtract(
+              const Duration(days: 365 * 18),
+            ),
+            minimumDate: DateTime.now().subtract(
+              const Duration(days: 365 * 100),
+            ),
+            maximumDate: DateTime.now().subtract(
+              const Duration(days: 365 * 6),
+            ),
+            isRequired: false,
+            onDateChanged: (date) {
+              setState(() {
+                selectedDateOfBirth = date;
+              });
+              _checkIfChanged();
+            },
+          ),
+          Gap(20),
           const Text(
             "Interests",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
@@ -269,6 +300,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   lastName: lastNameController.text,
                   username: usernameController.text,
                   bio: bioController.text,
+                  dateOfBirth: selectedDateOfBirth?.toIso8601String(),
                   interests: selectedInterests,
                 );
                 if (success) {

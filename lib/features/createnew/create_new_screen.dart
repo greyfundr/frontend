@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:gap/gap.dart';
-import 'package:greyfundr/features/event/create_event.dart';
-import 'package:greyfundr/features/event/event_screen.dart';
+ import 'package:greyfundr/features/event/event_screen.dart';
+import 'package:greyfundr/features/new_split_bill/create_split_bill_screen.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 
-import 'package:greyfundr/features/splitbill/create_split_bill.dart';
+// import 'package:greyfundr/features/splitbill/create_split_bill.dart';
 import 'package:greyfundr/features/fundpool/fund_pool_screen.dart';
 import 'package:greyfundr/features/invoice/invoice_screen.dart';
-import 'package:greyfundr/features/event/start_event.dart';
-import 'package:greyfundr/features/giveaway/give_away_screen.dart';
+ import 'package:greyfundr/features/giveaway/give_away_screen.dart';
 import 'package:greyfundr/features/campaign/campaign_option_screen.dart';
 
 class CreateNewScreen extends StatelessWidget {
@@ -50,7 +49,7 @@ class CreateNewScreen extends StatelessWidget {
               // Intro text
               Text(
                 'Start something new — just fill in a few details to get going.',
-                style: txStyle12?.copyWith(   // adjust to your actual small text style
+                style: txStyle12.copyWith(   // adjust to your actual small text style
                   color: Colors.grey.shade700,
                   fontWeight: FontWeight.w500,
                 ),
@@ -186,7 +185,7 @@ class CreateNewScreen extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: txStyle14SemiBold?.copyWith(   // adjust to your semi-bold style
+                      style: txStyle14SemiBold.copyWith(   // adjust to your semi-bold style
                         color: Colors.black87,
                       ) ?? const TextStyle(
                         fontSize: 15,
@@ -196,7 +195,7 @@ class CreateNewScreen extends StatelessWidget {
                     Gap(6),
                     Text(
                       description,
-                      style: txStyle12?.copyWith(          // small descriptive text
+                      style: txStyle12.copyWith(          // small descriptive text
                         color: Colors.grey.shade700,
                         height: 1.4,
                       ) ?? const TextStyle(

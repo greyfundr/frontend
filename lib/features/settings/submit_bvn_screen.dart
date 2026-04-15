@@ -4,7 +4,6 @@ import 'package:greyfundr/components/custom_app_bar.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
-import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:provider/provider.dart';
 

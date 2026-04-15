@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:back-end-z3es.onrender.com</string>
+		<string>applinks:dev.greyfundr.com</string>
 	</array>
 </dict>
 </plist>

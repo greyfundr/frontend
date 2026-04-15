@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
-import 'package:greyfundr/features/bill/rsvp_details_screen.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';

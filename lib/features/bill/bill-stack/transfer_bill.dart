@@ -9,18 +9,12 @@ import 'package:get/get.dart';
 
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart'; // ← correct interface
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart'; // ← correct impl
-import 'package:greyfundr/core/models/ny_split_bill_model.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
 
 import 'package:greyfundr/features/home/add_money_sheet.dart';
-import 'package:greyfundr/features/charity/charity_screen.dart';
 import 'package:greyfundr/features/shared/notification.dart';
 
-import 'package:greyfundr/features/home/home_screen.dart';
-import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
-import 'package:greyfundr/features/profile/profile_screen.dart';
-import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
@@ -81,7 +75,7 @@ class _TransferBillState extends State<TransferBill>
   final ScrollController _scrollController = ScrollController();
   bool _isHeaderCollapsed = true;
   double _previousScrollOffset = 0.0;
-  bool _isBalanceVisible = true;
+  final bool _isBalanceVisible = true;
   bool _selectAll = false;
   // Track per-bill selection for the Select All feature
   final Map<String, bool> _selectedBills = {};
@@ -729,7 +723,7 @@ class _TransferBillState extends State<TransferBill>
                                 Row(
                                   children: [
                                     Text(
-                                      "${convertStringToCurrency(walletModel?.balance?.available ?? "0")}",
+                                      convertStringToCurrency(walletModel?.balance?.available ?? "0"),
                                       style: txStyle18SemiBold.copyWith(
                                         color: Colors.white,
                                       ),
@@ -855,7 +849,7 @@ class _TransferBillState extends State<TransferBill>
                   SingleChildScrollView(
                     child: Column(
                       children: [
-                        Container(
+                        SizedBox(
                           height: 450,
                           child: RefreshIndicator(
                             onRefresh: () =>

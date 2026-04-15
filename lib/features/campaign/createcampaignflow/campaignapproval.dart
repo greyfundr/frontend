@@ -340,7 +340,7 @@ class _CampaignApprovalPageState extends State<CampaignApprovalPage> {
             ),
           ),
         ),
-        if (trailing != null) trailing,
+        ?trailing,
       ],
     );
   }

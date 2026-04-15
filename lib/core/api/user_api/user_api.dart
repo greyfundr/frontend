@@ -31,4 +31,6 @@ abstract class UserApi {
   Future<bool> submitBvn({required String bvn});
 
   Future<Map> getCustomDynamicLinkDetails({String shortCode});
+
+  Future<void> updateFcmToken(String token);
 }

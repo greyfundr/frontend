@@ -66,7 +66,7 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
               if (event == null) {
                 return const Center(child: Text('No event details found'));
               }
-          
+
               return DefaultTabController(
                 length: 4,
                 child: NestedScrollView(
@@ -75,7 +75,23 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
                       SliverToBoxAdapter(
                         child: _buildCoverCarousel(context, event),
                       ),
-                      SliverToBoxAdapter(child: _buildAmountProgressBar(event)),
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Gap(20),
+
+                            Text(
+                              "${event.name ?? 'Event Name'}",
+                              style: txStyle18SemiBold,
+                            ).paddingSymmetric(
+                              horizontal: SizeConfig.widthOf(5),
+                            ),
+                            // Gap(5),
+                            _buildAmountProgressBar(event),
+                          ],
+                        ),
+                      ),
                       SliverPersistentHeader(
                         pinned: true,
                         delegate: _SliverTabBarDelegate(
@@ -651,11 +667,11 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
         borderRadius: BorderRadius.circular(14),
         gradient: LinearGradient(
           colors: [
-            appPrimaryColor.withOpacity(0.16),
-            appPrimaryColor.withOpacity(0.08),
+            appPrimaryColor.withValues(alpha: 0.16),
+            appPrimaryColor.withValues(alpha: 0.08),
           ],
         ),
-        border: Border.all(color: appPrimaryColor.withOpacity(0.2)),
+        border: Border.all(color: appPrimaryColor.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -711,6 +727,76 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
               ),
             ],
           ),
+          if (event.organizers != null && event.organizers!.isNotEmpty) ...[
+            const Gap(16),
+            Divider(color: appPrimaryColor.withValues(alpha: 0.2), height: 1),
+            const Gap(12),
+            const Text(
+              'Organizers',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.black54,
+              ),
+            ),
+            const Gap(8),
+            SizedBox(
+              height: 36,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: event.organizers!.length,
+                separatorBuilder: (context, index) => const Gap(12),
+                itemBuilder: (context, index) {
+                  final org = event.organizers![index];
+                  final name =
+                      '${org.user?.firstName ?? ''} ${org.user?.lastName ?? ''}'
+                          .trim();
+                  final initial = name.isNotEmpty ? name[0].toUpperCase() : 'O';
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: appPrimaryColor.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    padding: const EdgeInsets.only(right: 12, left: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: appPrimaryColor.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            initial,
+                            style: const TextStyle(
+                              color: appPrimaryColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        const Gap(8),
+                        Text(
+                          name.isNotEmpty ? name : 'Organizer',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -754,9 +840,9 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
           //         begin: Alignment.topCenter,
           //         end: Alignment.bottomCenter,
           //         colors: [
-          //           Colors.black.withOpacity(0.2),
+          //           Colors.black.withValues(alpha: 0.2),
           //           Colors.transparent,
-          //           Colors.black.withOpacity(0.35),
+          //           Colors.black.withValues(alpha: 0.35),
           //         ],
           //       ),
           //     ),
@@ -771,7 +857,7 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
                 width: 38,
                 height: 38,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.arrow_back, color: Colors.black87),
@@ -818,7 +904,7 @@ class _RsvpDetailsTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _InfoTile(title: 'Event Name', value: event.name ?? 'N/A'),
+        // _InfoTile(title: 'Event Name', value: event.name ?? 'N/A'),
         _InfoTile(title: 'Category', value: event.category?.name ?? 'N/A'),
         _InfoTile(
           title: 'Visibility',
@@ -902,7 +988,7 @@ class _RsvpActivityTab extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.12),
+                        color: Colors.green.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(

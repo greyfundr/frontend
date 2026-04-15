@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_date_picker_textField.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
-import 'package:greyfundr/features/onboardinf/onboarding_screen.dart';
 import 'package:greyfundr/features/settings/verification_screen.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';

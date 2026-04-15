@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:greyfundr/shared/text_style.dart'; 
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({super.key});

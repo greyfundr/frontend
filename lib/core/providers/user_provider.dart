@@ -3,13 +3,14 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/route_manager.dart';
-import 'package:get/state_manager.dart';
 import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/user_api/user_api.dart';
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
 import 'package:greyfundr/features/auth/create_pin_screen.dart';
+import 'package:greyfundr/features/auth/create_transaction_pin_screen.dart';
+import 'package:greyfundr/services/local_storage.dart';
 import 'package:greyfundr/services/locator.dart';
 
 class UserProvider with ChangeNotifier {
@@ -57,16 +58,28 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> fetchUserProfileApi() async {
+  bool checkToDo() {
+    if (_userProfileModel?.isPinSet != true) {
+      Get.offAll(CreatePinScreen(), transition: Transition.rightToLeft);
+      return false;
+    }
+    if (_userProfileModel?.wallet?.isTransactionPinSet != true) {
+      Get.offAll(CreateTransactionPinScreen(), transition: Transition.rightToLeft);
+      return false;
+    }
+    
+    return false;
+  }
+
+  Future<bool> fetchUserProfileApi({bool showLoader = false}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
+    showLoader ? EasyLoading.show() : null;
     try {
       _userProfileModel = await _userApi.fetchUserProfile();
-      if (_userProfileModel?.pin == null) {
-        Get.offAll(CreatePinScreen(), transition: Transition.rightToLeft);
-      }
+      // if (_userProfileModel?.isPinSet != true) {}
+      checkToDo();
       notifyListeners();
       return true;
     } catch (e, stack) {
@@ -76,6 +89,7 @@ class UserProvider with ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
+      showLoader ? EasyLoading.dismiss() : null;
       notifyListeners();
     }
   }
@@ -249,5 +263,16 @@ class UserProvider with ChangeNotifier {
       EasyLoading.dismiss();
     }
     return {};
+  }
+
+  Future<void> updateFcmToken() async {
+    String token = await localStorage.getString("fcmToken");
+    if (token.isNotEmpty) {
+      await _userApi.updateFcmToken(token);
+      log("FCM token updated successfully");
+    } else {
+      log("No FCM token found to update");
+      showErrorToast("Failed to update FCM token: No token found");
+    }
   }
 }

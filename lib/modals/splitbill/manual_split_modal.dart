@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:greyfundr/shared/currency_input_formatter.dart';
 
 import 'package:greyfundr/core/models/split_user_model.dart';
-import 'package:greyfundr/services/custom_alert.dart';
 // assuming you still use this for messages
 
 class ManualSplitModal extends StatefulWidget {

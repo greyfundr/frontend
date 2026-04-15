@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
-import 'package:get/get.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
@@ -11,7 +10,6 @@ import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/custom_message_modal.dart';
 import 'package:greyfundr/shared/moeny_formater.dart';
-import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:lottie/lottie.dart';
@@ -220,11 +218,11 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
                 const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: () {
-                    final first_name = controller.text.trim();
-                    if (first_name.isNotEmpty) {
+                    final firstName = controller.text.trim();
+                    if (firstName.isNotEmpty) {
                       setState(() {
-                        _username = first_name;
-                        _displayName = first_name;
+                        _username = firstName;
+                        _displayName = firstName;
                         _isAnonymous = false;
                       });
                       Navigator.pop(context);
@@ -478,7 +476,7 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
                           _taggedUserId = selectedUserId;
                           _externalName = null;
                           _externalPhone = null;
-                          _behalfDisplay = '@${selectedUsername}';
+                          _behalfDisplay = '@$selectedUsername';
                         });
                         Navigator.pop(context);
                         return;

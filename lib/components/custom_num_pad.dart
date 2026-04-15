@@ -2,7 +2,6 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
@@ -141,11 +140,12 @@ class NumPad extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                   
                   if (!UserLocalStorageService().getUseLoginBiometricValue())
                     InkWell(
                       onTap: () {
-                        log("L:::::::::${UserLocalStorageService().getUseLoginBiometricValue()}");
+                        log(
+                          "L:::::::::${UserLocalStorageService().getUseLoginBiometricValue()}",
+                        );
                       },
                       child: Container(
                         // color: Colors.black,
@@ -153,25 +153,27 @@ class NumPad extends StatelessWidget {
                         // height: 20,
                       ),
                     )
-                  else if (isForLogin && UserLocalStorageService().getUseLoginBiometricValue())
+                  else if (isForLogin &&
+                      UserLocalStorageService().getUseLoginBiometricValue())
                     Container(
                       // color: Colors.black26,
                       width: SizeConfig.widthOf(20),
                       height: SizeConfig.heightOf(8),
                       alignment: Alignment.centerLeft,
                       child: CustomOnTap(
-                          highlightColor: Colors.white,
-                          splashColor: Colors.white,
-                          onTap: () => onBiometricClicked!(),
-                          child: SvgPicture.asset(
-                            Platform.isAndroid
-                                ? "assets/svgs/fingerprint.svg"
-                                : "assets/svgs/securityBiometric.svg",
-                            height: 30,
-                            width: 20,
-                            // fit: BoxFit.cover,
-                            // alignment: Alignment(5, 0),
-                          )),
+                        highlightColor: Colors.white,
+                        splashColor: Colors.white,
+                        onTap: () => onBiometricClicked!(),
+                        child: SvgPicture.asset(
+                          Platform.isAndroid
+                              ? "assets/svgs/fingerprint.svg"
+                              : "assets/svgs/securityBiometric.svg",
+                          height: 30,
+                          width: 20,
+                          // fit: BoxFit.cover,
+                          // alignment: Alignment(5, 0),
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -258,14 +260,15 @@ class NumberButton extends StatelessWidget {
 
 class PinCodeText extends StatelessWidget {
   final String pin;
+  final int pinLength;
 
-  const PinCodeText({super.key, required this.pin});
+  const PinCodeText({super.key, required this.pin, this.pinLength = 6});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(6, (index) {
+      children: List.generate(pinLength, (index) {
         bool isFilled = pin.trim().length > index;
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -274,6 +277,7 @@ class PinCodeText extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: isFilled ? appSecondaryColor : borderColor,
+            border: Border.all(color: Colors.grey),
           ),
         );
       }),

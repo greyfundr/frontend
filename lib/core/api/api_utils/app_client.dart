@@ -1,15 +1,11 @@
 // lib/core/network/api_client.dart
-import 'dart:convert';
 import 'dart:developer';
-import 'dart:math' show Random;
 import 'package:dio/dio.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:greyfundr/core/api/api_utils/network_exception.dart';
 import 'package:greyfundr/core/api/api_utils/queue_manager.dart';
 import 'package:greyfundr/core/api/api_utils/response_handler.dart';
 
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:uuid/uuid.dart';
 import 'token_manager.dart';
 import 'error_handler.dart';
 
@@ -56,7 +52,7 @@ class ApiClient {
           // Log response details
           log('✅ RESPONSE DETAILS:', name: 'API');
           log('STATUS CODE: ${response.statusCode}', name: 'API');
-          log('DATA: ${jsonEncode(response.data)}', name: 'API');
+          // log('DATA: ${jsonEncode(response.data)}', name: 'API');
           return handler.next(response);
         },
         onError: (DioException error, handler) async {
@@ -83,7 +79,7 @@ class ApiClient {
                 );
                 await _processQueue();
                 return handler.resolve(retryResponse);
-              } on NetworkException catch (e) {
+              } on NetworkException {
                 // If refresh fails, fail all queued requests
                 _requestQueue.failAllRequests(
                   DioException(

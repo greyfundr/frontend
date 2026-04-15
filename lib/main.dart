@@ -1,3 +1,7 @@
+import 'dart:developer';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:get/route_manager.dart';
@@ -5,7 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:greyfundr/core/providers/providers.dart';
 import 'package:greyfundr/features/onboardinf/splash_screen.dart';
 import 'package:greyfundr/services/app_link_service.dart';
+import 'package:greyfundr/services/local_storage.dart';
 import 'package:greyfundr/services/locator.dart';
+import 'package:greyfundr/services/notification_services.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/environment.dart';
@@ -18,6 +24,7 @@ void main() async {
 
   await dotenv.load(fileName: ".env");
 
+  initializeFirebase();
   try {
     AppLinkService().init();
   } catch (e) {
@@ -58,6 +65,22 @@ void main() async {
     MultiProvider(providers: AppProviders.providers, child: const MyApp()),
   );
   // }
+}
+
+Future<void> initializeFirebase() async {
+  try {
+    await Firebase.initializeApp().then((val) {
+      NotificationService().configure();
+    });
+
+    String? token = await FirebaseMessaging.instance.getToken();
+    log("FIREBASE TOKEN ::::::::  $token");
+    localStorage.setString("fcmToken", token ?? "");
+  } on FirebaseException catch (e) {
+    log("::::::::::Firebase initialization error: ${e.message}");
+  } catch (e) {
+    log("::::::::::Unexpected error during Firebase initialization: $e");
+  }
 }
 
 class MyApp extends StatelessWidget {

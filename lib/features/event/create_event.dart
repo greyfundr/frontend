@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:expandable_page_view/expandable_page_view.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
@@ -12,7 +11,6 @@ import 'package:greyfundr/features/event/event_provider.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/core/models/user_event_model.dart';
 import 'package:greyfundr/components/custom_snackbars.dart';
-import 'package:greyfundr/shared/text_style.dart';
 
 import 'sections/step_1_names_and_co.dart';
 import 'sections/step_2_organizers.dart';

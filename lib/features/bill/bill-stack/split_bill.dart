@@ -9,7 +9,6 @@ import 'package:get/get.dart';
 
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart'; // ← correct interface
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart'; // ← correct impl
-import 'package:greyfundr/core/models/ny_split_bill_model.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
 
@@ -81,7 +80,7 @@ class _SplittingBillState extends State<SplittingBill>
   final ScrollController _scrollController = ScrollController();
   bool _isHeaderCollapsed = true;
   double _previousScrollOffset = 0.0;
-  bool _isBalanceVisible = true;
+  final bool _isBalanceVisible = true;
   bool _selectAll = false;
   // Track per-bill selection for the Select All feature
   final Map<String, bool> _selectedBills = {};
@@ -729,7 +728,7 @@ class _SplittingBillState extends State<SplittingBill>
                                 Row(
                                   children: [
                                     Text(
-                                      "${convertStringToCurrency(walletModel?.balance?.available ?? "0")}",
+                                      convertStringToCurrency(walletModel?.balance?.available ?? "0"),
                                       style: txStyle18SemiBold.copyWith(
                                         color: Colors.white,
                                       ),
@@ -855,7 +854,7 @@ class _SplittingBillState extends State<SplittingBill>
                   SingleChildScrollView(
                     child: Column(
                       children: [
-                        Container(
+                        SizedBox(
                           height: 450,
                           child: RefreshIndicator(
                             onRefresh: () =>

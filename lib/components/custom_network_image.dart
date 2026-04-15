@@ -5,10 +5,10 @@ import 'package:greyfundr/components/shimmer_loader_widget.dart';
 
 class CustomNetworkImage extends StatelessWidget {
   const CustomNetworkImage({
-    Key? key,
+    super.key,
     this.imageUrl,
     required this.radius,
-  }) : super(key: key);
+  });
 
   final String? imageUrl;
   final double radius;

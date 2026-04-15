@@ -111,8 +111,9 @@ class Step3DetailedDescription extends StatelessWidget {
                     networkImages: section.existingMediaUrls,
                     onAddMedia: () async {
                       final picked = await ImagePicker().pickMultiImage();
-                      if (picked.isNotEmpty)
+                      if (picked.isNotEmpty) {
                         provider.addMediaToDetailSection(index, picked);
+                      }
                     },
                     onRemoveMedia: (mIndex) =>
                         provider.removeMediaFromDetailSection(index, mIndex),

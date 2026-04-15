@@ -3,8 +3,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/features/bill/bill_screen.dart';
 import 'package:greyfundr/features/bill/lifestyle_screen.dart';
+import 'package:greyfundr/features/charity/charity_screen.dart';
 import 'package:greyfundr/features/event/event_screen.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
+import 'package:greyfundr/features/new_split_bill/create_split_bill_screen.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -14,7 +16,6 @@ import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
 import 'package:greyfundr/features/home/add_money_sheet.dart';
 import 'package:greyfundr/features/shared/notification.dart';
-import 'package:greyfundr/features/splitbill/create_split_bill.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_ontap.dart';
@@ -121,11 +122,13 @@ class _BillOutletScreenState extends State<BillOutletScreen>
     const double threshold = 30.0;
 
     if (delta > 0 && currentOffset > threshold) {
-      if (_areFeatureIconsVisible)
+      if (_areFeatureIconsVisible) {
         setState(() => _areFeatureIconsVisible = false);
+      }
     } else if (delta < 0 && currentOffset < 100) {
-      if (!_areFeatureIconsVisible)
+      if (!_areFeatureIconsVisible) {
         setState(() => _areFeatureIconsVisible = true);
+      }
     }
 
     _previousScrollOffset = currentOffset;
@@ -267,7 +270,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
-                  hasValue ? value! : defaultText,
+                  hasValue ? value : defaultText,
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
@@ -491,7 +494,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                             child: Row(
                                               children: [
                                                 CustomNetworkImage(
-                                                  imageUrl: "imageUrl",
+                                                  imageUrl: "${userProfile?.profile?.image}",
                                                   radius: 40,
                                                 ),
                                                 Gap(10),
@@ -575,7 +578,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                           child: Row(
                                             children: [
                                               CustomNetworkImage(
-                                                imageUrl: "imageUrl",
+                                                imageUrl: "${userProfile?.profile?.image}",
                                                 radius: 40,
                                               ),
                                               Gap(5),
@@ -950,12 +953,12 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                           Icons.receipt,
                           Colors.amber,
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const PayBillScreen(),
-                              ),
-                            );
+                            // Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (_) => const PayBillScreen(),
+                            //   ),
+                            // );
                           },
                         ),
                         _featureIcon(
@@ -963,12 +966,12 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                           Icons.swap_horiz,
                           Colors.pink,
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const TransferBill(),
-                              ),
-                            );
+                            // Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (_) => const TransferBill(),
+                            //   ),
+                            // );
                           },
                         ),
                         _featureIcon(
@@ -976,12 +979,12 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                           Icons.call_split,
                           Colors.green,
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SplittingBill(),
-                              ),
-                            );
+                            // Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (_) => const SplittingBill(),
+                            //   ),
+                            // );
                           },
                         ),
                         _featureIcon(
@@ -989,12 +992,12 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                           Icons.request_page,
                           Colors.orange,
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RequestBillScreen(),
-                              ),
-                            );
+                            // Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (_) => const RequestBillScreen(),
+                            //   ),
+                            // );
                           },
                         ),
                         _featureIcon(
@@ -1002,110 +1005,18 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                           Icons.qr_code_scanner,
                           Colors.blue,
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SizedBox(),
-                              ),
-                            );
+                            // Navigator.push(
+                            //   context,
+                            //   MaterialPageRoute(
+                            //     builder: (_) => const SizedBox(),
+                            //   ),
+                            // );
                           },
                         ),
                       ],
                     ),
                   ),
           ),
-
-          // Secondary tabs: Bill | Request | History (only shown in "Bill" sub-tab)
-          if (eventProvider.billOutletTabController.index == 0)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => selectedTab = 'Bill'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: selectedTab == 'Bill'
-                              ? Colors.white
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "Bill",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: selectedTab == 'Bill'
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: selectedTab == 'Bill'
-                                ? Colors.black
-                                : Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => selectedTab = 'Request'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: selectedTab == 'Request'
-                              ? Colors.white
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "Request",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: selectedTab == 'Request'
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: selectedTab == 'Request'
-                                ? Colors.black
-                                : Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => selectedTab = 'History'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: selectedTab == 'History'
-                              ? Colors.white
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "History",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontWeight: selectedTab == 'History'
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: selectedTab == 'History'
-                                ? Colors.black
-                                : Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
 
           // Main content
           Expanded(
@@ -1114,12 +1025,9 @@ class _BillOutletScreenState extends State<BillOutletScreen>
               children: [
                 // Bill sub-tab (shows secondary tabs + list)
                 BillScreen(),
+                // Container(),
                 // Container(color: Colors.green),
-                UiNoDataAvailableWidget(
-                  height: SizeConfig.heightOf(30),
-                  message: "Coming soon",
-                  subtitle: "You will be notified when this feature is ready ",
-                ),
+                const CharityComponent(),
                 LifestyleScreen(),
                 // EventHome(),
               ],

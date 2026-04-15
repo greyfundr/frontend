@@ -91,6 +91,7 @@ class EventApiImpl implements EventApi {
     final response = await _apiClient.get(
       ApiRoute.getEventByIdRoute(id),
       headers: header,
+      hideLog: false
     );
     return eventDetailsModelFromJson(response);
   }

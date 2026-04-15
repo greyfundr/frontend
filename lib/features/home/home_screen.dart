@@ -1,23 +1,15 @@
-import 'dart:math' as math;
 
-import 'package:custom_refresh_indicator/custom_refresh_indicator.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get_utils/get_utils.dart';
 import 'package:get/route_manager.dart';
-import 'package:get/state_manager.dart';
 
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/features/createnew/create_new_screen.dart';
-import 'package:greyfundr/features/event/event_home.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
-import 'package:greyfundr/features/event/event_screen.dart';
 import 'package:greyfundr/features/invoice/invoice_screen.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
-import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
-import 'package:greyfundr/features/profile/profile_screen.dart';
 
 import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
@@ -174,7 +166,7 @@ class HomeScreen extends StatelessWidget {
                   },
                   child: Row(
                     children: [
-                      CustomNetworkImage(imageUrl: "$avatarUrl", radius: 40),
+                      CustomNetworkImage(imageUrl: avatarUrl, radius: 40),
                       Gap(5),
                       Column(
                         children: [
@@ -257,11 +249,11 @@ class HomeScreen extends StatelessWidget {
                         ),
                         CustomOnTap(
                           onTap: () {
-                            Get.to(
-                              () =>
-                                  CharityScreen(), // ← replace with your actual screen/widget
-                              transition: Transition.rightToLeft,
-                            );
+                            // Get.to(
+                            //   () =>
+                            //       CharityScreen(), // ← replace with your actual screen/widget
+                            //   transition: Transition.rightToLeft,
+                            // );
                           },
                           child: Image.asset(
                             "assets/images/charity.png",
@@ -366,7 +358,7 @@ class HomeScreen extends StatelessWidget {
                       Text("Total Balance", style: txStyle12wt),
                       Gap(5),
                       Text(
-                        "${convertStringToCurrency("${walletModel?.balance?.available}")}",
+                        convertStringToCurrency("${walletModel?.balance?.available}"),
                         style: txStyle18SemiBold.copyWith(color: Colors.white),
                       ),
                       Gap(5),

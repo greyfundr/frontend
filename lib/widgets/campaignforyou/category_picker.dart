@@ -160,7 +160,7 @@ Future<List<Map<String, String>>> _fetchCategories() async {
         throw Exception('No categories found in response');
       }
 
-      String _resolveIcon(String? icon) {
+      String resolveIcon(String? icon) {
         if (icon == null) return 'assets/icons/placeholder.png';
         final trimmed = icon.toString().trim();
         // If already an asset path or URL, return as-is
@@ -177,7 +177,7 @@ Future<List<Map<String, String>>> _fetchCategories() async {
 
         return {
           'label': name,
-          'icon': _resolveIcon(iconRaw),
+          'icon': resolveIcon(iconRaw),
         };
       }).toList();
     } else {

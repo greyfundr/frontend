@@ -8,6 +8,7 @@ import 'package:greyfundr/features/auth/auth_provider.dart';
 import 'package:greyfundr/features/settings/edit_profile_screen.dart';
 import 'package:greyfundr/features/settings/change_password_screen.dart';
 import 'package:greyfundr/features/settings/change_pin_flow_screen.dart';
+import 'package:greyfundr/features/settings/change_transaction_pin_flow_screen.dart';
 import 'package:greyfundr/features/settings/notification_preference_screen.dart';
 import 'package:greyfundr/features/settings/transaction_history_screen.dart';
 import 'package:greyfundr/features/settings/verification_screen.dart';
@@ -124,6 +125,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () {
               Get.to(
                 const ChangePinOldScreen(),
+                transition: Transition.rightToLeft,
+              );
+            },
+          ),
+          _buildMenuItem(
+            icon: Icons.lock_open_rounded,
+            title: 'Change Transaction PIN',
+            onTap: () {
+              Get.to(
+                const ChangeTransactionPinOldScreen(),
                 transition: Transition.rightToLeft,
               );
             },

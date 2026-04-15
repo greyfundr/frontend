@@ -3,7 +3,6 @@ import 'dart:developer';
 import 'package:app_links/app_links.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/features/bill/event_rsvp_page.dart';
-import 'package:greyfundr/features/bill/my_event_details_screen.dart';
 
 class AppLinkService {
   // Singleton instance

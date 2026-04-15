@@ -200,7 +200,7 @@ class CampaignCard extends StatelessWidget {
 
                       String finalUrl = defaultUrl;
                       if (hasImage) {
-                        if (imageUrl!.startsWith('http')) {
+                        if (imageUrl.startsWith('http')) {
                           finalUrl = imageUrl;
                         } else {
                           finalUrl = "$cdnBaseUrl$imageUrl";

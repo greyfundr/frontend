@@ -40,7 +40,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       appBar: CustomAppBar(title: "Verification"),
       body: RefreshIndicator(
         onRefresh: () async {
-          userProvider.fetchUserProfileApi();
+          userProvider.fetchUserProfileApi(showLoader: true);
         },
         child: ListView(
           children: [
@@ -145,9 +145,9 @@ class VerificationContainer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("$title", style: txStyle20SemiBold),
+                  Text(title, style: txStyle20SemiBold),
                   Text(
-                    "${subtitle}",
+                    subtitle,
                     style: txStyle12.copyWith(color: greyTextColor),
                   ),
                 ],
@@ -160,7 +160,7 @@ class VerificationContainer extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                capitalizeFirstText("$status"),
+                capitalizeFirstText(status),
                 style: txStyle12.copyWith(color: statusColors.textColor),
               ),
             ),

@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
-import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/models/event_details_model.dart';
 import 'package:greyfundr/core/models/user_event_model.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
@@ -13,6 +11,7 @@ import 'package:greyfundr/shared/responsiveState/responsive_state.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 class MyEventDetailsScreen extends StatefulWidget {
   final String eventId;
@@ -147,12 +146,12 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                                       GestureDetector(
                                         onTap: () {
                                           if (event?.shareLink != null) {
-                                            Clipboard.setData(
-                                              ClipboardData(
-                                                text: event!.shareLink!,
+                                            SharePlus.instance.share(
+                                              ShareParams(
+                                                text:
+                                                    'Check out my event "${event!.name}" on Greyfundr! ${event.shareLink}',
                                               ),
                                             );
-                                            showSuccessToast("Link copied!");
                                           }
                                         },
                                         child: Container(
@@ -545,8 +544,7 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                               Gap(12),
                               _buildCompactCard(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       "VISIBILITY",
@@ -565,8 +563,7 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
-                                        color: event?.hideDonationAmount ==
-                                                true
+                                        color: event?.hideDonationAmount == true
                                             ? Colors.amber[700]
                                             : Colors.green,
                                       ),
@@ -685,8 +682,8 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                           Gap(24),
                         ],
 
-                        if (((event?.venueCount?? 0) > 0) ||
-                            ((event?.onlineCount?? 0) > 0)) ...[
+                        if (((event?.venueCount ?? 0) > 0) ||
+                            ((event?.onlineCount ?? 0) > 0)) ...[
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -956,7 +953,7 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                                 ),
                               ),
                             );
-                          }).toList(),
+                          }),
                           Gap(12),
                         ],
 
@@ -975,10 +972,16 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
                             GestureDetector(
                               onTap: () {
                                 if (event?.shareLink != null) {
-                                  Clipboard.setData(
-                                    ClipboardData(text: event!.shareLink!),
+                                  // Clipboard.setData(
+                                  //   ClipboardData(text: event!.shareLink!),
+                                  // );
+                                  // showSuccessToast("Link copied!");
+                                  SharePlus.instance.share(
+                                    ShareParams(
+                                      text:
+                                          'Check out my event "${event!.name}" on Greyfundr! ${event.shareLink}',
+                                    ),
                                   );
-                                  showSuccessToast("Link copied!");
                                 }
                               },
                               child: Container(
@@ -1371,11 +1374,7 @@ class _MyEventDetailsScreenState extends State<MyEventDetailsScreen> {
               color: accentColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              icon,
-              color: accentColor,
-              size: 18,
-            ),
+            child: Icon(icon, color: accentColor, size: 18),
           ),
           Gap(10),
           Text(

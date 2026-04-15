@@ -125,7 +125,7 @@ class SplitBillProvider extends BaseNotifier {
   SingleSplitBillModel? splitBillDetails;
   Future<bool> getSplitBillDetails({required String splitBillId}) async {
     try {
-      splitBillDetails = await _splitBillApi.getSplitBillDetails(splitBillId);
+       await _splitBillApi.getSplitBillDetails(splitBillId);
       notifyListeners();
       return true;
     } catch (e, stack) {

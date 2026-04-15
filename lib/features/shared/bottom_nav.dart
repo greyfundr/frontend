@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
 import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
-import 'package:greyfundr/features/charity/charity_screen.dart';
-import 'package:greyfundr/features/event/event_home.dart';
 import 'package:greyfundr/features/home/home_screen.dart';
 import 'package:greyfundr/features/profile/profile_screen.dart';
-import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:provider/provider.dart';
 
@@ -32,6 +28,7 @@ class _BottomNavState extends State<BottomNav> {
       userProvider.fetchUserProfileApi();
       walletProvider.fetchUserWallet();
       walletProvider.fetchTransactions();
+      userProvider.updateFcmToken();
     });
   }
 

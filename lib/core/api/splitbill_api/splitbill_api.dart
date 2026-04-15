@@ -1,20 +1,24 @@
 import 'dart:io';
 
 import 'package:greyfundr/core/models/all_user_model.dart';
-import 'package:greyfundr/core/models/ny_split_bill_model.dart';
-import 'package:greyfundr/core/models/single_split_split_bill_model.dart';
+import 'package:greyfundr/core/models/split_bill_details_model.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/core/models/split_user_model.dart' as splitUser;
+import 'package:greyfundr/core/models/my_split_bill_model.dart';
+import 'package:greyfundr/core/models/split_bill_invite_model.dart';
 
 abstract class SplitBillApi {
   /// Fetch details of a specific split bill by ID
-  Future <SingleSplitBillModel> getSplitBillDetails(String splitBillId);
+  Future<SplitBillDetailsModel> getSplitBillDetails(String splitBillId);
 
   /// Get list of users/participants (used when creating/editing bills)
   Future<List<AllUsersModel>> getUsers();
 
   /// Get all split bills where current user is a participant
   Future<MySplitBillModel> getMySplitBills();
+
+  /// Get all split bill invites for the current user
+  Future<SplitBillInviteModel> getSplitBillInvites();
 
   /// Get all split bills (admin / global view)
   Future<SplitBillResponseModel> getCurrentUserSplitBill();
@@ -76,4 +80,46 @@ abstract class SplitBillApi {
     required String reason,
     String? description,
   });
+
+  Future createNewSplitBill({
+    required String title,
+    required String description,
+    required double totalAmount,
+    required String? imageUrl,
+    required String dueDate,
+    required List<Map> participants,
+    String? recipientUserId,
+    String? billReceipt,
+    bool? allowPartialPayments,
+    double? minPaymentAmountForPartial,
+    String? splitMethod,
+  });
+
+  Future<List<AllUsersModel>> searchForUser({
+    String? email,
+    String? phoneNumber,
+    String? username,
+  });
+
+  Future payForBillWithWallet({
+    String? participantId,
+    String? billId,
+    String? amount,
+    String? transactionPin,
+  });
+
+  Future payForBillWithPaystack({
+    String? participantId,
+    String? billId,
+    String? amount,
+  });
+
+  /// Accept a split bill invite
+  Future<bool> acceptSplitBillInvite(String billId);
+
+  /// Decline a split bill invite
+  Future<bool> declineSplitBillInvite(String billId);
+
+  /// Send reminders to participants
+  Future sendSplitBillReminder(String billId);
 }

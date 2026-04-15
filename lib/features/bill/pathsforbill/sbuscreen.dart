@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -105,14 +104,14 @@ class _SplitBillScreenUpdateState extends State<SplitBillScreenUpdate> {
 
   // Participants
   List<User> _allUsers = [];
-  List<User> _selectedUsers = [];
+  final List<User> _selectedUsers = [];
   List<User> _filteredUsers = [];
 
-  List<PhoneContact> _selectedPhoneContacts = [];
+  final List<PhoneContact> _selectedPhoneContacts = [];
 
   // Split data
   double? _totalBillAmount;
-  Map<String, double> _userAmounts = {}; // key = user.id
+  final Map<String, double> _userAmounts = {}; // key = user.id
 
   // State
   bool _isLoadingUsers = false;
@@ -153,7 +152,7 @@ class _SplitBillScreenUpdateState extends State<SplitBillScreenUpdate> {
       final response = await http.get(
         Uri.parse('https://api.greyfundr.com/users'),
         headers: {
-          if (token != null) 'Authorization': 'Bearer $token',
+          'Authorization': 'Bearer $token',
           'Accept': 'application/json',
         },
       );
@@ -239,10 +238,8 @@ class _SplitBillScreenUpdateState extends State<SplitBillScreenUpdate> {
 
       // Add auth if needed
       final token = await localStorage.getString('access_token');
-      if (token != null) {
-        request.headers['Authorization'] = 'Bearer $token';
-      }
-
+      request.headers['Authorization'] = 'Bearer $token';
+    
       request.files.add(await http.MultipartFile.fromPath(
         'image',
         file.path,

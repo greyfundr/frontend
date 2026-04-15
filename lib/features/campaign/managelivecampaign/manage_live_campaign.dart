@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
@@ -11,7 +10,6 @@ import 'dart:convert';
 
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 import 'package:greyfundr/widgets/campaignforyou/offers_bottom_sheet.dart';
-import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/services/locator.dart';
 import 'package:greyfundr/services/custom_alert.dart';
 import 'package:greyfundr/features/charity/campaigndetails.dart';
@@ -85,8 +83,12 @@ class _ManageLiveCampaignState extends State<ManageLiveCampaign> {
     _titleController.dispose();
     _descriptionController.dispose();
     _goalController.dispose();
-    for (var c in _expenseNameControllers) c.dispose();
-    for (var c in _expenseCostControllers) c.dispose();
+    for (var c in _expenseNameControllers) {
+      c.dispose();
+    }
+    for (var c in _expenseCostControllers) {
+      c.dispose();
+    }
     _pageController.dispose();
     _tabScrollController.dispose();
     _refreshController.dispose();
@@ -216,7 +218,7 @@ class _ManageLiveCampaignState extends State<ManageLiveCampaign> {
 
         // Offers: accept either `offers` array or `moffer`/`aoffer` keys
         List<dynamic> rawOffers = [];
-        final dynamic offersField = campaignData['offers'] ?? campaignData['offer'] ?? null;
+        final dynamic offersField = campaignData['offers'] ?? campaignData['offer'];
         if (offersField != null) {
           try {
             if (offersField is String && offersField.isNotEmpty) {
@@ -342,8 +344,8 @@ class _ManageLiveCampaignState extends State<ManageLiveCampaign> {
   }
 
   Future<void> _pickImages() async {
-    final List<XFile>? picked = await _picker.pickMultiImage();
-    if (picked == null || picked.isEmpty) return;
+    final List<XFile> picked = await _picker.pickMultiImage();
+    if (picked.isEmpty) return;
 
     for (final xfile in picked) {
       final originalFile = File(xfile.path);
@@ -654,7 +656,7 @@ class _ManageLiveCampaignState extends State<ManageLiveCampaign> {
     try {
       final result = await FlutterImageCompress.compressAndGetFile(
         file.path,
-        file.path + '_compressed.jpg',
+        '${file.path}_compressed.jpg',
         quality: 85,
         minWidth: 1024,
         minHeight: 1024,

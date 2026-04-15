@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/api/wallet_api/wallet_api.dart';
 import 'package:greyfundr/core/models/wallet_model.dart';
@@ -24,7 +25,7 @@ class WalletProvider extends BaseNotifier {
       return true;
     } catch (e) {
       log("ERROR ON FETCH USER WALLET $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return false;
     } finally {
       // EasyLoading.dismiss();
@@ -39,7 +40,7 @@ class WalletProvider extends BaseNotifier {
       return url;
     } catch (e) {
       log("ERROR ON INITIATE WALLET FUNDING $e ");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       return "";
     } finally {
       EasyLoading.dismiss();
@@ -59,7 +60,7 @@ class WalletProvider extends BaseNotifier {
       notifyListeners();
     } catch (e, stacktrace) {
       log("ERROR ON FETCH TRANSACTIONS $e :::: $stacktrace");
-      showErrorToast("${e}");
+      showErrorToast("$e");
       transactionState = ViewState.Error;
       notifyListeners();
     } finally {
@@ -142,6 +143,47 @@ class WalletProvider extends BaseNotifier {
     } finally {
       EasyLoading.dismiss();
       notifyListeners();
+    }
+  }
+
+  Future<bool> setTransactionPin({
+    required String pin,
+    required String confirmPin,
+  }) async {
+    EasyLoading.show(status: 'Setting transaction pin...');
+    try {
+      await walletApi.setTransactionPin(pin: pin, confirmPin: confirmPin);
+      EasyLoading.dismiss();
+      return true;
+    } catch (e) {
+      showErrorToast("$e");
+      EasyLoading.dismiss();
+      return false;
+    }
+  }
+
+  Future<bool> changeTransactionPin({
+    required String currentPin,
+    required String newPin,
+    required String confirmPin,
+  }) async {
+    EasyLoading.show(status: 'Updating transaction pin...');
+    try {
+      EasyLoading.show();
+      await walletApi.changeTransactionPin(
+        currentPin: currentPin,
+        newPin: newPin,
+        confirmPin: confirmPin,
+      );
+      return true;
+    } catch (e) {
+      showErrorToast("$e");
+      if ("${e}".contains("Current PIN is incorrect")) {
+        Get.close(2);
+      }
+      return false;
+    } finally {
+      EasyLoading.dismiss();
     }
   }
 }

@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:greyfundr/shared/app_colors.dart';
-import 'package:greyfundr/shared/utils.dart';
-import 'package:greyfundr/features/home/home_screen.dart';
-import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/features/charity/campaigndetails.dart';
@@ -132,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             child: ClipOval(
                               child: CustomNetworkImage(
-                                imageUrl: "imageUrl",
+                                imageUrl: "${user.profile?.image}",
                                 radius: 40,
                               ),
                             ),
@@ -303,8 +298,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onTap: () {
           setState(() {
             _selectedMainTab = index;
-            if (index != 0)
+            if (index != 0) {
               _selectedPostSubTab = 0; // reset sub-tab when leaving Campaigns
+            }
           });
         },
         child: Container(
@@ -439,7 +435,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         String finalUrl = defaultUrl;
         if (hasImage) {
-          if (imageUrl!.startsWith('http')) {
+          if (imageUrl.startsWith('http')) {
             finalUrl = imageUrl;
           } else {
             finalUrl = "$cdnBaseUrl$imageUrl";

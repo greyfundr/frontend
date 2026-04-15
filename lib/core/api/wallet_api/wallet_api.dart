@@ -16,4 +16,6 @@ abstract class WalletApi {
     required Map<String, dynamic> payload,
   });
   Future<TransactionModel> getTransactions({int page = 1, int limit = 20});
+  Future<bool> setTransactionPin({required String pin, required String confirmPin});
+  Future<bool> changeTransactionPin({required String currentPin, required String newPin, required String confirmPin});
 }

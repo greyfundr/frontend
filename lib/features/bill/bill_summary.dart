@@ -5,15 +5,12 @@ import 'package:greyfundr/components/custom_network_image%20copy.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
-import 'package:greyfundr/core/models/ny_split_bill_model.dart';
 import 'package:greyfundr/features/bill/bill__outlet_screen.dart';
-import 'package:greyfundr/features/splitbill/edit_split_bill.dart';
 import 'package:provider/provider.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/features/bill/sort_bill_modal.dart';
 import 'package:greyfundr/shared/custom_message_modal.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api_impl.dart';
-import 'package:intl/intl.dart';
 
 class BillSummaryScreen extends StatefulWidget {
   final SplitBillDatum bill;

@@ -2,8 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
-import 'package:get/get_utils/get_utils.dart';
 import 'package:greyfundr/components/custom_network_image%20copy.dart';
+import 'package:greyfundr/components/custom_ontap.dart';
 import 'package:greyfundr/core/models/user_event_model.dart';
 import 'package:greyfundr/features/bill/event_rsvp_page.dart';
 import 'package:greyfundr/features/bill/my_event_details_screen.dart';
@@ -273,171 +273,193 @@ class _LiveEventCardState extends State<LiveEventCard> {
         (widget.event.amountRaised ?? 0) / (widget.event.targetAmount ?? 1);
     final percent = int.tryParse((progress * 100).toString()) ?? 0;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      clipBehavior: Clip.antiAlias,
-      elevation: 2,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Cover Image(s)
-          SizedBox(
-            height: 180,
-            width: double.infinity,
-            child:
-                widget.event.coverImages != null &&
-                    widget.event.coverImages!.isNotEmpty
-                ? PageView.builder(
-                    controller: _pageController,
-                    itemCount: widget.event.coverImages!.length,
-                    itemBuilder: (context, index) {
-                      return CustomNetworkImageSqr(
-                        imageUrl: widget.event.coverImages![index],
-                        height: 180,
-                        width: double.infinity,
-                        padding: 0,
-                        fit: BoxFit.cover,
-                      );
-                    },
-                  )
-                : const Center(child: Icon(Icons.image, size: 50)),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.event.name ?? "Untitled Event",
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          if (widget.event.hashtag != null)
-                            Text(
-                              "#${widget.event.hashtag?.replaceFirst("#", "")}",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () {
-                        if (!widget.isMyEvent) {
-                          if (widget.isRsvpedEvent) {
-                            Get.to(
-                              () =>
-                                  RsvpDetailsScreen(eventId: widget.event.id!),
-                            );
-                          } else {
-                            Get.to(
-                              () => EventRSVPScreen(eventId: widget.event.id!),
-                            );
-                          }
-                        } else {
-                          if (widget.event.pageNumber == 4 ||
-                              widget.event.pageNumber == 5) {
-                            Get.to(
-                              () => MyEventDetailsScreen(
-                                eventId: widget.event.id!,
-                              ),
-                            );
-                          } else {
-                            Get.to(
-                              () => CreateventPage(draftEvent: widget.event),
-                            );
-                          }
-                        }
+    return CustomOnTap(
+      onTap: () {
+        if (!widget.isMyEvent) {
+          if (widget.isRsvpedEvent) {
+            Get.to(() => RsvpDetailsScreen(eventId: widget.event.id!));
+          } else {
+            Get.to(() => EventRSVPScreen(eventId: widget.event.id!));
+          }
+        } else {
+          if (widget.event.pageNumber == 4 || widget.event.pageNumber == 5) {
+            Get.to(() => MyEventDetailsScreen(eventId: widget.event.id!));
+          } else {
+            Get.to(() => CreateventPage(draftEvent: widget.event));
+          }
+        }
+      },
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
+        elevation: 2,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cover Image(s)
+            SizedBox(
+              height: 180,
+              width: double.infinity,
+              child:
+                  widget.event.coverImages != null &&
+                      widget.event.coverImages!.isNotEmpty
+                  ? PageView.builder(
+                      controller: _pageController,
+                      itemCount: widget.event.coverImages!.length,
+                      itemBuilder: (context, index) {
+                        return CustomNetworkImageSqr(
+                          imageUrl: widget.event.coverImages![index],
+                          height: 180,
+                          width: double.infinity,
+                          padding: 0,
+                          fit: BoxFit.cover,
+                        );
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: appPrimaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      child: Text(
-                        widget.isMyEvent
-                            ? "Manage"
-                            : widget.isRsvpedEvent
-                            ? "View Event"
-                            : "RSVP",
-                      ),
-                    ),
-                  ],
-                ),
-                const Gap(12),
+                    )
+                  : const Center(child: Icon(Icons.image, size: 50)),
+            ),
 
-                // Amount Raised
-
-                // Progress Bar
-                if ((widget.event.targetAmount ?? 0) > 0)
-                  Column(
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      LinearProgressIndicator(
-                        value: progress.clamp(0.0, 1.0),
-                        backgroundColor: Colors.grey[200],
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          Theme.of(context).primaryColor,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.event.name ?? "Untitled Event",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (widget.event.hashtag != null)
+                              Text(
+                                "#${widget.event.hashtag?.replaceFirst("#", "")}",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Theme.of(context).primaryColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(4),
                       ),
-                      Gap(5),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "${convertStringToCurrency("${widget.event.amountRaised}")} raised of ${convertStringToCurrency("${widget.event.targetAmount}")}",
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey,
-                            ),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (!widget.isMyEvent) {
+                            if (widget.isRsvpedEvent) {
+                              Get.to(
+                                () => RsvpDetailsScreen(
+                                  eventId: widget.event.id!,
+                                ),
+                              );
+                            } else {
+                              Get.to(
+                                () =>
+                                    EventRSVPScreen(eventId: widget.event.id!),
+                              );
+                            }
+                          } else {
+                            if (widget.event.pageNumber == 4 ||
+                                widget.event.pageNumber == 5) {
+                              Get.to(
+                                () => MyEventDetailsScreen(
+                                  eventId: widget.event.id!,
+                                ),
+                              );
+                            } else {
+                              Get.to(
+                                () => CreateventPage(draftEvent: widget.event),
+                              );
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: appPrimaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                          Text(
-                            "$percent%",
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ).paddingOnly(bottom: 12),
+                        ),
+                        child: Text(
+                          widget.isMyEvent
+                              ? "Manage"
+                              : widget.isRsvpedEvent
+                              ? "View Event"
+                              : "RSVP",
+                        ),
+                      ),
                     ],
                   ),
+                  const Gap(12),
 
-                // Participants
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.people_outline,
-                      size: 16,
-                      color: Colors.grey,
+                  // Amount Raised
+
+                  // Progress Bar
+                  if ((widget.event.targetAmount ?? 0) > 0)
+                    Column(
+                      children: [
+                        LinearProgressIndicator(
+                          value: progress.clamp(0.0, 1.0),
+                          backgroundColor: Colors.grey[200],
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Theme.of(context).primaryColor,
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        Gap(5),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "${convertStringToCurrency("${widget.event.amountRaised}")} raised of ${convertStringToCurrency("${widget.event.targetAmount}")}",
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            Text(
+                              "$percent%",
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ).paddingOnly(bottom: 12),
+                      ],
                     ),
-                    const Gap(4),
-                    Text(
-                      "${widget.event.expectedParticipants ?? 0} participants",
-                      style: const TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
+
+                  // Participants
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.people_outline,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      const Gap(4),
+                      Text(
+                        "${widget.event.expectedParticipants ?? 0} participants",
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

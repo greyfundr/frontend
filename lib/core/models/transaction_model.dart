@@ -34,7 +34,7 @@ class Datum {
     DateTime? updatedAt;
     dynamic deletedAt;
     String? walletId;
-    dynamic? amount;
+    dynamic amount;
     String? currency;
     String? type;
     String? direction;
@@ -46,7 +46,7 @@ class Datum {
     dynamic failureReason;
     dynamic sourceRef;
     dynamic counterpartyWalletId;
-    dynamic? feeAmount;
+    dynamic feeAmount;
     dynamic gatewayResponse;
     Metadata? metadata;
     DateTime? confirmedAt;

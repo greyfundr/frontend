@@ -1,34 +1,52 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-// import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
-import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
+import 'package:greyfundr/components/custom_circular_progress_indicator.dart';
+import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
-import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
+import 'package:greyfundr/core/models/all_campaign_response_model.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
-import 'package:greyfundr/services/locator.dart';
+import 'package:greyfundr/features/charity/charity_payment_method_screen.dart';
+import 'package:greyfundr/features/charity/charity_provider.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/custom_message_modal.dart';
 import 'package:greyfundr/shared/moeny_formater.dart';
+import 'package:greyfundr/shared/responsiveState/responsive_state.dart';
+import 'package:greyfundr/shared/responsiveState/view_state.dart';
 import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
-import 'campaignprogress.dart'; // your existing progress widget
+import 'campaignprogress.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'dart:math';
+
+// ────────────────────────────────────────────────
+// Shared sheet chrome
+// ────────────────────────────────────────────────
+Widget _dragHandle() => Container(
+      width: 44,
+      height: 5,
+      margin: const EdgeInsets.only(top: 12, bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade300,
+        borderRadius: BorderRadius.circular(10),
+      ),
+    );
+
+BoxDecoration _sheetDecoration() => const BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    );
 
 class DonationBottomSheet extends StatefulWidget {
-  final Map<String, dynamic>? campaign; // optional, used for display only
-  final VoidCallback? onDonationSuccess;
+  final CampaignDatum? campaign;
 
-  const DonationBottomSheet({
-    super.key,
-    this.campaign,
-    this.onDonationSuccess,
-  });
+  const DonationBottomSheet({super.key, this.campaign});
 
   @override
   State<DonationBottomSheet> createState() => _DonationBottomSheetState();
@@ -38,23 +56,7 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
   final TextEditingController _amountController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  String _username = '';
-  String _comments = '';
-  bool _hasComment = false;
-
-  String _displayName = '';
-  bool _isAnonymous = false;
-  String? _externalName;
-  String? _externalPhone;
-  String? _currentUserId;
-  String? _taggedUserId;
-
-  bool _hasBehalfOf = false;
-  String? _behalfDisplay = '';
-
   bool _amountSufficient = false;
-  bool _isProcessing = false;
-  bool _didNotifySuccess = false;
 
   @override
   void initState() {
@@ -62,24 +64,14 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
 
-      // Default display name to signed-in user's full name
-      try {
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        final user = userProvider.userProfileModel;
-        if (user != null) {
-          // capture current user id for donation attribution/onBehalfOf
-          _currentUserId = user.id;
-          final first = (user.firstName ?? '');
-          final last = (user.lastName ?? '');
-          final full = ('$first $last').trim();
-          if (full.isNotEmpty) {
-            setState(() {
-              _displayName = full;
-              if (_username.isEmpty) _username = full;
-            });
-          }
-        }
-      } catch (_) {}
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final user = userProvider.userProfileModel;
+
+      final fullName =
+          "${user?.firstName ?? ''} ${user?.lastName ?? ''}".trim();
+
+      Provider.of<CharityProvider>(context, listen: false)
+          .initDonationForm(currentUserFullName: fullName);
     });
 
     _amountController.addListener(_onAmountChanged);
@@ -107,10 +99,11 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
   }
 
   int _calculateDaysLeft() {
-    final endDateStr = widget.campaign?['end_date']?.toString();
+    final endDateStr = widget.campaign?.endDate?.toString();
     if (endDateStr == null || endDateStr.isEmpty) return 0;
     try {
-      final end = DateTime.parse(endDateStr).copyWith(hour: 23, minute: 59, second: 59);
+      final end = DateTime.parse(endDateStr)
+          .copyWith(hour: 23, minute: 59, second: 59);
       final now = DateTime.now();
       if (now.isAfter(end)) return 0;
       return end.difference(now).inDays;
@@ -123,41 +116,55 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
   // Nickname / Anonymous
   // ────────────────────────────────────────────────
   void _showNicknameChooser() {
+    final provider = Provider.of<CharityProvider>(context, listen: false);
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+        decoration: _sheetDecoration(),
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 20, bottom: 8),
-                child: Text("How would you like to appear?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              _dragHandle(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text("How would you like to appear?",
+                      style: txStyle16Bold),
+                ),
               ),
-              ListTile(
-                leading: const Icon(Icons.person_outline_rounded, color: Colors.teal),
-                title: const Text("Use Nickname"),
-                subtitle: const Text("Show a custom name"),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Donors will see this name on the campaign.",
+                    style: txStyle12.copyWith(color: greyTextColor),
+                  ),
+                ),
+              ),
+              const Gap(8),
+              _OptionTile(
+                icon: Icons.person_outline_rounded,
+                title: "Use a Nickname",
+                subtitle: "Show a custom name on this donation",
                 onTap: () {
                   Navigator.pop(context);
                   _showNicknameInput();
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.visibility_off_rounded, color: Colors.teal),
-                title: const Text("Be Anonymous"),
-                subtitle: const Text("Your name will be hidden"),
+              _OptionTile(
+                icon: Icons.visibility_off_rounded,
+                title: "Be Anonymous",
+                subtitle: "Hide your identity from the public",
                 onTap: () {
                   Navigator.pop(context);
-                  _setRandomAnonymousName();
+                  provider.setAnonymousDisplayName();
                 },
               ),
-              const SizedBox(height: 100),
+              const Gap(16),
             ],
           ),
         ),
@@ -165,122 +172,128 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
     );
   }
 
-  void _setRandomAnonymousName() {
-    final random = Random();
-    final number = random.nextInt(9000) + 1000;
-    setState(() {
-      _displayName = "Anonymous$number";
-      // Do not set _username for anonymous; send no username so API marks anonymous
-      _username = '';
-      _isAnonymous = true;
-    });
-  }
-
   void _showNicknameInput() {
+    final provider = Provider.of<CharityProvider>(context, listen: false);
     final controller = TextEditingController();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          left: 24,
-          right: 24,
-          top: 32,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Choose your display name", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            const Text("This is how you'll appear", style: TextStyle(color: Colors.grey, fontSize: 14)),
-            const SizedBox(height: 24),
-            TextField(
-              controller: controller,
-              autofocus: true,
-              maxLength: 30,
-              decoration: InputDecoration(
-                hintText: "e.g. JoyTheHelper",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: _sheetDecoration(),
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              left: 20,
+              right: 20,
+              top: 0,
             ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextButton(
-                  onPressed: () {
-  Navigator.pop(context);
-},
-                  child: const Text("Cancel", style: TextStyle(color: Colors.red)),
+                Center(child: _dragHandle()),
+                const Gap(8),
+                Text("Choose your display name", style: txStyle18Bold),
+                const Gap(4),
+                Text("This is how you'll appear on the campaign.",
+                    style: txStyle13.copyWith(color: greyTextColor)),
+                const Gap(20),
+                CustomTextField(
+                  controller: controller,
+                  autoFocus: true,
+                  hintText: "e.g. JoyTheHelper",
+                  maxLength: 30,
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    final firstName = controller.text.trim();
-                    if (firstName.isNotEmpty) {
-                      setState(() {
-                        _username = firstName;
-                        _displayName = firstName;
-                        _isAnonymous = false;
-                      });
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: const Text("Save"),
+                const Gap(20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomButton(
+                        onTap: () => Navigator.pop(context),
+                        label: "Cancel",
+                        backgroundColor: Colors.white,
+                        color: Colors.red.shade400,
+                        borderColor: Colors.red.shade200,
+                      ),
+                    ),
+                    const Gap(12),
+                    Expanded(
+                      child: CustomButton(
+                        onTap: () {
+                          final firstName = controller.text.trim();
+                          if (firstName.isNotEmpty) {
+                            provider.setNickname(firstName);
+                            Navigator.pop(context);
+                          }
+                        },
+                        label: "Save",
+                      ),
+                    ),
+                  ],
                 ),
+                const Gap(16),
               ],
             ),
-            const SizedBox(height: 100),
-          ],
+          ),
         ),
       ),
     );
   }
 
   // ────────────────────────────────────────────────
-  // On behalf of (simplified version)
+  // On behalf of
   // ────────────────────────────────────────────────
   void _openBehalfOfChooser() {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
+        decoration: _sheetDecoration(),
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 20, bottom: 8),
-                child: Text("Donate on behalf of", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              _dragHandle(),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child:
+                      Text("Donate on behalf of", style: txStyle16Bold),
+                ),
               ),
-              
-              ListTile(
-                leading: const Icon(Icons.person_add_alt_1, color: Colors.teal),
-                title: const Text("Tag a Greyfundr user"),
-                subtitle: const Text("Search by username or @mention"),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Dedicate this donation to someone special.",
+                    style: txStyle12.copyWith(color: greyTextColor),
+                  ),
+                ),
+              ),
+              const Gap(8),
+              _OptionTile(
+                icon: Icons.alternate_email_rounded,
+                title: "Tag a Greyfundr user",
+                subtitle: "Search by username or full name",
                 onTap: () {
                   Navigator.pop(context);
                   _openTagUserInput();
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.person_add_alt_1, color: Colors.teal),
-                title: const Text("Add someone not on Greyfundr"),
-                subtitle: const Text("Enter name and phone"),
+              _OptionTile(
+                icon: Icons.person_add_alt_1_rounded,
+                title: "Add someone not on Greyfundr",
+                subtitle: "Enter their name and phone",
                 onTap: () {
                   Navigator.pop(context);
                   _openNonUserInput();
                 },
               ),
-
-              
-              const SizedBox(height: 100),
+              const Gap(16),
             ],
           ),
         ),
@@ -289,79 +302,87 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
   }
 
   void _openNonUserInput() {
+    final provider = Provider.of<CharityProvider>(context, listen: false);
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          left: 24,
-          right: 24,
-          top: 32,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Add non-user", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: nameCtrl,
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: "Full name",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: _sheetDecoration(),
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              left: 20,
+              right: 20,
+              top: 0,
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: "Phone number",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextButton(
-                  onPressed: () {
-  Navigator.pop(context);
-},
-                  child: const Text("Cancel", style: TextStyle(color: Colors.red)),
+                Center(child: _dragHandle()),
+                const Gap(8),
+                Text("Add a non-user", style: txStyle18Bold),
+                const Gap(4),
+                Text("Dedicate this donation to someone outside Greyfundr.",
+                    style: txStyle13.copyWith(color: greyTextColor)),
+                const Gap(20),
+                CustomTextField(
+                  controller: nameCtrl,
+                  autoFocus: true,
+                  labelText: "Full name",
+                  hintText: "e.g. Mary Daniels",
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    final name = nameCtrl.text.trim();
-                    final phone = phoneCtrl.text.trim();
-                    if (name.isNotEmpty && phone.isNotEmpty) {
-                      setState(() {
-                        _hasBehalfOf = true;
-                        _behalfDisplay = "$name • $phone";
-                        _externalName = name;
-                        _externalPhone = phone;
-                      });
-                      Navigator.pop(context);
-                    } else {
-                      CustomMessageModal.show(
-                        context: context,
-                        message: "Fill both name and phone",
-                        isSuccess: false,
-                      );
-                    }
-                  },
-                  child: const Text("Save"),
+                const Gap(12),
+                CustomTextField(
+                  controller: phoneCtrl,
+                  textInputType: TextInputType.phone,
+                  labelText: "Phone number",
+                  hintText: "+234…",
                 ),
+                const Gap(20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomButton(
+                        onTap: () => Navigator.pop(context),
+                        label: "Cancel",
+                        backgroundColor: Colors.white,
+                        color: Colors.red.shade400,
+                        borderColor: Colors.red.shade200,
+                      ),
+                    ),
+                    const Gap(12),
+                    Expanded(
+                      child: CustomButton(
+                        onTap: () {
+                          final name = nameCtrl.text.trim();
+                          final phone = phoneCtrl.text.trim();
+                          if (name.isNotEmpty && phone.isNotEmpty) {
+                            provider.setExternalBehalfOf(
+                                name: name, phone: phone);
+                            Navigator.pop(context);
+                          } else {
+                            CustomMessageModal.show(
+                              context: context,
+                              message: "Fill both name and phone",
+                              isSuccess: false,
+                            );
+                          }
+                        },
+                        label: "Save",
+                      ),
+                    ),
+                  ],
+                ),
+                const Gap(16),
               ],
             ),
-            const SizedBox(height: 100),
-          ],
+          ),
         ),
       ),
     );
@@ -371,136 +392,10 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
-        final tagController = TextEditingController();
-        String? selectedUserId;
-        String? selectedUsername;
-
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            left: 24,
-            right: 24,
-            top: 32,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("Tag a Greyfundr user", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 8),
-              const Text("Start typing username (e.g. @bella)", style: TextStyle(color: Colors.grey, fontSize: 14)),
-              const SizedBox(height: 12),
-
-              TypeAheadField<Map<String, dynamic>>(
-                controller: tagController,
-                builder: (context, textEditingController, focusNode) {
-                  return TextField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
-                    autofocus: true,
-                    decoration: InputDecoration(
-                      hintText: "@username",
-                      prefixIcon: const Icon(Icons.alternate_email),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                    ),
-                  );
-                },
-                debounceDuration: const Duration(milliseconds: 300),
-                suggestionsCallback: (pattern) async {
-                  if (pattern.trim().length < 2) return <Map<String, dynamic>>[];
-                  try {
-                    final users = await locator<CampaignApi>().getUsers();
-                    return users
-                        .where((u) => (u.username ?? '').toLowerCase().contains(pattern.replaceAll('@', '').toLowerCase()) || (u.name ?? '').toLowerCase().contains(pattern.replaceAll('@', '').toLowerCase()))
-                        .map((u) => {
-                              'id': u.id,
-                              'username': u.username,
-                              'name': u.name,
-                              'profile_pic': u.imageUrl,
-                            })
-                        .toList();
-                  } catch (e) {
-                    debugPrint('User search error: $e');
-                    return <Map<String, dynamic>>[];
-                  }
-                },
-                itemBuilder: (context, Map<String, dynamic> user) {
-                  final username = (user['username'] ?? '').toString();
-                  final fullName = (user['name'] ?? '').toString();
-                  final avatar = (user['profile_pic'] ?? '').toString();
-                  return ListTile(
-                    leading: CircleAvatar(
-                      radius: 20,
-                      backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-                      child: avatar.isEmpty ? const Icon(Icons.person) : null,
-                    ),
-                    title: Text('@$username', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    subtitle: Text(fullName),
-                  );
-                },
-                emptyBuilder: (context) => const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text("No users found", style: TextStyle(color: Colors.grey)),
-                ),
-                onSelected: (Map<String, dynamic> suggestion) {
-                  selectedUserId = suggestion['id']?.toString();
-                  selectedUsername = (suggestion['username'] ?? '').toString();
-                  tagController.text = '@${selectedUsername ?? ''}';
-                },
-              ),
-
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text("Cancel"),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    ),
-                    onPressed: () {
-                      if (selectedUserId != null && selectedUsername != null) {
-                        setState(() {
-                          _hasBehalfOf = true;
-                          _taggedUserId = selectedUserId;
-                          _externalName = null;
-                          _externalPhone = null;
-                          _behalfDisplay = '@$selectedUsername';
-                        });
-                        Navigator.pop(context);
-                        return;
-                      }
-
-                      final input = tagController.text.trim();
-                      if (input.isNotEmpty && input.startsWith('@')) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text("Please select a user from suggestions (ID required)"),
-                          backgroundColor: Colors.orange,
-                        ));
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a valid @username")));
-                      }
-                    },
-                    child: const Text("Save"),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
+      backgroundColor: Colors.transparent,
+      builder: (_) => _TagUserSheet(
+        provider: Provider.of<CharityProvider>(context, listen: false),
+      ),
     );
   }
 
@@ -508,60 +403,68 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
   // Comment
   // ────────────────────────────────────────────────
   void _openCommentEditor() {
-    final controller = TextEditingController(text: _comments);
+    final provider = Provider.of<CharityProvider>(context, listen: false);
+    final controller = TextEditingController(text: provider.donationComments);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-          left: 24,
-          right: 24,
-          top: 32,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Add your comment", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              maxLines: 5,
-              minLines: 3,
-              autofocus: true,
-              decoration: InputDecoration(
-                hintText: "Your thoughts, encouragement...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: _sheetDecoration(),
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+              left: 20,
+              right: 20,
+              top: 0,
             ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextButton(
-                  onPressed: () {
-  Navigator.pop(context);
-},
-                  child: const Text("Cancel", style: TextStyle(color: Colors.red)),
+                Center(child: _dragHandle()),
+                const Gap(8),
+                Text("Add your comment", style: txStyle18Bold),
+                const Gap(4),
+                Text("Leave a kind word for the campaign creator.",
+                    style: txStyle13.copyWith(color: greyTextColor)),
+                const Gap(20),
+                CustomTextField(
+                  controller: controller,
+                  autoFocus: true,
+                  hintText: "Your thoughts, encouragement…",
+                  maxLines: 5,
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    final text = controller.text.trim();
-                    setState(() {
-                      _comments = text;
-                      _hasComment = text.isNotEmpty;
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Save"),
+                const Gap(20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: CustomButton(
+                        onTap: () => Navigator.pop(context),
+                        label: "Cancel",
+                        backgroundColor: Colors.white,
+                        color: Colors.red.shade400,
+                        borderColor: Colors.red.shade200,
+                      ),
+                    ),
+                    const Gap(12),
+                    Expanded(
+                      child: CustomButton(
+                        onTap: () {
+                          provider.setComment(controller.text);
+                          Navigator.pop(context);
+                        },
+                        label: "Save",
+                      ),
+                    ),
+                  ],
                 ),
+                const Gap(16),
               ],
             ),
-            const SizedBox(height: 100),
-          ],
+          ),
         ),
       ),
     );
@@ -571,82 +474,110 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
   // Confirm Dialog
   // ────────────────────────────────────────────────
   Future<bool> _showConfirmDonationDialog() async {
+    final provider = Provider.of<CharityProvider>(context, listen: false);
     final clean = _amountController.text.replaceAll(',', '');
     final amount = double.tryParse(clean) ?? 0.0;
 
-    final displayName = _displayName.isNotEmpty ? _displayName : "a generous supporter";
-    final campaignTitle = widget.campaign?['title']?.toString().trim() ?? "this campaign";
+    final displayName = provider.donationDisplayName.isNotEmpty
+        ? provider.donationDisplayName
+        : "a generous supporter";
+    final campaignTitle =
+        widget.campaign?.title?.toString().trim() ?? "this campaign";
 
     return await showModalBottomSheet<bool>(
           context: context,
           isScrollControlled: true,
           backgroundColor: Colors.transparent,
           builder: (_) => Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
+            decoration: _sheetDecoration(),
             child: SafeArea(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 40,
-                    height: 5,
-                    margin: const EdgeInsets.only(top: 12, bottom: 8),
-                    decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
-                  ),
+                  _dragHandle(),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Confirm Donation", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 20),
-                        Text("You are about to donate", style: TextStyle(color: Colors.grey[700], fontSize: 15)),
-                        const SizedBox(height: 12),
+                        Text("Confirm donation", style: txStyle20Bold),
+                        const Gap(16),
+                        Text("You are about to donate",
+                            style: txStyle13.copyWith(color: greyTextColor)),
+                        const Gap(6),
                         Text(
                           "₦${_formatNumber(amount.toStringAsFixed(0))}",
-                          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF007A74)),
+                          style: txStyle32Bold.copyWith(
+                              color: appPrimaryColor),
                         ),
-                        const SizedBox(height: 16),
-                        RichText(
-                          text: TextSpan(
-                            style: TextStyle(color: Colors.grey[800], fontSize: 15),
-                            children: [
-                              const TextSpan(text: "You are donating as "),
-                              TextSpan(text: displayName, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                              const TextSpan(text: ", to the "),
-                              TextSpan(text: "$campaignTitle ", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                              const TextSpan(text: "campaign.\nYour donation will go a long way ❤️"),
-                            ],
+                        const Gap(12),
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: appPrimaryColor.withOpacity(0.06),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: RichText(
+                            text: TextSpan(
+                              style: txStyle13.copyWith(
+                                  color: Colors.black87, height: 1.4),
+                              children: [
+                                const TextSpan(text: "You're donating as "),
+                                TextSpan(
+                                  text: displayName,
+                                  style: txStyle13.copyWith(
+                                      fontWeight: FontWeight.w700),
+                                ),
+                                const TextSpan(text: ", to the "),
+                                TextSpan(
+                                  text: "$campaignTitle ",
+                                  style: txStyle13.copyWith(
+                                      fontWeight: FontWeight.w700),
+                                ),
+                                const TextSpan(
+                                    text:
+                                        "campaign. Your donation will go a long way ❤️"),
+                              ],
+                            ),
                           ),
                         ),
-                        if (_username.isNotEmpty || _hasBehalfOf || _hasComment) ...[
-                          const Divider(height: 32),
-                          if (_username.isNotEmpty) Text("As: $_username"),
-                          if (_hasBehalfOf) Text("On behalf of: $_behalfDisplay"),
-                          if (_hasComment) Text("Comment: $_comments"),
+                        if (provider.donationUsername.isNotEmpty ||
+                            provider.donationHasBehalfOf ||
+                            provider.donationHasComment) ...[
+                          const Gap(16),
+                          if (provider.donationUsername.isNotEmpty)
+                            _SummaryRow(
+                                icon: Icons.person_outline,
+                                label: "As",
+                                value: provider.donationUsername),
+                          if (provider.donationHasBehalfOf)
+                            _SummaryRow(
+                                icon: Icons.favorite_border,
+                                label: "On behalf of",
+                                value: provider.donationBehalfDisplay),
+                          if (provider.donationHasComment)
+                            _SummaryRow(
+                                icon: Icons.chat_bubble_outline,
+                                label: "Comment",
+                                value: provider.donationComments),
                         ],
-                        const SizedBox(height: 32),
+                        const Gap(24),
                         Row(
                           children: [
                             Expanded(
-                              child: OutlinedButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: Colors.red[700]!),
-                                  foregroundColor: Colors.red[700],
-                                ),
-                                child: const Text("CANCEL"),
+                              child: CustomButton(
+                                onTap: () => Navigator.pop(context, false),
+                                label: "Cancel",
+                                backgroundColor: Colors.white,
+                                color: Colors.red.shade400,
+                                borderColor: Colors.red.shade200,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const Gap(12),
                             Expanded(
-                              child: ElevatedButton(
-                                onPressed: () => Navigator.pop(context, true),
-                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007A74)),
-                                child: const Text("YES, DONATE", style: TextStyle(color: Colors.white)),
+                              child: CustomButton(
+                                onTap: () => Navigator.pop(context, true),
+                                label: "Yes, Donate",
                               ),
                             ),
                           ],
@@ -666,8 +597,11 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
   // Main Donate Action
   // ────────────────────────────────────────────────
   Future<void> _onContinue() async {
+    final provider = Provider.of<CharityProvider>(context, listen: false);
+
     if (_amountController.text.trim().isEmpty) {
-      CustomMessageModal.show(context: context, message: "Enter an amount", isSuccess: false);
+      CustomMessageModal.show(
+          context: context, message: "Enter an amount", isSuccess: false);
       return;
     }
 
@@ -675,134 +609,85 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
     final amount = double.tryParse(clean) ?? 0.0;
 
     if (amount < 500) {
-      CustomMessageModal.show(context: context, message: "Minimum ₦500", isSuccess: false);
+      CustomMessageModal.show(
+          context: context, message: "Minimum ₦500", isSuccess: false);
+      return;
+    }
+
+    if ((provider.donationDisplayName.isEmpty ||
+            provider.donationUsername.isEmpty) &&
+        !provider.donationIsAnonymous) {
+      CustomMessageModal.show(
+          context: context,
+          message: "Choose a nickname or anonymous",
+          isSuccess: false);
+      _showNicknameChooser();
       return;
     }
 
     final confirmed = await _showConfirmDonationDialog();
     if (!confirmed) return;
 
-    setState(() => _isProcessing = true);
-
-    try {
-      final campaignId = widget.campaign?['id']?.toString();
-      if (campaignId == null) {
-        throw Exception("Campaign ID is missing.");
-      }
-
-      // If user cleared the default display name, require them to choose nickname or anonymous
-      if ((_displayName.isEmpty || _username.isEmpty) && !_isAnonymous) {
-        // force nickname/anonymous chooser
-        CustomMessageModal.show(context: context, message: "Choose a nickname or anonymous", isSuccess: false);
-        _showNicknameChooser();
-        return;
-      }
-
-      final payload = {
-        'amount': amount.toInt(),
-        // legacy keys removed; use createDonation helper instead
-        if (_comments.isNotEmpty) 'comment': _comments,
-        // 'onBehalfOf' logic can be added here if needed
-      };
-
-      // Determine creator id from campaign map
-      String? creatorId;
-      final c = widget.campaign ?? {};
-      creatorId = c['creator_id']?.toString() ?? c['creatorId']?.toString() ?? c['user_id']?.toString() ?? c['userId']?.toString() ?? c['created_by']?.toString();
-
-      // Prepare createDonation args
-      final int intAmount = amount.toInt();
-      final String callerUserId = _currentUserId ?? '';
-      final String creator = creatorId ?? '';
-
-      final bool success = await locator<CampaignApi>().createDonation(
-        userId: callerUserId,
-        creatorId: creator,
-        campaignId: campaignId,
-        amount: intAmount,
-        nickname: _username.isNotEmpty ? _username : null,
-        comments: _comments.isNotEmpty ? _comments : null,
-        // If we tagged an internal user, send their id as behalfUserId so backend
-        // maps it to `onBehalfOfUserId`.
-        behalfUserId: (_hasBehalfOf && _taggedUserId != null) ? _taggedUserId : null,
-        externalName: _externalName,
-        externalContact: _externalPhone,
-      );
-
-      if (!success) throw Exception('Donation API failed');
-
-      // Show success
-      if (mounted) {
-        Navigator.pop(context); // Close the donation sheet
-
-        // notify-once helper
-        void notifyOnce() {
-          if (_didNotifySuccess) return;
-          _didNotifySuccess = true;
-          try {
-            widget.onDonationSuccess?.call();
-          } catch (_) {}
-        }
-
-        showDialog(
-          context: context,
-          builder: (_) => PaymentSuccessScreen(amount: clean, onGoBack: notifyOnce),
-        );
-
-        // Auto-dismiss success dialog after 3s and notify caller to refresh
-        Future.delayed(const Duration(seconds: 3), () {
-          if (!mounted) return;
-          notifyOnce();
-          Navigator.of(context, rootNavigator: true).maybePop();
-        });
-      }
-
-    } catch (e) {
+    if (widget.campaign == null) {
       CustomMessageModal.show(
-        context: context,
-        message: "Donation failed: ${e.toString()}",
-        isSuccess: false,
-      );
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
+          context: context,
+          message: "Campaign is missing.",
+          isSuccess: false);
+      return;
     }
+
+    if (!mounted) return;
+    Navigator.pop(context); // close donation sheet
+
+    Get.to(
+      () => CharityPaymentMethodScreen(
+        campaign: widget.campaign!,
+        amount: amount,
+      ),
+      transition: Transition.rightToLeft,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Helper calculation for consistent value
-    final double rawCurrent = double.tryParse((widget.campaign?['current_amount'] ?? widget.campaign?['currentAmount'])?.toString() ?? '0') ?? 0.0;
-    final double adjustedCurrent = rawCurrent * 100;
-    final double target = double.tryParse(widget.campaign?['target']?.toString() ?? widget.campaign?['goal_amount']?.toString() ?? '1') ?? 1.0;
+    final provider = Provider.of<CharityProvider>(context);
+    final double target =
+        double.tryParse(widget.campaign?.target?.toString() ?? '0') ?? 0.0;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      decoration: _sheetDecoration(),
       child: SingleChildScrollView(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(child: SvgPicture.asset("assets/svgs/sheet_drag.svg")),
-              Gap(20),
+              const Gap(20),
               Text("Creator's Goal", style: txStyle18Bold),
-              Gap(8),
+              const Gap(8),
               CampaignProgressShowcase(
-                currentAmount: adjustedCurrent.toString(),
-                goalAmount: widget.campaign?['target']?.toString() ?? '0',
-                percentage: (adjustedCurrent / target).clamp(0.0, 1.0),
+                currentAmount:
+                    widget.campaign?.currentAmount?.toString() ?? '0',
+                goalAmount: widget.campaign?.target.toString() ?? '0',
+                percentage: target > 0
+                    ? ((widget.campaign?.currentAmount ?? 0) / target)
+                        .clamp(0.0, 1.0)
+                    : 0.0,
                 daysLeft: _calculateDaysLeft(),
-                donors: (widget.campaign?['donors'] ?? 0).toString(),
-                champions: (widget.campaign?['champions'] ?? 0).toString(),
+                donors: "",
+                champions: "",
               ),
-              Gap(16),
-              Text("You are supporting ${widget.campaign?['title'] ?? 'this campaign'}", style: TextStyle(color: Colors.grey, fontSize: 14),),
-              Gap(24),
+              const Gap(16),
+              Text(
+                "You are supporting ${widget.campaign?.title ?? 'this campaign'}",
+                style: txStyle13.copyWith(color: greyTextColor),
+              ),
+              const Gap(20),
               CustomTextField(
                 hintText: "₦0.00",
                 textInputType: TextInputType.number,
@@ -813,180 +698,286 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
                   setState(() {});
                 },
               ),
-              Gap(16),
-              Text("Minimum donation: ₦500", style: TextStyle(color: Colors.grey, fontSize: 14),),
-              Gap(24),
+              const Gap(8),
+              Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      size: 14, color: greyTextColor),
+                  const Gap(6),
+                  Text(
+                    "Minimum donation: ₦500",
+                    style: txStyle12.copyWith(color: greyTextColor),
+                  ),
+                ],
+              ),
+              const Gap(20),
 
               // Nickname / Anonymous
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: _displayName.isEmpty ? _buildAddNicknameButton() : _buildSelectedDisplayName(),
+                duration: const Duration(milliseconds: 250),
+                child: provider.donationDisplayName.isEmpty
+                    ? _AddOptionCard(
+                        key: const ValueKey('nickname-add'),
+                        icon: Icons.badge_outlined,
+                        label: "Nickname or Anonymous",
+                        enabled: _amountSufficient,
+                        onTap: _showNicknameChooser,
+                      )
+                    : _SelectedOptionCard(
+                        key: const ValueKey('nickname-selected'),
+                        icon: provider.donationIsAnonymous
+                            ? Icons.visibility_off
+                            : Icons.person,
+                        label: provider.donationDisplayName,
+                        onClear: provider.clearDisplayName,
+                      ),
               ),
-              Gap(16),
+              const Gap(12),
 
               // On behalf of
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: _buildBehalfOfButtonOrView(),
+                duration: const Duration(milliseconds: 250),
+                child: provider.donationHasBehalfOf
+                    ? _SelectedOptionCard(
+                        key: const ValueKey('behalf-selected'),
+                        icon: Icons.favorite_border,
+                        label: provider.donationBehalfDisplay,
+                        onClear: provider.clearBehalfOf,
+                      )
+                    : _AddOptionCard(
+                        key: const ValueKey('behalf-add'),
+                        icon: Icons.person_add_alt_1_rounded,
+                        label: "On behalf of someone?",
+                        enabled: _amountSufficient,
+                        onTap: _openBehalfOfChooser,
+                      ),
               ),
-              Gap(16),
+              const Gap(12),
 
               // Comment
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: !_hasComment ? _buildAddCommentButton() : _buildSavedCommentView(),
+                duration: const Duration(milliseconds: 250),
+                child: !provider.donationHasComment
+                    ? _AddOptionCard(
+                        key: const ValueKey('comment-add'),
+                        icon: Icons.chat_bubble_outline_rounded,
+                        label: "Add a comment",
+                        enabled: _amountSufficient,
+                        onTap: _openCommentEditor,
+                      )
+                    : _SelectedOptionCard(
+                        key: const ValueKey('comment-selected'),
+                        icon: Icons.chat_bubble_outline_rounded,
+                        label: provider.donationComments,
+                        onClear: provider.clearComment,
+                      ),
               ),
-              Gap(32),
+              const Gap(28),
 
               CustomButton(
-                enabled: _amountSufficient && !_isProcessing,
+                enabled: _amountSufficient && !provider.donationIsProcessing,
                 onTap: _onContinue,
                 label: "Continue",
                 backgroundColor: appPrimaryColor,
               ),
-              Gap(40),
+              const Gap(32),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  // ────────────────────────────────────────────────
-  // Helper Widgets (same as before)
-  // ────────────────────────────────────────────────
-  Widget _buildAddNicknameButton() {
-    final enabled = _amountSufficient;
-    return GestureDetector(
-      onTap: enabled ? _showNicknameChooser : null,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: enabled ? Colors.teal.withOpacity(0.1) : Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-        ),
+// ────────────────────────────────────────────────
+// Reusable bits
+// ────────────────────────────────────────────────
+class _OptionTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _OptionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(
           children: [
-            Icon(Icons.add_circle_rounded, color: enabled ? Colors.teal : Colors.grey),
-            Gap(12),
-            Text(
-              "Nickname or Anonymous",
-              style: TextStyle(color: enabled ? Colors.teal : Colors.grey, fontWeight: FontWeight.w500),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: appPrimaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: appPrimaryColor, size: 22),
             ),
+            const Gap(12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: txStyle14SemiBold),
+                  const Gap(2),
+                  Text(subtitle,
+                      style: txStyle12.copyWith(color: greyTextColor)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                color: Colors.grey.shade400),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildSelectedDisplayName() {
+class _AddOptionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  const _AddOptionCard({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled ? appPrimaryColor : Colors.grey.shade500;
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: enabled ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: enabled
+              ? appPrimaryColor.withOpacity(0.08)
+              : Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: enabled
+                ? appPrimaryColor.withOpacity(0.18)
+                : Colors.grey.shade200,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.add_circle_outline_rounded, color: color, size: 20),
+            const Gap(10),
+            Icon(icon, color: color, size: 18),
+            const Gap(10),
+            Expanded(
+              child: Text(
+                label,
+                style: txStyle14SemiBold.copyWith(color: color),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedOptionCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onClear;
+
+  const _SelectedOptionCard({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.teal.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: appPrimaryColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: appPrimaryColor.withOpacity(0.25)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(_isAnonymous ? Icons.visibility_off : Icons.person, color: Colors.teal),
-          Gap(12),
-          Expanded(child: Text(_displayName, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.teal))),
-          GestureDetector(
-            onTap: () => setState(() {
-              _displayName = '';
-              _username = '';
-              _isAnonymous = false;
-            }),
-            child: const Icon(Icons.close, color: Colors.grey),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: appPrimaryColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: appPrimaryColor, size: 18),
+          ),
+          const Gap(10),
+          Expanded(
+            child: Text(
+              label,
+              style: txStyle14SemiBold.copyWith(color: appPrimaryColor),
+            ),
+          ),
+          InkWell(
+            onTap: onClear,
+            borderRadius: BorderRadius.circular(20),
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              child: Icon(Icons.close_rounded,
+                  color: Colors.grey.shade500, size: 18),
+            ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildBehalfOfButtonOrView() {
-    if (_hasBehalfOf) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.teal.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.person_add, color: Colors.teal),
-            Gap(12),
-            Expanded(child: Text(_behalfDisplay ?? '', style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.teal))),
-            GestureDetector(
-              onTap: () => setState(() {
-                _hasBehalfOf = false;
-                _behalfDisplay = '';
-              }),
-              child: const Icon(Icons.close, color: Colors.grey),
-            ),
-          ],
-        ),
-      );
-    }
+class _SummaryRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
 
-    final enabled = _amountSufficient;
-    return GestureDetector(
-      onTap: enabled ? _openBehalfOfChooser : null,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: enabled ? Colors.teal.withOpacity(0.1) : Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.person_add, color: enabled ? Colors.teal : Colors.grey),
-            Gap(12),
-            Text("On behalf of someone?", style: TextStyle(color: enabled ? Colors.teal : Colors.grey)),
-          ],
-        ),
-      ),
-    );
-  }
+  const _SummaryRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
-  Widget _buildAddCommentButton() {
-    final enabled = _amountSufficient;
-    return GestureDetector(
-      onTap: enabled ? _openCommentEditor : null,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: enabled ? Colors.teal.withOpacity(0.1) : Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.comment_rounded, color: enabled ? Colors.teal : Colors.grey),
-            Gap(12),
-            Text("Add a comment", style: TextStyle(color: enabled ? Colors.teal : Colors.grey)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSavedCommentView() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.teal.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: Text(_comments, style: const TextStyle(color: Colors.teal))),
-          GestureDetector(
-            onTap: () => setState(() {
-              _comments = '';
-              _hasComment = false;
-            }),
-            child: const Icon(Icons.close, color: Colors.grey),
+          Icon(icon, size: 16, color: greyTextColor),
+          const Gap(8),
+          Text("$label: ",
+              style: txStyle13.copyWith(
+                  color: greyTextColor, fontWeight: FontWeight.w600)),
+          Expanded(
+            child: Text(value,
+                style: txStyle13.copyWith(
+                    color: Colors.black87, fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -995,13 +986,262 @@ class _DonationBottomSheetState extends State<DonationBottomSheet> {
 }
 
 // ────────────────────────────────────────────────
-// Payment Success Screen (same as your working file)
+// Tag-user search sheet (uses ResponsiveStateFunction)
+// ────────────────────────────────────────────────
+class _TagUserSheet extends StatefulWidget {
+  final CharityProvider provider;
+
+  const _TagUserSheet({required this.provider});
+
+  @override
+  State<_TagUserSheet> createState() => _TagUserSheetState();
+}
+
+class _TagUserSheetState extends State<_TagUserSheet> {
+  final TextEditingController _controller = TextEditingController();
+  Timer? _debounce;
+  ViewState _state = ViewState.WaitingForInput;
+  List<Map<String, dynamic>> _results = const [];
+  Map<String, dynamic>? _selected;
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    final cleaned = value.replaceAll('@', '').trim();
+    if (cleaned.length < 2) {
+      setState(() {
+        _state = ViewState.WaitingForInput;
+        _results = const [];
+        _selected = null;
+      });
+      return;
+    }
+    setState(() => _state = ViewState.Busy);
+    _debounce = Timer(const Duration(milliseconds: 400), () async {
+      try {
+        final users = await widget.provider.searchUsersForBehalfOf(value);
+        if (!mounted) return;
+        setState(() {
+          _results = users;
+          _state = users.isEmpty
+              ? ViewState.NoDataAvailable
+              : ViewState.DataFetched;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() => _state = ViewState.Error);
+      }
+    });
+  }
+
+  void _save() {
+    if (_selected == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please select a user from the suggestions"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    final id = _selected!['id']?.toString() ?? '';
+    final username = (_selected!['username'] ?? '').toString();
+    if (id.isEmpty || username.isEmpty) return;
+    widget.provider.setTaggedBehalfOfUser(userId: id, username: username);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: _sheetDecoration(),
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            left: 20,
+            right: 20,
+            top: 0,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: _dragHandle()),
+              const Gap(8),
+              Text("Tag a Greyfundr user", style: txStyle18Bold),
+              const Gap(4),
+              Text(
+                "Search by username (e.g. @bella) or full name.",
+                style: txStyle13.copyWith(color: greyTextColor),
+              ),
+              const Gap(16),
+              CustomSearchField(
+                textEditingController: _controller,
+                hintText: "@username or name",
+                onChange: _onChanged,
+              ),
+              const Gap(12),
+              ConstrainedBox(
+                constraints: const BoxConstraints(
+                    minHeight: 140, maxHeight: 340),
+                child: ResponsiveStateFunction(
+                  state: _state,
+                  onIdle: () => _hint(
+                      Icons.search, "Start typing to find someone"),
+                  onWaitingForInput: () => _hint(
+                      Icons.keyboard_alt_outlined,
+                      "Type at least 2 characters"),
+                  onBusy: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: CustomCircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: appPrimaryColor,
+                      ),
+                    ),
+                  ),
+                  onNoDataAvailable: () => _hint(
+                      Icons.person_search_outlined,
+                      "No users found. Try a different search."),
+                  onError: () => _hint(Icons.cloud_off_rounded,
+                      "Couldn't search right now. Try again."),
+                  onDataFetched: _userList,
+                ),
+              ),
+              const Gap(12),
+              Row(
+                children: [
+                  Expanded(
+                    child: CustomButton(
+                      onTap: () => Navigator.pop(context),
+                      label: "Cancel",
+                      backgroundColor: Colors.white,
+                      color: Colors.red.shade400,
+                      borderColor: Colors.red.shade200,
+                    ),
+                  ),
+                  const Gap(12),
+                  Expanded(
+                    child: CustomButton(
+                      enabled: _selected != null,
+                      onTap: _save,
+                      label: "Save",
+                    ),
+                  ),
+                ],
+              ),
+              const Gap(8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _hint(IconData icon, String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: Colors.grey.shade400, size: 32),
+            const Gap(8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: txStyle13.copyWith(color: greyTextColor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _userList() {
+    return ListView.separated(
+      shrinkWrap: true,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: _results.length,
+      separatorBuilder: (_, __) =>
+          Divider(height: 1, color: Colors.grey.shade100),
+      itemBuilder: (_, i) {
+        final user = _results[i];
+        final id = user['id']?.toString() ?? '';
+        final username = (user['username'] ?? '').toString();
+        final name = (user['name'] ?? '').toString();
+        final avatar = (user['profile_pic'] ?? '').toString();
+        final isSelected =
+            _selected != null && _selected!['id']?.toString() == id;
+
+        return InkWell(
+          onTap: () => setState(() => _selected = user),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? appPrimaryColor.withOpacity(0.06)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                CustomNetworkImage(
+                  imageUrl: avatar,
+                  radius: 42,
+                  borderRadius: 21,
+                ),
+                const Gap(12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("@$username", style: txStyle14SemiBold),
+                      if (name.isNotEmpty) ...[
+                        const Gap(2),
+                        Text(
+                          name,
+                          style:
+                              txStyle12.copyWith(color: greyTextColor),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(
+                  isSelected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: isSelected
+                      ? appPrimaryColor
+                      : Colors.grey.shade300,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ────────────────────────────────────────────────
+// Payment Success Screen
 // ────────────────────────────────────────────────
 class PaymentSuccessScreen extends StatelessWidget {
   final String amount;
   final VoidCallback? onGoBack;
 
-  const PaymentSuccessScreen({super.key, required this.amount, this.onGoBack});
+  const PaymentSuccessScreen(
+      {super.key, required this.amount, this.onGoBack});
 
   @override
   Widget build(BuildContext context) {
@@ -1010,52 +1250,53 @@ class PaymentSuccessScreen extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Lottie.asset(
-            "assets/lottie/Success.json",
-            height: 150,
-            width: 150,
-            repeat: false,
-          ),
-          Gap(20),
-          Text("Payment Successful", style: txStyle30SemiBold, textAlign: TextAlign.center,),
-          Gap(10),
-          Center(
-            child: RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                text: "You have successfully donated ",
-                style: txStyle14.copyWith(color: Colors.black),
-                children: [
-                  TextSpan(
-                    text: convertStringToCurrency(amount),
-                    style: txStyle14.copyWith(
-                      color: appPrimaryColor,
-                      fontWeight: FontWeight.bold,
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Lottie.asset(
+              "assets/lottie/Success.json",
+              height: 150,
+              width: 150,
+              repeat: false,
+            ),
+            Gap(20),
+            Text("Payment Successful",
+                style: txStyle30SemiBold, textAlign: TextAlign.center),
+            Gap(10),
+            Center(
+              child: RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  text: "You have successfully donated ",
+                  style: txStyle14.copyWith(color: Colors.black),
+                  children: [
+                    TextSpan(
+                      text: convertStringToCurrency(amount),
+                      style: txStyle14.copyWith(
+                        color: appPrimaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  TextSpan(
-                    text: " to the campaign",
-                    style: txStyle14.copyWith(color: Colors.black),
-                  ),
-                ],
+                    TextSpan(
+                      text: " to the campaign",
+                      style: txStyle14.copyWith(color: Colors.black),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          Gap(20),
-          CustomButton(
-            onTap: () {
-              try {
-                onGoBack?.call();
-              } catch (_) {}
-              Navigator.of(context).pop();
-            },
-            label: "Go Back",
-          ),
-        ],
-      ),
+            Gap(20),
+            CustomButton(
+              onTap: () {
+                try {
+                  onGoBack?.call();
+                } catch (_) {}
+                Navigator.of(context).pop();
+              },
+              label: "Go Back",
+            ),
+          ],
+        ),
       ),
     );
   }

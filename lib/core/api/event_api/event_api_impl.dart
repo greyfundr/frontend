@@ -8,6 +8,7 @@ import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/event_api/event_api.dart';
 import 'package:greyfundr/core/models/campaign_category_model.dart';
+import 'package:greyfundr/core/models/event_contributions_response_model.dart';
 import 'package:greyfundr/core/models/event_details_model.dart';
 import 'package:greyfundr/core/models/google_place_autocomplete_model.dart';
 import 'package:greyfundr/core/models/user_event_model.dart';
@@ -97,15 +98,22 @@ class EventApiImpl implements EventApi {
   }
 
   @override
-  Future<void> contributeToEvent({
+  Future<Map<String, dynamic>> contributeToEvent({
     required String id,
     required Map<String, dynamic> payload,
   }) async {
-    await _apiClient.post(
+    final response = await _apiClient.post(
       ApiRoute.contributeToEventRoute(id),
       headers: header,
       body: payload,
     );
+    try {
+      final decoded = jsonDecode(response);
+      if (decoded is Map<String, dynamic>) return decoded;
+      return {'data': decoded};
+    } catch (_) {
+      return {};
+    }
   }
 
   @override
@@ -115,6 +123,36 @@ class EventApiImpl implements EventApi {
       headers: header,
     );
     return jsonDecode(response);
+  }
+
+  @override
+  Future<List<EventContribution>> getEventContributions(String id) async {
+    try {
+      final response = await _apiClient.get(
+        ApiRoute.getEventContributionsRoute(id),
+        headers: header,
+        requiresToken: true,
+        hideLog: false
+      );
+      final decoded = jsonDecode(response);
+      List<dynamic> rawList;
+      if (decoded is List) {
+        rawList = decoded;
+      } else if (decoded is Map<String, dynamic>) {
+        rawList = decoded['data'] as List<dynamic>? ??
+            decoded['payload'] as List<dynamic>? ??
+            [];
+      } else {
+        rawList = [];
+      }
+      return rawList
+          .whereType<Map<String, dynamic>>()
+          .map((e) => EventContribution.fromJson(e))
+          .toList();
+    } catch (e, stack) {
+      log('getEventContributions failed (event: $id): $e', stackTrace: stack);
+      rethrow;
+    }
   }
 
   @override

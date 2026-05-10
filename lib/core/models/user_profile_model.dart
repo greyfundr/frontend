@@ -21,6 +21,7 @@ class UserProfileModel {
   String? firstName;
   String? lastName;
   String? username;
+  String? anonymousId;
   String? accountType;
   String? emailOtp;
   String? phoneOtp;
@@ -53,6 +54,7 @@ class UserProfileModel {
     this.firstName,
     this.lastName,
     this.username,
+    this.anonymousId,
     this.accountType,
     this.emailOtp,
     this.phoneOtp,
@@ -91,6 +93,7 @@ class UserProfileModel {
         firstName: json["firstName"],
         lastName: json["lastName"],
         username: json["username"],
+        anonymousId: json["anonymousId"],
         accountType: json["accountType"],
         emailOtp: json["emailOtp"],
         phoneOtp: json["phoneOtp"],

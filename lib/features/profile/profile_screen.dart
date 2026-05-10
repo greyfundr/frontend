@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:greyfundr/core/models/user_event_model.dart';
+import 'package:greyfundr/features/bill/rsvp_details_screen.dart';
+import 'package:greyfundr/features/campaign/createcampaignflow/campaign_details_screen.dart';
+import 'package:greyfundr/features/event/event_provider.dart';
+import 'package:greyfundr/shared/app_colors.dart';
+import 'package:greyfundr/shared/responsiveState/view_state.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
-import 'package:greyfundr/features/charity/campaigndetails.dart';
 import 'package:greyfundr/features/settings/edit_profile_screen.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
+import 'package:intl/intl.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -25,8 +32,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      // Assuming UserProvider has a method to fetch the user's campaigns
       userProvider.fetchUserCampaigns();
+      Provider.of<EventProvider>(context, listen: false).getMyEvents();
     });
   }
 
@@ -38,9 +45,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _onRefresh() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final eventProvider = Provider.of<EventProvider>(context, listen: false);
     await userProvider.fetchUserProfileApi();
-    // Also refresh the user's campaigns
     await userProvider.fetchUserCampaigns();
+    await eventProvider.getMyEvents();
     _refreshController.refreshCompleted();
   }
 
@@ -75,6 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: Colors.white,
 
       body: SafeArea(
+        top: false,
         child: SmartRefresher(
           controller: _refreshController,
           enablePullDown: true,
@@ -90,7 +99,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ClipPath(
                       clipper: HeaderCurveClipper(),
                       child: Container(
-                        height: 280,
+                        height: 350,
                         decoration: const BoxDecoration(
                           image: DecorationImage(
                             image: AssetImage('assets/images/onboarding_1.png'),
@@ -176,7 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Action buttons
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -390,12 +399,142 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     } else if (_selectedMainTab == 1) {
-      return const Center(child: Text("Events coming soon"));
+      return _buildMyEventsTab();
     } else if (_selectedMainTab == 2) {
       return const Center(child: Text("Listings coming soon"));
     } else {
-      return const Center(child: Text("About section coming soon"));
+      return _buildAboutSection(userProvider);
     }
+  }
+
+  Widget _buildAboutSection(UserProvider userProvider) {
+    final user = userProvider.userProfileModel;
+    final profile = user?.profile;
+    final bio = (profile?.bio ?? '').trim();
+    final interests = (profile?.interests ?? const <String>[])
+        .where((i) => i.trim().isNotEmpty)
+        .toList();
+    final location = [
+      profile?.city,
+      profile?.state,
+      profile?.country,
+    ].whereType<String>().where((p) => p.trim().isNotEmpty).join(', ');
+
+    final isEmpty =
+        bio.isEmpty && interests.isEmpty && location.isEmpty;
+
+    if (isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.person_outline,
+                size: 56,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                "Nothing to show yet",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "Add a bio and interests from your profile to introduce yourself",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const EditProfileScreen(),
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal.shade600,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text("Complete profile"),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      children: [
+        if (bio.isNotEmpty) ...[
+          _AboutCard(
+            icon: Icons.format_quote_rounded,
+            title: 'Bio',
+            child: Text(
+              bio,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+        if (location.isNotEmpty) ...[
+          _AboutCard(
+            icon: Icons.location_on_outlined,
+            title: 'Location',
+            child: Text(
+              location,
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+        if (interests.isNotEmpty)
+          _AboutCard(
+            icon: Icons.interests_outlined,
+            title: 'Interests',
+            trailing: SizedBox(),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: interests
+                  .map(
+                    (interest) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.teal.withOpacity(0.25),
+                        ),
+                      ),
+                      child: Text(
+                        interest,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.teal.shade800,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _buildCampaignGrid(List<dynamic> campaigns) {
@@ -462,7 +601,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Your existing _buildCampaignCard (fixed image)
   Widget _buildCampaignCard({
     required String image,
     required String? title,
@@ -473,91 +611,341 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     final progress = goal > 0 ? (raised / goal).clamp(0.0, 1.0) : 0.0;
     final percent = "${(progress * 100).toStringAsFixed(0)}%";
+    final money = NumberFormat('#,##0');
+    final raisedLabel = '$currency${money.format(raised.round())}';
+    final goalLabel = '$currency${money.format(goal.round())}';
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CampaignDetails(id: campaign['id'].toString()),
-          ),
+        final id = campaign is Map<String, dynamic>
+            ? (campaign['id'] ?? campaign['_id'])?.toString()
+            : null;
+        if (id == null || id.isEmpty) return;
+        Get.to(
+          () => CampaignDetailsScreen(campaignId: id),
+          transition: Transition.rightToLeft,
         );
       },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
-                child: Image.network(
-                  image,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  loadingBuilder: (context, child, progress) => progress == null
-                      ? child
-                      : Container(color: Colors.grey[200]),
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.broken_image, color: Colors.grey),
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 1,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: LayoutBuilder(
+                      builder: (ctx, constraints) => CustomNetworkImage(
+                        imageUrl: image,
+                        radius: constraints.maxHeight,
+                        width: constraints.maxWidth,
+                        borderRadius: 0,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      percent,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             Padding(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title ?? "Untitled Campaign",
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 5,
+                      backgroundColor: Colors.grey.shade200,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        appPrimaryColor,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 6),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: progress,
-                            minHeight: 8,
-                            backgroundColor: Colors.grey.shade300,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.teal,
-                            ),
-                          ),
+                      Text(
+                        raisedLabel,
+                        style: TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: appPrimaryColor,
                         ),
                       ),
-                      const SizedBox(width: 8),
                       Text(
-                        percent,
+                        goalLabel,
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.teal.shade800,
+                          fontSize: 10.5,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMyEventsTab() {
+    final eventProvider = Provider.of<EventProvider>(context);
+    final state = eventProvider.myEventsState;
+    if (state == ViewState.Busy || state == ViewState.Idle) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (state == ViewState.Error) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Couldn't load your events"),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () => eventProvider.getMyEvents(),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+    final events = eventProvider.myEvents ?? [];
+    if (events.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.event_outlined,
+                  size: 56, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              const Text(
+                "You haven't created any events yet",
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 0.78,
+      ),
+      itemCount: events.length,
+      itemBuilder: (context, index) {
+        return _buildEventCard(events[index]);
+      },
+    );
+  }
+
+  Widget _buildEventCard(EventDatum event) {
+    final cover =
+        (event.coverImages?.isNotEmpty ?? false) ? event.coverImages!.first : '';
+    final name = (event.name ?? event.title?.toString() ?? '').trim();
+    final start = event.startDateTime;
+    final dateLabel = start != null
+        ? DateFormat('MMM dd, yyyy').format(start)
+        : 'Date TBA';
+    final venue = (event.venueName ?? '').trim();
+    final raised = (event.amountRaised ?? 0).toDouble();
+    final target = (event.targetAmount ?? 0).toDouble();
+    final acceptDonations = event.acceptDonations ?? false;
+    final progress =
+        target > 0 ? (raised / target).clamp(0.0, 1.0) : 0.0;
+    final money = NumberFormat('#,##0');
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        final id = event.id;
+        if (id == null || id.isEmpty) return;
+        Get.to(
+          () => RsvpDetailsScreen(eventId: id),
+          transition: Transition.rightToLeft,
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 16 / 10,
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: LayoutBuilder(
+                      builder: (ctx, constraints) => CustomNetworkImage(
+                        imageUrl: cover,
+                        radius: constraints.maxHeight,
+                        width: constraints.maxWidth,
+                        borderRadius: 0,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today_rounded,
+                            size: 11, color: Colors.white),
+                        const SizedBox(width: 4),
+                        Text(
+                          dateLabel,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name.isEmpty ? 'Untitled Event' : name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  if (venue.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 12, color: Colors.grey.shade600),
+                        const SizedBox(width: 3),
+                        Expanded(
+                          child: Text(
+                            venue,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (acceptDonations && target > 0) ...[
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 5,
+                        backgroundColor: Colors.grey.shade200,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(appPrimaryColor),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '₦${money.format(raised.round())} of ₦${money.format(target.round())}',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: appPrimaryColor,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -584,6 +972,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: const TextStyle(color: Colors.white70, fontSize: 13),
         ),
       ],
+    );
+  }
+}
+
+class _AboutCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final Widget child;
+  final Widget? trailing;
+
+  const _AboutCard({
+    required this.icon,
+    required this.title,
+    required this.child,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.teal.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 16, color: Colors.teal.shade700),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
     );
   }
 }

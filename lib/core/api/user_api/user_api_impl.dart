@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/user_api/user_api.dart';
+import 'package:greyfundr/core/models/notification_model.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
 import 'package:greyfundr/core/models/user_settings_model.dart';
 import 'package:http_parser/http_parser.dart';
@@ -25,6 +26,7 @@ class UserApiImpl implements UserApi {
     final response = await _apiClient.get(
       ApiRoute.userProfileRoute,
       headers: header,
+      hideLog: false
     );
     UserLocalStorageService().setUser(response);
     return userProfileModelFromJson(response);
@@ -171,11 +173,63 @@ class UserApiImpl implements UserApi {
   }
 
   @override
+  Future<bool> checkIfUsernameExist({required String username}) async {
+    try {
+      var res = await _apiClient.get(
+        "${ApiRoute.checkIfUsernameExist}/?username=$username",
+        headers: header,
+      );
+      var decodedResponse = jsonDecode(res);
+      return decodedResponse['exists'] == true;
+    } catch (e) {
+      log('ERROR SUBMITTING BVN: $e');
+      return false;
+    }
+  }
+
+  @override
   Future<void> updateFcmToken(String token) async {
-    await _apiClient.patch(
-      ApiRoute.userProfileRoute,
+    Map<String, dynamic> body = {"fcmToken": token};
+    log("Updating FCM Token: $body");
+    await _apiClient.patch(ApiRoute.updateFcmToke, headers: header, body: body);
+  }
+
+  @override
+  Future<NotificationModel> fetchNotifications({
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final response = await _apiClient.get(
+      "${ApiRoute.notificationsRoute}?page=$page&limit=$limit",
       headers: header,
-      body: {"token": token},
     );
+    final decoded = jsonDecode(response);
+    final payload = decoded is Map<String, dynamic> && decoded['data'] != null
+        ? decoded['data']
+        : decoded;
+    return NotificationModel.fromJson(
+      payload is Map<String, dynamic> ? payload : {},
+    );
+  }
+
+  @override
+  Future<bool> markNotificationsAsRead({List<String>? ids}) async {
+    final body = <String, dynamic>{};
+    if (ids != null && ids.isNotEmpty) body['ids'] = ids;
+    await _apiClient.patch(
+      ApiRoute.markNotificationsReadRoute,
+      headers: header,
+      body: body,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> deleteNotification(String id) async {
+    await _apiClient.delete(
+      ApiRoute.deleteNotificationRoute(id),
+      headers: header,
+    );
+    return true;
   }
 }

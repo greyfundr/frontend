@@ -1,4 +1,5 @@
 import 'package:greyfundr/core/models/campaign_category_model.dart';
+import 'package:greyfundr/core/models/event_contributions_response_model.dart';
 import 'package:greyfundr/core/models/event_details_model.dart';
 import 'package:greyfundr/core/models/google_place_autocomplete_model.dart';
 import 'package:greyfundr/core/models/user_event_model.dart';
@@ -22,12 +23,14 @@ abstract class EventApi {
 
   Future<EventDetailsModel> getEventById(String id);
 
-  Future<void> contributeToEvent({
+  Future<Map<String, dynamic>> contributeToEvent({
     required String id,
     required Map<String, dynamic> payload,
   });
 
   Future<List<dynamic>> getEventLeaderboard(String id);
+
+  Future<List<EventContribution>> getEventContributions(String id);
 
   Future<String?> uploadSingleImage(String filePath);
 

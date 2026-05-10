@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -35,7 +36,6 @@ class EditSplitBillScreen extends StatefulWidget {
 class _EditSplitBillScreenState extends State<EditSplitBillScreen> {
   NewSplitBillProvider? provider;
   String billImageUrl = "";
-  String receiptUrl = "";
   bool hasPaid = false;
 
   @override
@@ -158,41 +158,11 @@ class _EditSplitBillScreenState extends State<EditSplitBillScreen> {
                     ],
                   ),
                 ),
-                Gap(20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Receipt (Optional)",
-                        style: txStyle13.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      const Gap(10),
-                      _ImagePickerCard(
-                        selectedFile: provider.editReceiptFile,
-                        existingImageUrl: provider.editReceiptUrl,
-                        onTap: () async {
-                          final ImagePicker picker = ImagePicker();
-                          final XFile? image = await picker.pickImage(
-                            source: ImageSource.gallery,
-                          );
-                          if (image != null) {
-                            provider.editReceiptFile = File(image.path);
-                            provider.editReceiptUrl = null;
-                            provider.checkIfEditSplitBillIsComplete();
-                          }
-                        },
-                        label: "Add Receipt",
-                        icon: Icons.image_outlined,
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
 
             const Gap(20),
-
+            _EditReceiptsPicker(provider: provider),
             const Gap(20),
 
             // Due Date Picker
@@ -419,19 +389,18 @@ class _EditSplitBillScreenState extends State<EditSplitBillScreen> {
                   setState(() {});
                 }
 
-                if (receiptUrl.isEmpty && provider.editReceiptFile != null) {
-                  receiptUrl =
-                      await provider.uploadImage(provider.editReceiptFile!) ??
-                      "";
-                  setState(() {});
-                }
-
                 if (billImageUrl.isNotEmpty) {
                   provider.editBillImageUrl = billImageUrl;
                 }
-                if (receiptUrl.isNotEmpty) {
-                  provider.editReceiptUrl = receiptUrl;
+
+                final pending = List<File>.from(provider.editReceiptFiles);
+                for (final file in pending) {
+                  final url = await provider.uploadImage(file);
+                  if (url != null && url.isNotEmpty) {
+                    provider.editReceiptUrls.add(url);
+                  }
                 }
+                provider.editReceiptFiles.clear();
 
                 bool success = await provider.updateSplitBill(
                   splitBillId: widget.billId,
@@ -454,6 +423,197 @@ class _EditSplitBillScreenState extends State<EditSplitBillScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EditReceiptsPicker extends StatelessWidget {
+  final NewSplitBillProvider provider;
+
+  const _EditReceiptsPicker({required this.provider});
+
+  Future<void> _pickReceipts(BuildContext context) async {
+    final remaining =
+        NewSplitBillProvider.maxReceipts -
+        (provider.editReceiptFiles.length + provider.editReceiptUrls.length);
+    if (remaining <= 0) return;
+    final picker = ImagePicker();
+    final picked = await picker.pickMultiImage(imageQuality: 80);
+    if (picked.isEmpty) return;
+    provider.addEditReceiptFiles(
+      picked.take(remaining).map((x) => File(x.path)).toList(),
+    );
+    provider.checkIfEditSplitBillIsComplete();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final files = provider.editReceiptFiles;
+    final urls = provider.editReceiptUrls;
+    final total = files.length + urls.length;
+    final canAddMore = total < NewSplitBillProvider.maxReceipts;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Receipts (Optional)",
+              style: txStyle13.copyWith(fontWeight: FontWeight.w600),
+            ),
+            Text(
+              "$total/${NewSplitBillProvider.maxReceipts}",
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        const Gap(10),
+        if (total == 0)
+          GestureDetector(
+            onTap: () => _pickReceipts(context),
+            child: DottedBorder(
+              color: appPrimaryColor,
+              strokeWidth: 1.5,
+              dashPattern: const [6, 4],
+              radius: const Radius.circular(12),
+              borderPadding: const EdgeInsets.all(1),
+              padding: const EdgeInsets.symmetric(
+                vertical: 24,
+                horizontal: 10,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.image_outlined,
+                    size: 40,
+                    color: appPrimaryColor,
+                  ),
+                  const Gap(8),
+                  Text(
+                    "Add up to ${NewSplitBillProvider.maxReceipts} receipts",
+                    style: txStyle12.copyWith(
+                      color: appPrimaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Gap(4),
+                  Text(
+                    "Tap to select from gallery",
+                    style: txStyle12.copyWith(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 100,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: canAddMore ? total + 1 : total,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                if (index == total) {
+                  return GestureDetector(
+                    onTap: () => _pickReceipts(context),
+                    child: Container(
+                      width: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: appPrimaryColor),
+                        color: appPrimaryColor.withValues(alpha: 0.06),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add_photo_alternate_outlined,
+                            color: appPrimaryColor,
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            "Add",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: appPrimaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                final isUrl = index < urls.length;
+                final tile = ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: isUrl
+                      ? Image.network(
+                          urls[index],
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 100,
+                            height: 100,
+                            color: Colors.grey[200],
+                            child: const Icon(
+                              Icons.broken_image_outlined,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        )
+                      : Image.file(
+                          files[index - urls.length],
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.cover,
+                        ),
+                );
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    tile,
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: GestureDetector(
+                        onTap: () {
+                          if (isUrl) {
+                            provider.removeEditReceiptUrl(index);
+                          } else {
+                            provider.removeEditReceiptFile(
+                              index - urls.length,
+                            );
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withValues(alpha: 0.75),
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(3),
+                          child: const Icon(
+                            Icons.close,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 }
@@ -546,6 +706,8 @@ class EditAddParticipantSheet extends StatefulWidget {
 }
 
 class _EditAddParticipantSheetState extends State<EditAddParticipantSheet> {
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -557,6 +719,12 @@ class _EditAddParticipantSheetState extends State<EditAddParticipantSheet> {
       provider.searchParticipantController.clear();
       provider.clearSearchResults();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
   }
 
   @override
@@ -791,27 +959,32 @@ class _EditAddParticipantSheetState extends State<EditAddParticipantSheet> {
                       // Search Field
                       CustomSearchField(
                         hintText: "Search by phone number, email or username",
-                        onChange: (val) {
-                          provider.temporaryGuestName = "";
-                          provider.temporaryGuestPhone = "";
-                          setState(() {});
-                        },
-                        suffixIcon: CustomOnTap(
-                          onTap: () {
-                            FocusScope.of(context).unfocus();
-                            provider.searchForUser(
-                              identifier:
-                                  provider.searchParticipantController.text,
-                            );
-                          },
-                          child: Icon(Icons.search),
-                        ),
+                        // onChange: (val) {
+
+                        //   setState(() {});
+                        // },
+                        // suffixIcon: CustomOnTap(
+                        //   onTap: () {
+                        //     FocusScope.of(context).unfocus();
+                        //     provider.searchForUser(
+                        //       identifier:
+                        //           provider.searchParticipantController.text,
+                        //     );
+                        //   },
+                        //   child: Icon(Icons.search),
+                        // ),
                         textEditingController:
                             provider.searchParticipantController,
                         // textInputType: TextInputType.phone,
-                        // onChange: (value) {
-                        //   provider.searchForUser(identifier: value);
-                        // },
+                        onChange: (value) {
+                          provider.temporaryGuestName = "";
+                          provider.temporaryGuestPhone = "";
+                          _searchDebounce?.cancel();
+                          _searchDebounce = Timer(
+                            const Duration(milliseconds: 500),
+                            () => provider.searchForUser(identifier: value),
+                          );
+                        },
                         // onSubmit: (value) {
                         //   provider.searchForUser(identifier: value);
                         // },
@@ -869,13 +1042,20 @@ class _EditAddParticipantSheetState extends State<EditAddParticipantSheet> {
                                                     provider
                                                         .temporaryGuestName
                                                         .isEmpty
-                                                    ? provider
-                                                          .searchParticipantController
-                                                          .text
+                                                    ? ''
                                                     : provider
                                                           .temporaryGuestName,
-                                                guestPhoneNumber: provider
-                                                    .temporaryGuestPhone,
+                                                guestPhoneNumber:
+                                                    provider
+                                                        .temporaryGuestPhone
+                                                        .isEmpty
+                                                    ? _phoneFromSearch(
+                                                        provider
+                                                            .searchParticipantController
+                                                            .text,
+                                                      )
+                                                    : provider
+                                                          .temporaryGuestPhone,
                                               ),
                                               context,
                                               backgroundColor:
@@ -996,11 +1176,29 @@ class _EditAddParticipantSheetState extends State<EditAddParticipantSheet> {
                                                             user.id ?? "",
                                                           )
                                                     : () {
-                                                        provider.addEditParticipant(
-                                                          CustomParticipantClass.fromUser(
-                                                            user,
-                                                          ),
-                                                        );
+                                                        final newParticipant =
+                                                            CustomParticipantClass.fromUser(
+                                                              user,
+                                                            );
+                                                        if (provider
+                                                                .editSplitMethod ==
+                                                            'MANUAL') {
+                                                          showCustomBottomSheet(
+                                                            EditManualAmountSheet(
+                                                              participant:
+                                                                  newParticipant,
+                                                            ),
+                                                            context,
+                                                            backgroundColor:
+                                                                Colors
+                                                                    .transparent,
+                                                          );
+                                                        } else {
+                                                          provider
+                                                              .addEditParticipant(
+                                                                newParticipant,
+                                                              );
+                                                        }
                                                       },
                                                 label: isSelected
                                                     ? "Remove"
@@ -1088,9 +1286,10 @@ class _EditAddParticipantSheetState extends State<EditAddParticipantSheet> {
     );
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  String _phoneFromSearch(String input) {
+    final digits = input.replaceAll(RegExp(r'\D'), '');
+    if (digits.length >= 10 && digits.length <= 15) return input.trim();
+    return '';
   }
 }
 
@@ -1112,6 +1311,7 @@ class _AddGuestParticipantSheetState extends State<AddGuestParticipantSheet> {
   NewSplitBillProvider? provider;
   final _guestNameController = TextEditingController();
   final _guestPhoneController = TextEditingController();
+  final _guestAmountController = TextEditingController();
 
   @override
   void initState() {
@@ -1128,12 +1328,14 @@ class _AddGuestParticipantSheetState extends State<AddGuestParticipantSheet> {
   void dispose() {
     _guestNameController.dispose();
     _guestPhoneController.dispose();
+    _guestAmountController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<NewSplitBillProvider>(context);
+    final isManual = provider.editSplitMethod == 'MANUAL';
     return Padding(
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -1209,6 +1411,7 @@ class _AddGuestParticipantSheetState extends State<AddGuestParticipantSheet> {
                     hintText: "Enter full name",
                     controller: _guestNameController,
                     isRequired: true,
+                    onChanged: (_) => setState(() {}),
                   ),
                   const Gap(16),
 
@@ -1219,11 +1422,27 @@ class _AddGuestParticipantSheetState extends State<AddGuestParticipantSheet> {
                     controller: _guestPhoneController,
                     isRequired: true,
                     textInputType: TextInputType.phone,
+                    onChanged: (_) => setState(() {}),
                   ),
+                  if (isManual) ...[
+                    const Gap(16),
+                    CustomTextField(
+                      labelText: "Amount",
+                      hintText: "0.00",
+                      controller: _guestAmountController,
+                      isRequired: true,
+                      formatters: MoneyInputFormatter(),
+                      textInputType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ],
                   const Gap(24),
 
                   // Add Button
                   CustomButton(
+                    enabled: _isAddEnabled(isManual),
                     onTap: () {
                       final name = _guestNameController.text.trim();
                       final phone = _guestPhoneController.text.trim();
@@ -1238,12 +1457,26 @@ class _AddGuestParticipantSheetState extends State<AddGuestParticipantSheet> {
                         return;
                       }
 
+                      double? manualAmount;
+                      if (isManual) {
+                        manualAmount = double.tryParse(
+                          _guestAmountController.text.replaceAll(',', ''),
+                        );
+                        if (manualAmount == null || manualAmount <= 0) {
+                          showErrorToast(
+                            "Please enter a valid participant amount",
+                          );
+                          return;
+                        }
+                      }
+
                       provider.addEditParticipant(
                         CustomParticipantClass.guest(
                           id: DateTime.now().millisecondsSinceEpoch.toString(),
                           name: name,
                           phoneNumber: phone,
                         ),
+                        manualAmount: manualAmount,
                       );
 
                       Get.close(2);
@@ -1251,6 +1484,164 @@ class _AddGuestParticipantSheetState extends State<AddGuestParticipantSheet> {
                     label: "Add Guest",
                   ),
                   Gap(20),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isAddEnabled(bool isManual) {
+    if (_guestNameController.text.trim().isEmpty ||
+        _guestPhoneController.text.trim().isEmpty) {
+      return false;
+    }
+    if (isManual) {
+      final amount = double.tryParse(
+        _guestAmountController.text.replaceAll(',', ''),
+      );
+      if (amount == null || amount <= 0) return false;
+    }
+    return true;
+  }
+}
+
+class EditManualAmountSheet extends StatefulWidget {
+  final dynamic participant;
+  const EditManualAmountSheet({super.key, required this.participant});
+
+  @override
+  State<EditManualAmountSheet> createState() => _EditManualAmountSheetState();
+}
+
+class _EditManualAmountSheetState extends State<EditManualAmountSheet> {
+  final _amountController = TextEditingController();
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<NewSplitBillProvider>(context);
+    final amount = double.tryParse(_amountController.text.replaceAll(',', ''));
+    final isValid = amount != null && amount > 0;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset("assets/images/bottom_sheet_cureve_right.png"),
+          Container(
+            color: const Color(0xffF1F1F7),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: SizeConfig.widthOf(5),
+                vertical: 20,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Set Participant Amount', style: txStyle16),
+                      InkWell(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: const BoxDecoration(
+                            color: borderColor,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.black,
+                            size: 15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Gap(20),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: appPrimaryColor.withOpacity(0.08),
+                      border: Border.all(
+                        color: appPrimaryColor.withOpacity(0.2),
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.person, color: appPrimaryColor, size: 20),
+                        const Gap(10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.participant.name ?? '',
+                                style: txStyle14.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if ((widget.participant.phoneNumber ?? '')
+                                  .isNotEmpty)
+                                Text(
+                                  widget.participant.phoneNumber,
+                                  style: txStyle13.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Gap(20),
+                  CustomTextField(
+                    labelText: "Amount",
+                    hintText: "0.00",
+                    controller: _amountController,
+                    isRequired: true,
+                    formatters: MoneyInputFormatter(),
+                    textInputType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  const Gap(24),
+                  CustomButton(
+                    enabled: isValid,
+                    onTap: () {
+                      final value = double.tryParse(
+                        _amountController.text.replaceAll(',', ''),
+                      );
+                      if (value == null || value <= 0) {
+                        showErrorToast(
+                          "Please enter a valid participant amount",
+                        );
+                        return;
+                      }
+                      provider.addEditParticipant(
+                        widget.participant,
+                        manualAmount: value,
+                      );
+                      Navigator.pop(context);
+                    },
+                    label: "Add Participant",
+                  ),
+                  const Gap(20),
                 ],
               ),
             ),
@@ -1439,37 +1830,89 @@ class _EditManageBillAmountSheetState extends State<EditManageBillAmountSheet> {
                         ),
                         const Gap(20),
 
-                        // Total Amount Display
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: appPrimaryColor.withOpacity(0.08),
-                            border: Border.all(
-                              color: appPrimaryColor.withOpacity(0.2),
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Total Amount',
-                                style: txStyle13.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                convertStringToCurrency(
+                        // Total Amount + Amount Left
+                        Builder(
+                          builder: (_) {
+                            final totalAmount =
+                                double.tryParse(
                                   provider.editTotalAmountController.text
-                                      .replaceAll(",", ""),
+                                      .replaceAll(',', ''),
+                                ) ??
+                                0;
+                            final entered = _calculateTotalEntered();
+                            final rawLeft = totalAmount - entered;
+                            final amountLeft = rawLeft < 0 ? 0.0 : rawLeft;
+                            final isBalanced =
+                                totalAmount > 0 &&
+                                (entered - totalAmount).abs() <= 0.01;
+                            final leftColor = isBalanced
+                                ? const Color(0xFF0B7A4B)
+                                : appSecondaryColor;
+
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: appPrimaryColor.withOpacity(0.08),
+                                border: Border.all(
+                                  color: appPrimaryColor.withOpacity(0.2),
                                 ),
-                                style: txStyle13.copyWith(
-                                  color: appPrimaryColor,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                            ],
-                          ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Total Amount',
+                                        style: txStyle13.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        convertStringToCurrency(
+                                          totalAmount.toStringAsFixed(2),
+                                        ),
+                                        style: txStyle13.copyWith(
+                                          color: appPrimaryColor,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Gap(8),
+                                  Divider(
+                                    height: 1,
+                                    color: appPrimaryColor.withOpacity(0.15),
+                                  ),
+                                  const Gap(8),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Amount left',
+                                        style: txStyle13.copyWith(
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        convertStringToCurrency(
+                                          amountLeft.toStringAsFixed(2),
+                                        ),
+                                        style: txStyle13.copyWith(
+                                          color: leftColor,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                         const Gap(16),
 

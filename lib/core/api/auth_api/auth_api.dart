@@ -25,6 +25,12 @@ abstract class AuthApi {
     required String otp,
   });
 
+  Future<dynamic> verifyResetPasswordOtp({
+    String? emailOrPhone,
+    required String otp,
+  });
+
+
   Future<dynamic> resendOtpApi({required String emailOrPhone});
 
   Future<dynamic> forgotPasswordApi({required String emailOrPhone});
@@ -42,6 +48,7 @@ abstract class AuthApi {
     required String lastName,
     required String username,
     required bool agreeToTerms,
+    required String dob,
   });
 
   Future<dynamic> completeKycApi({

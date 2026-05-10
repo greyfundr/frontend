@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/features/bill/bill_screen.dart';
 import 'package:greyfundr/features/bill/lifestyle_screen.dart';
+import 'package:greyfundr/features/campaign/campaign_option_screen.dart';
+import 'package:greyfundr/features/charity/charity_provider.dart';
 import 'package:greyfundr/features/charity/charity_screen.dart';
 import 'package:greyfundr/features/event/event_screen.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
@@ -77,8 +81,6 @@ class _BillOutletScreenState extends State<BillOutletScreen>
   double _previousScrollOffset = 0.0;
   bool _isBalanceVisible = true;
 
-  String selectedTab = 'Bill'; // for secondary tabs: Bill | Request | History
-
   // For Sort Bill modal
   final TextEditingController donorController = TextEditingController();
   String? nickname;
@@ -94,7 +96,6 @@ class _BillOutletScreenState extends State<BillOutletScreen>
     _userProvider = Provider.of<UserProvider>(context, listen: false);
     _eventProvider = Provider.of<EventProvider>(context, listen: false);
     _eventProvider.initBillOutletController(this);
-
     _scrollController.addListener(_scrollListener);
     // _fetchSplitBills();
   }
@@ -134,12 +135,36 @@ class _BillOutletScreenState extends State<BillOutletScreen>
     _previousScrollOffset = currentOffset;
   }
 
-  String formatAmount(dynamic amount) {
-    final numValue = int.tryParse(amount.toString()) ?? 0;
-    return NumberFormat("#,###").format(numValue);
-  }
+  double _innerPreviousOffset = 0.0;
 
-  final formatter = NumberFormat('#,##0.00');
+  bool _handleInnerScroll(ScrollNotification notification) {
+    // Only react to direct scrolls (not nested overscroll/refresh notifications)
+    if (notification.depth > 1) return false;
+    if (notification is! ScrollUpdateNotification) return false;
+
+    final currentOffset = notification.metrics.pixels;
+    final delta = currentOffset - _innerPreviousOffset;
+
+    if (delta.abs() < 5) {
+      _innerPreviousOffset = currentOffset;
+      return false;
+    }
+
+    const double threshold = 30.0;
+
+    if (delta > 0 && currentOffset > threshold) {
+      if (_areFeatureIconsVisible) {
+        setState(() => _areFeatureIconsVisible = false);
+      }
+    } else if (delta < 0 && currentOffset < 100) {
+      if (!_areFeatureIconsVisible) {
+        setState(() => _areFeatureIconsVisible = true);
+      }
+    }
+
+    _innerPreviousOffset = currentOffset;
+    return false;
+  }
 
   Widget _billSummaryColumn(String label, String amount) {
     return Column(
@@ -226,196 +251,79 @@ class _BillOutletScreenState extends State<BillOutletScreen>
     );
   }
 
-  // Moved modal into SortBillModal widget (features/bill/sort_bill_modal.dart)
-
-  Widget _buildOptionRow({
-    required String iconPath,
-    required String defaultText,
-    required String? value,
+  Widget _charityCategoryItem({
+    required String label,
+    required String asset,
+    required bool isSelected,
     required VoidCallback onTap,
-    required VoidCallback onDelete,
   }) {
-    final hasValue = value != null && value.isNotEmpty;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      child: InkWell(
-        onTap: hasValue ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          decoration: BoxDecoration(
-            color: hasValue ? Colors.grey[100] : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Row(
-            children: [
-              if (hasValue)
-                GestureDetector(
-                  onTap: onDelete,
-                  child: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.red,
-                    size: 24,
-                  ),
-                )
-              else
-                Image.asset(
-                  iconPath,
-                  width: 24,
-                  height: 24,
-                  color: const Color(0xFF007A74),
-                ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  hasValue ? value : defaultText,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: hasValue ? FontWeight.w600 : FontWeight.w500,
-                  ),
-                ),
+    const bgColor = Color(0x3300A4AF);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(40),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: bgColor,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected
+                    ? const Color(0xFF00A4AF)
+                    : Colors.transparent,
+                width: 2,
               ),
-            ],
+            ),
+            alignment: Alignment.center,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Image.asset(asset, fit: BoxFit.contain),
+            ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showInputDialog({
-    required String title,
-    required String hint,
-    required TextEditingController controller,
-    int maxLines = 1,
-    required Function(String) onSave,
-  }) async {
-    controller.clear();
-
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              final val = controller.text.trim();
-              if (val.isNotEmpty) onSave(val);
-              Navigator.pop(context);
-            },
-            child: const Text("Save"),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: txStyle12.copyWith(
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _horizontalBillCard({
-    required String name,
-    required String subtitle,
-    required String amount,
-  }) {
-    return Container(
-      width: 300,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Color.fromARGB(255, 232, 232, 232),
-        borderRadius: BorderRadius.circular(12),
-      ),
+  Widget _charityCategoryRow() {
+    final provider = Provider.of<CharityProvider>(context);
+    final selected = provider.selectedCategory;
+
+    final items = <Map<String, String>>[
+      {'label': 'All', 'asset': 'assets/images/grey_wallet.png'},
+      {'label': 'Medical', 'asset': 'assets/images/medidal.png'},
+      {'label': 'Education', 'asset': 'assets/images/education.png'},
+      {'label': 'Travel', 'asset': 'assets/images/travel.png'},
+      {'label': 'Nature', 'asset': 'assets/images/nature.png'},
+      {'label': 'Animal', 'asset': 'assets/images/animals.png'},
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         children: [
-          CustomNetworkImage(imageUrl: "imageUrl", radius: 40),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 26, 25, 25),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: Color.fromARGB(179, 121, 121, 121),
-                    fontSize: 10,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  amount,
-                  style: const TextStyle(
-                    color: Color.fromARGB(179, 37, 60, 48),
-                    fontSize: 9,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          for (int i = 0; i < items.length; i++) ...[
+            _charityCategoryItem(
+              label: items[i]['label']!,
+              asset: items[i]['asset']!,
+              isSelected: selected == items[i]['label'],
+              onTap: () => provider.setCategory(items[i]['label']!),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              minimumSize: Size(60, 30),
-            ),
-            child: const Text("Sort Bill", style: TextStyle(fontSize: 10)),
-          ),
+            if (i != items.length - 1) const SizedBox(width: 20),
+          ],
         ],
       ),
-    );
-  }
-
-  // Helper to satisfy SortBillModal signature when using dummy cards
-  SplitBillDatum widgetKeyForBillPlaceholder() {
-    return SplitBillDatum(
-      id: 'placeholder',
-      title: 'Placeholder',
-      description: '',
-      currency: 'NGN',
-      totalAmount: 1000.0,
-      creatorId: '',
-      splitMethod: 'equal',
-      dueDate: DateTime.now().add(const Duration(days: 7)),
-      isFinalized: false,
-      status: 'OPEN',
-      imageUrl: '',
-      totalParticipants: 1,
-      totalCollected: 0.0,
-      // t: 0.0,
-      // percentageComplete: 0.0,
-      // isOverdue: false,
-      participants: [],
     );
   }
 
@@ -453,7 +361,11 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.easeInOut,
                   width: double.infinity,
-                  height: _isHeaderCollapsed ? 170 : 340,
+                  height: _isHeaderCollapsed
+                      ? Platform.isIOS
+                            ? 200
+                            : 170
+                      : 340,
                   child: Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
@@ -494,7 +406,8 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                             child: Row(
                                               children: [
                                                 CustomNetworkImage(
-                                                  imageUrl: "${userProfile?.profile?.image}",
+                                                  imageUrl:
+                                                      "${userProfile?.profile?.image}",
                                                   radius: 40,
                                                 ),
                                                 Gap(10),
@@ -525,7 +438,7 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                                     1,
                                                   ),
                                                   _headerTabButton(
-                                                    'Lifestyle',
+                                                    'Event',
                                                     eventProvider
                                                             .billOutletTabController
                                                             .index ==
@@ -578,7 +491,8 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                           child: Row(
                                             children: [
                                               CustomNetworkImage(
-                                                imageUrl: "${userProfile?.profile?.image}",
+                                                imageUrl:
+                                                    "${userProfile?.profile?.image}",
                                                 radius: 40,
                                               ),
                                               Gap(5),
@@ -885,6 +799,11 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                                 .index ==
                                             2
                                         ? Get.to(EventScreen())
+                                        : eventProvider
+                                                  .billOutletTabController
+                                                  .index ==
+                                              1
+                                        ? Get.to(CampaignOptionScreen())
                                         : Get.to(CreateSplitBillScreen());
                                   },
                                   style: ElevatedButton.styleFrom(
@@ -912,6 +831,11 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                                                     .index ==
                                                 2
                                             ? "Create Event"
+                                            : eventProvider
+                                                      .billOutletTabController
+                                                      .index ==
+                                                  1
+                                            ? "Start Campaign"
                                             : "Create Bill",
                                         style: TextStyle(
                                           fontSize: 12,
@@ -934,12 +858,14 @@ class _BillOutletScreenState extends State<BillOutletScreen>
             ),
           ),
 
-          // Feature Icons
+          // Feature Icons / Charity categories
           AnimatedSize(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOut,
             child: !_areFeatureIconsVisible
                 ? const SizedBox.shrink()
+                : (eventProvider.billOutletTabController.index == 1)
+                ? _charityCategoryRow()
                 : Padding(
                     padding: const EdgeInsets.symmetric(
                       vertical: 16,
@@ -952,66 +878,31 @@ class _BillOutletScreenState extends State<BillOutletScreen>
                           "Pay Bill",
                           Icons.receipt,
                           Colors.amber,
-                          onTap: () {
-                            // Navigator.push(
-                            //   context,
-                            //   MaterialPageRoute(
-                            //     builder: (_) => const PayBillScreen(),
-                            //   ),
-                            // );
-                          },
+                          onTap: () {},
                         ),
                         _featureIcon(
                           "Transfer Bill",
                           Icons.swap_horiz,
                           Colors.pink,
-                          onTap: () {
-                            // Navigator.push(
-                            //   context,
-                            //   MaterialPageRoute(
-                            //     builder: (_) => const TransferBill(),
-                            //   ),
-                            // );
-                          },
+                          onTap: () {},
                         ),
                         _featureIcon(
                           "Split Bill",
                           Icons.call_split,
                           Colors.green,
-                          onTap: () {
-                            // Navigator.push(
-                            //   context,
-                            //   MaterialPageRoute(
-                            //     builder: (_) => const SplittingBill(),
-                            //   ),
-                            // );
-                          },
+                          onTap: () {},
                         ),
                         _featureIcon(
                           "Request Bill",
                           Icons.request_page,
                           Colors.orange,
-                          onTap: () {
-                            // Navigator.push(
-                            //   context,
-                            //   MaterialPageRoute(
-                            //     builder: (_) => const RequestBillScreen(),
-                            //   ),
-                            // );
-                          },
+                          onTap: () {},
                         ),
                         _featureIcon(
                           "Scan Bill",
                           Icons.qr_code_scanner,
                           Colors.blue,
-                          onTap: () {
-                            // Navigator.push(
-                            //   context,
-                            //   MaterialPageRoute(
-                            //     builder: (_) => const SizedBox(),
-                            //   ),
-                            // );
-                          },
+                          onTap: () {},
                         ),
                       ],
                     ),
@@ -1020,17 +911,20 @@ class _BillOutletScreenState extends State<BillOutletScreen>
 
           // Main content
           Expanded(
-            child: TabBarView(
-              controller: eventProvider.billOutletTabController,
-              children: [
-                // Bill sub-tab (shows secondary tabs + list)
-                BillScreen(),
-                // Container(),
-                // Container(color: Colors.green),
-                const CharityComponent(),
-                LifestyleScreen(),
-                // EventHome(),
-              ],
+            child: NotificationListener<ScrollNotification>(
+              onNotification: _handleInnerScroll,
+              child: TabBarView(
+                controller: eventProvider.billOutletTabController,
+                children: [
+                  // Bill sub-tab (shows secondary tabs + list)
+                  BillScreen(),
+                  // Container(),
+                  // Container(color: Colors.green),
+                  const CharityComponent(),
+                  LifestyleScreen(),
+                  // EventHome(),
+                ],
+              ),
             ),
           ),
         ],

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:gap/gap.dart';
@@ -248,12 +247,11 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                         CustomOnTap(
-                          onTap: () {
-                            // Get.to(
-                            //   () =>
-                            //       CharityScreen(), // ← replace with your actual screen/widget
-                            //   transition: Transition.rightToLeft,
-                            // );
+                          onTap: () async{
+                            userProvider.updateSelectedIndex(1);
+                            await Future.delayed(Duration(milliseconds: 200));
+                            eventProvider.billOutletTabController.animateTo(1);
+                            eventProvider.notifyListeners();
                           },
                           child: Image.asset(
                             "assets/images/charity.png",
@@ -333,6 +331,7 @@ class HomeScreen extends StatelessWidget {
             Container(
               height: 20,
               decoration: BoxDecoration(
+                color: Colors.transparent,
                 image: DecorationImage(
                   image: AssetImage("assets/images/wallet_bg_arc.png"),
                   fit: BoxFit.cover,
@@ -358,7 +357,9 @@ class HomeScreen extends StatelessWidget {
                       Text("Total Balance", style: txStyle12wt),
                       Gap(5),
                       Text(
-                        convertStringToCurrency("${walletModel?.balance?.available}"),
+                        convertStringToCurrency(
+                          "${walletModel?.balance?.available}",
+                        ),
                         style: txStyle18SemiBold.copyWith(color: Colors.white),
                       ),
                       Gap(5),

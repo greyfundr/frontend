@@ -1,7 +1,12 @@
 import 'dart:io';
 
+import 'package:greyfundr/core/models/all_campaign_response_model.dart';
+import 'package:greyfundr/core/models/campaign_comment_model.dart';
+import 'package:greyfundr/core/models/campaign_details_model.dart';
+import 'package:greyfundr/core/models/campaign_donations_response_model.dart';
 import 'package:greyfundr/core/models/campaign_model.dart';
 import 'package:greyfundr/core/models/participants_model.dart';
+import 'package:greyfundr/core/models/top_donors_response_model.dart';
 
 abstract class CampaignApi {
   // ──────────────────────────────────────────────────────────────
@@ -10,19 +15,14 @@ abstract class CampaignApi {
 
   Future<List<Participant>> getUsers();
 
-  // ──────────────────────────────────────────────────────────────
-  // Get All Campaigns (paginated, no filter)
-  // ──────────────────────────────────────────────────────────────
-
-  Future<Map<String, dynamic>> getAllCampaigns({
-    required int page,
-  });
+  // Categories list for the create-campaign flow
+  Future<List<Map<String, String>>> getCategories();
 
   // ──────────────────────────────────────────────────────────────
-  // Get Campaigns (paginated + optional category filter)
+  // Get All Campaigns (paginated + optional category filter)
   // ──────────────────────────────────────────────────────────────
 
-  Future<Map<String, dynamic>> getCampaigns({
+  Future<AllCampaignResponseModel> getAllCampaigns({
     required int page,
     String? category, // optional – e.g. "Education", "Health", "All"
   });
@@ -32,6 +32,9 @@ abstract class CampaignApi {
   // ──────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getCampaignDetails(String campaignId);
+
+  // Typed details for the new details screen
+  Future<CampaignDetailsModel> getCampaignDetailsTyped(String campaignId);
 
   // ──────────────────────────────────────────────────────────────
   // Campaign Creation
@@ -86,6 +89,39 @@ abstract class CampaignApi {
   Future<List<Map<String, dynamic>>> getMyCampaigns();
 
   Future<Map<String, dynamic>> donateToCampaign(String campaignId, Map<String, dynamic> payload);
+
+  // ──────────────────────────────────────────────────────────────
+  // Get Campaign Donations (paginated)
+  // ──────────────────────────────────────────────────────────────
+
+  Future<CampaignDonationsResponseModel> getCampaignDonations({
+    required String campaignId,
+    required int page,
+    int limit = 10,
+  });
+
+  // ──────────────────────────────────────────────────────────────
+  // Get Top Donors (campaign leaderboard)
+  // ──────────────────────────────────────────────────────────────
+
+  Future<List<TopDonor>> getCampaignTopDonors(String campaignId);
+
+  // ──────────────────────────────────────────────────────────────
+  // Campaign Like / Unlike
+  // ──────────────────────────────────────────────────────────────
+
+  Future<bool> likeCampaign(String campaignId);
+  Future<bool> unlikeCampaign(String campaignId);
+
+  // ──────────────────────────────────────────────────────────────
+  // Campaign Comments
+  // ──────────────────────────────────────────────────────────────
+
+  Future<List<CampaignComment>> getCampaignComments(String campaignId);
+  Future<CampaignComment?> addCampaignComment({
+    required String campaignId,
+    required String content,
+  });
 
   // ──────────────────────────────────────────────────────────────
   // Get Campaigns by Category

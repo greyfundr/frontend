@@ -1,390 +1,390 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'package:pull_to_refresh/pull_to_refresh.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter/services.dart';
+// import 'package:provider/provider.dart';
+// import 'package:pull_to_refresh/pull_to_refresh.dart';
 
-import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
+// import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
 
-import 'package:gap/gap.dart';
-import 'package:greyfundr/core/providers/user_provider.dart';
-import 'package:greyfundr/services/locator.dart';
+// import 'package:gap/gap.dart';
+// import 'package:greyfundr/core/providers/user_provider.dart';
+// import 'package:greyfundr/services/locator.dart';
 
-import 'package:greyfundr/features/event/start_event.dart';
+// import 'package:greyfundr/features/event/start_event.dart';
 
-import 'package:greyfundr/features/event/event_screen.dart';
+// import 'package:greyfundr/features/event/event_screen.dart';
 
-import 'package:greyfundr/widgets/lifestyle/header_section.dart';
+// import 'package:greyfundr/widgets/lifestyle/header_section.dart';
 
-import 'package:greyfundr/widgets/lifestyle/event_card.dart';
+// import 'package:greyfundr/widgets/lifestyle/event_card.dart';
 
-// import 'package:greyfundr/widgets/charity/horizontal_campaign_carousel.dart';
+// // import 'package:greyfundr/widgets/charity/horizontal_campaign_carousel.dart';
 
-class EventHome extends StatefulWidget {
-  const EventHome({super.key});
+// class EventHome extends StatefulWidget {
+//   const EventHome({super.key});
 
-  @override
-  State<EventHome> createState() => _EventHomeState();
-}
+//   @override
+//   State<EventHome> createState() => _EventHomeState();
+// }
 
-class _EventHomeState extends State<EventHome> {
-  final RefreshController _refreshController = RefreshController(
-    initialRefresh: false,
-  );
-  late ScrollController _scrollController;
+// class _EventHomeState extends State<EventHome> {
+//   final RefreshController _refreshController = RefreshController(
+//     initialRefresh: false,
+//   );
+//   late ScrollController _scrollController;
 
-  bool _isHeaderCollapsed = true;
-  String selectedTab = 'Live Event';
-  // String _selectedCategory = "All";
+//   bool _isHeaderCollapsed = true;
+//   String selectedTab = 'Live Event';
+//   // String _selectedCategory = "All";
 
-  List<Map<String, dynamic>> _allCampaigns = [];
-  bool _isLoading = true;
-  bool _isLoadingMore = false;
-  String? _errorMessage;
+//   List<Map<String, dynamic>> _allCampaigns = [];
+//   bool _isLoading = true;
+//   bool _isLoadingMore = false;
+//   String? _errorMessage;
 
-  int _pageNumber = 1;
-  double _lastScrollPixels = 0.0;
+//   int _pageNumber = 1;
+//   double _lastScrollPixels = 0.0;
 
-  @override
-  void initState() {
-    super.initState();
-    _scrollController = ScrollController()..addListener(_onScroll);
-    _loadInitialCampaigns();
-  }
+//   @override
+//   void initState() {
+//     super.initState();
+//     _scrollController = ScrollController()..addListener(_onScroll);
+//     _loadInitialCampaigns();
+//   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _refreshController.dispose();
-    super.dispose();
-  }
+//   @override
+//   void dispose() {
+//     _scrollController.dispose();
+//     _refreshController.dispose();
+//     super.dispose();
+//   }
 
-  void _onScroll() {
-    final current = _scrollController.position.pixels;
-    final delta = current - _lastScrollPixels;
+//   void _onScroll() {
+//     final current = _scrollController.position.pixels;
+//     final delta = current - _lastScrollPixels;
 
-    if (delta.abs() > 8) {
-      setState(() {
-        _isHeaderCollapsed = delta > 0;
-      });
-    }
-    _lastScrollPixels = current;
+//     if (delta.abs() > 8) {
+//       setState(() {
+//         _isHeaderCollapsed = delta > 0;
+//       });
+//     }
+//     _lastScrollPixels = current;
 
-    // Load more when near bottom
-    if (current >= _scrollController.position.maxScrollExtent - 150 &&
-        !_isLoadingMore &&
-        !_isLoading) {
-      _loadMoreCampaigns();
-    }
-  }
+//     // Load more when near bottom
+//     if (current >= _scrollController.position.maxScrollExtent - 150 &&
+//         !_isLoadingMore &&
+//         !_isLoading) {
+//       _loadMoreCampaigns();
+//     }
+//   }
 
-  Future<void> _loadInitialCampaigns() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _allCampaigns.clear();
-      _pageNumber = 1;
-    });
+//   Future<void> _loadInitialCampaigns() async {
+//     setState(() {
+//       _isLoading = true;
+//       _errorMessage = null;
+//       _allCampaigns.clear();
+//       _pageNumber = 1;
+//     });
 
-    try {
-      final payload = await locator<CampaignApi>().getAllCampaigns(
-        page: _pageNumber,
-      );
+//     try {
+//       final payload = await locator<CampaignApi>().getAllCampaigns(
+//         page: _pageNumber,
+//       );
 
-      final List<dynamic> rawList =
-          payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
-      final List<Map<String, dynamic>> campaigns = rawList
-          .cast<Map<String, dynamic>>();
+//       final List<dynamic> rawList =
+//           payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
+//       final List<Map<String, dynamic>> campaigns = rawList
+//           .cast<Map<String, dynamic>>();
 
-      if (!mounted) return;
+//       if (!mounted) return;
 
-      setState(() {
-        _allCampaigns = campaigns;
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage =
-            "Failed to load events: ${e.toString().split('\n').first}";
-        _isLoading = false;
-      });
-    } finally {
-      _refreshController.refreshCompleted();
-    }
-  }
+//       setState(() {
+//         _allCampaigns = campaigns;
+//         _isLoading = false;
+//       });
+//     } catch (e) {
+//       if (!mounted) return;
+//       setState(() {
+//         _errorMessage =
+//             "Failed to load events: ${e.toString().split('\n').first}";
+//         _isLoading = false;
+//       });
+//     } finally {
+//       _refreshController.refreshCompleted();
+//     }
+//   }
 
-  Future<void> _loadMoreCampaigns() async {
-    if (_isLoadingMore) return;
-    setState(() => _isLoadingMore = true);
+//   Future<void> _loadMoreCampaigns() async {
+//     if (_isLoadingMore) return;
+//     setState(() => _isLoadingMore = true);
 
-    try {
-      final nextPage = _pageNumber + 1;
-      final payload = await locator<CampaignApi>().getAllCampaigns(
-        page: nextPage,
-      );
+//     try {
+//       final nextPage = _pageNumber + 1;
+//       final payload = await locator<CampaignApi>().getAllCampaigns(
+//         page: nextPage,
+//       );
 
-      final List<dynamic> rawList =
-          payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
-      final List<Map<String, dynamic>> newCampaigns = rawList
-          .cast<Map<String, dynamic>>();
+//       final List<dynamic> rawList =
+//           payload['data'] ?? payload['campaigns'] ?? payload['payload'] ?? [];
+//       final List<Map<String, dynamic>> newCampaigns = rawList
+//           .cast<Map<String, dynamic>>();
 
-      if (!mounted) return;
+//       if (!mounted) return;
 
-      if (newCampaigns.isNotEmpty) {
-        setState(() {
-          _pageNumber = nextPage;
-          _allCampaigns.addAll(newCampaigns);
-        });
-      }
-    } catch (e) {
-      debugPrint("Load more error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoadingMore = false);
-    }
-  }
+//       if (newCampaigns.isNotEmpty) {
+//         setState(() {
+//           _pageNumber = nextPage;
+//           _allCampaigns.addAll(newCampaigns);
+//         });
+//       }
+//     } catch (e) {
+//       debugPrint("Load more error: $e");
+//     } finally {
+//       if (mounted) setState(() => _isLoadingMore = false);
+//     }
+//   }
 
-  // ignore: unused_element
-  Future<void> _onRefresh() async {
-    await _loadInitialCampaigns();
-  }
+//   // ignore: unused_element
+//   Future<void> _onRefresh() async {
+//     await _loadInitialCampaigns();
+//   }
 
-  Widget _buildTabContent(BuildContext context) {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF007A74)),
-      );
-    }
+//   Widget _buildTabContent(BuildContext context) {
+//     if (_isLoading) {
+//       return const Center(
+//         child: CircularProgressIndicator(color: Color(0xFF007A74)),
+//       );
+//     }
 
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 80, color: Colors.red[300]),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage!,
-              style: const TextStyle(fontSize: 16, color: Colors.red),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadInitialCampaigns,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF6B35),
-              ),
-              child: const Text("Retry", style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      );
-    }
+//     if (_errorMessage != null) {
+//       return Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Icon(Icons.error_outline, size: 80, color: Colors.red[300]),
+//             const SizedBox(height: 16),
+//             Text(
+//               _errorMessage!,
+//               style: const TextStyle(fontSize: 16, color: Colors.red),
+//             ),
+//             const SizedBox(height: 24),
+//             ElevatedButton(
+//               onPressed: _loadInitialCampaigns,
+//               style: ElevatedButton.styleFrom(
+//                 backgroundColor: const Color(0xFFFF6B35),
+//               ),
+//               child: const Text("Retry", style: TextStyle(color: Colors.white)),
+//             ),
+//           ],
+//         ),
+//       );
+//     }
 
-    final userProvider = Provider.of<UserProvider>(context);
-    final currentUserId = userProvider.userProfileModel?.id?.toString();
+//     final userProvider = Provider.of<UserProvider>(context);
+//     final currentUserId = userProvider.userProfileModel?.id?.toString();
 
-    if (selectedTab == 'Upcoming') {
-      return _buildEmptyTab(
-        icon: Icons.recommend_outlined,
-        title: "Upcoming Events will appear here",
-        subtitle:
-            "Events you create will appear here.\nTap the button below to start your first one!",
-        buttonText: "Start an Event",
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const EventScreen()),
-        ),
-      );
-    }
+//     if (selectedTab == 'Upcoming') {
+//       return _buildEmptyTab(
+//         icon: Icons.recommend_outlined,
+//         title: "Upcoming Events will appear here",
+//         subtitle:
+//             "Events you create will appear here.\nTap the button below to start your first one!",
+//         buttonText: "Start an Event",
+//         onPressed: () => Navigator.push(
+//           context,
+//           MaterialPageRoute(builder: (_) => const EventScreen()),
+//         ),
+//       );
+//     }
 
-    if (selectedTab == 'Past') {
-      return _buildEmptyTab(
-        icon: Icons.people_alt_outlined,
-        title: "Events that have ended will appear here",
-        subtitle:
-            "Past events you participated in or created will appear here.",
-      );
-    }
+//     if (selectedTab == 'Past') {
+//       return _buildEmptyTab(
+//         icon: Icons.people_alt_outlined,
+//         title: "Events that have ended will appear here",
+//         subtitle:
+//             "Past events you participated in or created will appear here.",
+//       );
+//     }
 
-    // Explore tab
-    if (_allCampaigns.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.campaign_outlined, size: 80, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            const Text(
-              "No events available yet",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Check back later or create your own!",
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const EventScreen()),
-              ),
-              icon: const Icon(Icons.add_circle_outline),
-              label: const Text("Start an Event"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF6B35),
-                foregroundColor: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+//     // Explore tab
+//     if (_allCampaigns.isEmpty) {
+//       return Center(
+//         child: Column(
+//           mainAxisAlignment: MainAxisAlignment.center,
+//           children: [
+//             Icon(Icons.campaign_outlined, size: 80, color: Colors.grey[400]),
+//             const SizedBox(height: 16),
+//             const Text(
+//               "No events available yet",
+//               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+//             ),
+//             const SizedBox(height: 8),
+//             const Text(
+//               "Check back later or create your own!",
+//               style: TextStyle(color: Colors.grey),
+//             ),
+//             const SizedBox(height: 24),
+//             ElevatedButton.icon(
+//               onPressed: () => Navigator.push(
+//                 context,
+//                 MaterialPageRoute(builder: (_) => const EventScreen()),
+//               ),
+//               icon: const Icon(Icons.add_circle_outline),
+//               label: const Text("Start an Event"),
+//               style: ElevatedButton.styleFrom(
+//                 backgroundColor: const Color(0xFFFF6B35),
+//                 foregroundColor: Colors.white,
+//               ),
+//             ),
+//           ],
+//         ),
+//       );
+//     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: _allCampaigns.length + (_isLoadingMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index >= _allCampaigns.length) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24),
-            child: Center(
-              child: CircularProgressIndicator(color: Color(0xFF007A74)),
-            ),
-          );
-        }
+//     return ListView.builder(
+//       controller: _scrollController,
+//       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+//       itemCount: _allCampaigns.length + (_isLoadingMore ? 1 : 0),
+//       itemBuilder: (context, index) {
+//         if (index >= _allCampaigns.length) {
+//           return const Padding(
+//             padding: EdgeInsets.symmetric(vertical: 24),
+//             child: Center(
+//               child: CircularProgressIndicator(color: Color(0xFF007A74)),
+//             ),
+//           );
+//         }
 
-        final campaign = _allCampaigns[index];
-        return EventCard(
-          campaign: campaign,
-          currentUserId: currentUserId,
-          onDonationSuccess: () {
-            _loadInitialCampaigns(); // Refresh after donation
-          },
-        );
-      },
-    );
-  }
+//         final campaign = _allCampaigns[index];
+//         return EventCard(
+//           campaign: campaign,
+//           currentUserId: currentUserId,
+//           onDonationSuccess: () {
+//             _loadInitialCampaigns(); // Refresh after donation
+//           },
+//         );
+//       },
+//     );
+//   }
 
-  Widget _buildEmptyTab({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    String? buttonText,
-    VoidCallback? onPressed,
-  }) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-      children: [
-        Center(
-          child: Column(
-            children: [
-              Icon(icon, size: 64, color: Colors.grey[400]),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-              if (buttonText != null) ...[
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: onPressed,
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: Text(buttonText),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF6B35),
-                    foregroundColor: Colors.white,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+//   Widget _buildEmptyTab({
+//     required IconData icon,
+//     required String title,
+//     required String subtitle,
+//     String? buttonText,
+//     VoidCallback? onPressed,
+//   }) {
+//     return ListView(
+//       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+//       children: [
+//         Center(
+//           child: Column(
+//             children: [
+//               Icon(icon, size: 64, color: Colors.grey[400]),
+//               const SizedBox(height: 16),
+//               Text(
+//                 title,
+//                 style: TextStyle(
+//                   fontSize: 16,
+//                   fontWeight: FontWeight.w600,
+//                   color: Colors.grey[700],
+//                 ),
+//               ),
+//               const SizedBox(height: 8),
+//               Text(
+//                 subtitle,
+//                 textAlign: TextAlign.center,
+//                 style: TextStyle(color: Colors.grey[600], fontSize: 14),
+//               ),
+//               if (buttonText != null) ...[
+//                 const SizedBox(height: 24),
+//                 ElevatedButton.icon(
+//                   onPressed: onPressed,
+//                   icon: const Icon(Icons.add_circle_outline),
+//                   label: Text(buttonText),
+//                   style: ElevatedButton.styleFrom(
+//                     backgroundColor: const Color(0xFFFF6B35),
+//                     foregroundColor: Colors.white,
+//                   ),
+//                 ),
+//               ],
+//             ],
+//           ),
+//         ),
+//       ],
+//     );
+//   }
 
-  @override
-  @override
-  Widget build(BuildContext context) {
-    // Status bar styling
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF007A74),
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-    );
+//   @override
+//   @override
+//   Widget build(BuildContext context) {
+//     // Status bar styling
+//     SystemChrome.setSystemUIOverlayStyle(
+//       const SystemUiOverlayStyle(
+//         statusBarColor: Color(0xFF007A74),
+//         statusBarIconBrightness: Brightness.light,
+//         statusBarBrightness: Brightness.dark,
+//       ),
+//     );
 
-    final userProvider = Provider.of<UserProvider>(context);
+//     final userProvider = Provider.of<UserProvider>(context);
 
-    final user = userProvider.userProfileModel;
+//     final user = userProvider.userProfileModel;
 
-    if (user == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF007A74)),
-        ),
-      );
-    }
-    // If shown standalone (no ancestor BottomNavigationBar), ensure the
-    // provider marks Bills as active so the compact nav highlights it.
-    final bool noAncestorNav =
-        context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
-    if (noAncestorNav && userProvider.selectedIndex != 1) {
-      userProvider.updateSelectedIndex(1);
-    }
-    // userProvider.setSuppressAppNav(noAncestorNav);
+//     if (user == null) {
+//       return const Scaffold(
+//         body: Center(
+//           child: CircularProgressIndicator(color: Color(0xFF007A74)),
+//         ),
+//       );
+//     }
+//     // If shown standalone (no ancestor BottomNavigationBar), ensure the
+//     // provider marks Bills as active so the compact nav highlights it.
+//     final bool noAncestorNav =
+//         context.findAncestorWidgetOfExactType<BottomNavigationBar>() == null;
+//     if (noAncestorNav && userProvider.selectedIndex != 1) {
+//       userProvider.updateSelectedIndex(1);
+//     }
+//     // userProvider.setSuppressAppNav(noAncestorNav);
 
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
+//     return Scaffold(
+//       backgroundColor: Colors.grey[100],
 
-      body: SafeArea(
-        child: Column(
-          children: [
-            EventHeaderSection(
-              isCollapsed: _isHeaderCollapsed,
-              onStartCampaign: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const StartEvent()),
-              ),
-              onSettings: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Settings coming soon!")),
-                );
-              },
-            ),
+//       body: SafeArea(
+//         child: Column(
+//           children: [
+//             EventHeaderSection(
+//               isCollapsed: _isHeaderCollapsed,
+//               onStartCampaign: () => Navigator.push(
+//                 context,
+//                 MaterialPageRoute(builder: (_) => const StartEvent()),
+//               ),
+//               onSettings: () {
+//                 ScaffoldMessenger.of(context).showSnackBar(
+//                   const SnackBar(content: Text("Settings coming soon!")),
+//                 );
+//               },
+//             ),
 
-            // FeatureIconsRow(
-            //   selectedCategory: _selectedCategory,
-            //   onCategorySelected: (category) {
-            //     setState(() {
-            //       _selectedCategory = category;
-            //       _loadInitialCampaigns();
-            //     });
-            //     WidgetsBinding.instance.addPostFrameCallback((_) {
-            //       if (_scrollController.hasClients) {
-            //         _scrollController.jumpTo(0);
-            //       }
-            //     });
-            //   },
-            // ),
-            Gap(20),
-            // HorizontalEventCarousel(isVisible: !_isHeaderCollapsed),
+//             // FeatureIconsRow(
+//             //   selectedCategory: _selectedCategory,
+//             //   onCategorySelected: (category) {
+//             //     setState(() {
+//             //       _selectedCategory = category;
+//             //       _loadInitialCampaigns();
+//             //     });
+//             //     WidgetsBinding.instance.addPostFrameCallback((_) {
+//             //       if (_scrollController.hasClients) {
+//             //         _scrollController.jumpTo(0);
+//             //       }
+//             //     });
+//             //   },
+//             // ),
+//             Gap(20),
+//             // HorizontalEventCarousel(isVisible: !_isHeaderCollapsed),
            
-          ],
-        ),
-      ),
-    );
-  }
-}
+//           ],
+//         ),
+//       ),
+//     );
+//   }
+// }

@@ -98,12 +98,8 @@ class MyApp extends StatelessWidget {
         useMaterial3: false,
       ),
       home: const SplashScreen(),
-
-      // Add this line
       defaultTransition: Transition.rightToLeft,
       transitionDuration: const Duration(milliseconds: 350),
-
-      // ────────────────────────────────────────────────────────────────────
       builder: (BuildContext context, Widget? child) {
         final MediaQueryData originalMediaQuery = MediaQuery.of(context);
 

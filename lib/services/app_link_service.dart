@@ -3,6 +3,8 @@ import 'dart:developer';
 import 'package:app_links/app_links.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/features/bill/event_rsvp_page.dart';
+import 'package:greyfundr/features/bill/split_bill_details_screen.dart';
+import 'package:greyfundr/features/campaign/createcampaignflow/campaign_details_screen.dart';
 
 class AppLinkService {
   // Singleton instance
@@ -48,6 +50,11 @@ class AppLinkService {
       case 'campaign':
         await _handleCampaignLink(id);
         break;
+      case 'bill':
+      case 'split_bill':
+      case 'splitbill':
+        await _handleSplitBillLink(id);
+        break;
       case 'user':
         await _handleUserLink(id);
         break;
@@ -68,10 +75,18 @@ class AppLinkService {
   Future<void> _handleCampaignLink(String campaignId) async {
     try {
       log("Navigating to campaign: $campaignId");
-      // TODO: Implement campaign navigation
-      // Get.to(() => CampaignDetailsScreen(campaignId: campaignId));
+      Get.to(() => CampaignDetailsScreen(campaignId: campaignId));
     } catch (e) {
       log("Error handling campaign link: $e");
+    }
+  }
+
+  Future<void> _handleSplitBillLink(String billId) async {
+    try {
+      log("Navigating to split bill: $billId");
+      Get.to(() => SplitBillDetailsScreen(billId: billId));
+    } catch (e) {
+      log("Error handling split bill link: $e");
     }
   }
 

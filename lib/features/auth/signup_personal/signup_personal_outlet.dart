@@ -64,18 +64,25 @@ class _SignupPersonalOutletState extends State<SignupPersonalOutlet> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          AdaptiveIcons(
-                            onTap: () {
-                              if (authProvider.currentSignupPage > 0) {
-                                authProvider.animateToNextPage(
-                                  authProvider.currentSignupPage - 1,
-                                );
-                              } else {
-                                Get.close(1);
-                              }
-                            },
-                            iconName: "arrow.left.circle",
-                            iconData: Icons.arrow_back,
+                          Visibility(
+                            visible: authProvider.currentSignupPage != 2,
+                            maintainSize: true,
+                            maintainAnimation: true,
+                            maintainState: true,
+                            child: AdaptiveIcons(
+                              onTap: () {
+                                if (authProvider.currentSignupPage == 2) return;
+                                if (authProvider.currentSignupPage > 0) {
+                                  authProvider.animateToNextPage(
+                                    authProvider.currentSignupPage - 1,
+                                  );
+                                } else {
+                                  Get.close(1);
+                                }
+                              },
+                              iconName: "arrow.left.circle",
+                              iconData: Icons.arrow_back,
+                            ),
                           ),
                           AdaptiveIcons(
                             iconName: "questionmark.circle",

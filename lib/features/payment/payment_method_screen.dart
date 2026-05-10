@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
+import 'package:greyfundr/components/custom_pin_input.dart';
 import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/providers/wallet_provider.dart';
+import 'package:greyfundr/features/event/event_provider.dart';
 import 'package:greyfundr/features/payment/event_payment_success_screen.dart';
 import 'package:greyfundr/features/home/add_money_sheet.dart';
 import 'package:greyfundr/shared/app_colors.dart';
@@ -54,6 +56,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   @override
   Widget build(BuildContext context) {
     final walletProvider = Provider.of<WalletProvider>(context);
+    final eventProvider = Provider.of<EventProvider>(context);
     final walletBalance = _toDouble(
       walletProvider.walletModel?.balance?.available,
     );
@@ -156,29 +159,20 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         return;
                       }
 
-                      final success = await walletProvider.contributeToEvent(
-                        eventId: widget.eventId,
-                        type: widget.type,
-                        amount: widget.amount,
-                        paymentMethod: _selectedPaymentMethod,
-                        extraPayload: widget.extraPayload,
+                      showCustomBottomSheet(
+                        EventPaymentPinSheet(
+                          eventId: widget.eventId,
+                          type: widget.type,
+                          amount: widget.amount,
+                          extraPayload: widget.extraPayload,
+                        ),
+                        context,
                       );
-
-                      if (success && mounted) {
-                        Get.off(
-                          EventPaymentSuccessScreen(
-                            eventId: widget.eventId,
-                            type: widget.type,
-                            amount: widget.amount,
-                          ),
-                          transition: Transition.rightToLeft,
-                        );
-                      }
                       return;
                     }
 
                     if (_selectedPaymentMethod == 'paystack') {
-                      final authUrl = await walletProvider
+                      final authUrl = await eventProvider
                           .initiatePaystackEventContribution(
                             eventId: widget.eventId,
                             type: widget.type,
@@ -236,6 +230,86 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class EventPaymentPinSheet extends StatelessWidget {
+  final String eventId;
+  final String type;
+  final double amount;
+  final Map<String, dynamic>? extraPayload;
+
+  const EventPaymentPinSheet({
+    super.key,
+    required this.eventId,
+    required this.type,
+    required this.amount,
+    this.extraPayload,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final eventProvider = Provider.of<EventProvider>(context, listen: false);
+    final walletProvider = Provider.of<WalletProvider>(context, listen: false);
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+      ),
+      child: Padding(
+        padding: MediaQuery.of(context).viewInsets,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Enter Transaction PIN",
+              style: txStyle20Bold.copyWith(color: Colors.black),
+            ),
+            const Gap(8),
+            const Text(
+              "Please enter your transaction PIN to confirm this payment.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey),
+            ),
+            const Gap(24),
+            PINCodeInput2(
+              inputLenght: 4,
+              onComplete: (pin) async {
+                Get.back();
+                final extras = <String, dynamic>{
+                  ...?extraPayload,
+                  'transactionPin': pin,
+                };
+                final success = await eventProvider.contributeToEvent(
+                  eventId: eventId,
+                  type: type,
+                  amount: amount,
+                  paymentMethod: 'wallet',
+                  extraPayload: extras,
+                );
+                if (success) {
+                  await walletProvider.fetchUserWallet();
+                  Get.off(
+                    EventPaymentSuccessScreen(
+                      eventId: eventId,
+                      type: type,
+                      amount: amount,
+                    ),
+                    transition: Transition.rightToLeft,
+                  );
+                }
+              },
+            ),
+            const Gap(24),
+          ],
         ),
       ),
     );

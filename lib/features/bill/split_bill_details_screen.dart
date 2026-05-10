@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:gap/gap.dart';
 import 'package:get/get.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_network_image copy.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
 import 'package:greyfundr/core/models/split_bill_details_model.dart';
-import 'package:greyfundr/features/bill/bill_payment_method_screen.dart';
+import 'package:greyfundr/core/providers/socket_provider.dart';
+import 'package:greyfundr/features/bill/sort_bill_bottom_sheet.dart';
+import 'package:greyfundr/features/bill/split_bill_comments_sheet.dart';
+import 'package:greyfundr/features/bill/split_notification_page.dart';
 import 'package:greyfundr/features/new_split_bill/edit_split_bill_screen.dart';
 import 'package:greyfundr/features/new_split_bill/split_bill_provider.dart';
 import 'package:greyfundr/services/user_local_storage_service.dart';
+import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/responsiveState/responsive_state.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
+import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -26,6 +32,9 @@ class SplitBillDetailsScreen extends StatefulWidget {
 class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
   String selectedTab = 'ABOUT';
   final formatter = NumberFormat('#,##0.00');
+  final ScrollController _pageScrollController = ScrollController();
+
+  SocketProvider? _socketProvider;
 
   @override
   void initState() {
@@ -36,6 +45,28 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
         listen: false,
       );
       provider.getSplitBillDetails(splitBillId: widget.billId);
+      _socketProvider = Provider.of<SocketProvider>(context, listen: false);
+      _socketProvider?.subscribe('bill', widget.billId, () {
+        provider.getSplitBillDetails(splitBillId: widget.billId);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _pageScrollController.dispose();
+    _socketProvider?.unsubscribe('bill', widget.billId);
+    super.dispose();
+  }
+
+  void _scrollPageToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_pageScrollController.hasClients) return;
+      _pageScrollController.animateTo(
+        _pageScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeInOut,
+      );
     });
   }
 
@@ -97,6 +128,17 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
         ? totalCollected / totalAmount
         : 0.0;
 
+    final totalParticipants = data.participants?.length ?? 0;
+    final paidParticipants =
+        data.participants
+            ?.where((p) => p.status?.toLowerCase() == 'paid')
+            .length ??
+        0;
+    final isSettled =
+        totalParticipants > 0 && paidParticipants >= totalParticipants;
+    final hasUnpaidParticipants =
+        totalParticipants > 0 && paidParticipants < totalParticipants;
+
     // Find current user's share
     final myShare = data.participants?.firstWhereOrNull(
       (p) => p.userId == currentUserId,
@@ -111,6 +153,9 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
         creator?.user?.firstName ?? creator?.guestName ?? 'Creator';
 
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+
+      controller: _pageScrollController,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -126,6 +171,8 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
                         imageUrl: data.imageUrl ?? "",
                         height: SizeConfig.heightOf(35),
                         width: double.infinity,
+                        fit: BoxFit.cover,
+                        padding: 0,
                       )
                     : const Center(
                         child: Icon(Icons.image, size: 64, color: Colors.grey),
@@ -179,7 +226,7 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
                           ),
                         ),
                       ),
-                      if (isCreator)
+                      if (isCreator && !isSettled)
                         Row(
                           children: [
                             GestureDetector(
@@ -340,6 +387,28 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
                           ],
                         ),
                       ),
+                      if(isCreator && !isSettled)
+                      InkWell(
+                        onTap: () => Get.to(
+                          SplitNotificationPage(billId: widget.billId),
+                          transition: Transition.rightToLeft,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(
+                              0xFF007A74,
+                            ).withValues(alpha: 0.08),
+                          ),
+                          child: const Icon(
+                            Icons.notifications_outlined,
+                            color: Color(0xFF007A74),
+                            size: 20,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -430,7 +499,7 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
           // Tab bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-            child: _buildTabBar(),
+            child: _buildTabBar(totalParticipants),
           ),
 
           // Content
@@ -443,27 +512,31 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
               isCreator,
               currentUserId,
               myShare,
+              hasUnpaidParticipants,
             ),
           ),
 
           // Button
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-            child: _buildActionButton(
-              context,
-              isCreator,
-              myShare,
-              widget.billId,
-              data.minPaymentAmount?.toString(),
-              double.tryParse(myShare?.amountRemaining?.toString() ?? "0"),
+          if (!isSettled)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              child: _buildActionButton(
+                context,
+                isCreator,
+                myShare,
+                widget.billId,
+                data.minPaymentAmount?.toString(),
+                double.tryParse(myShare?.amountRemaining?.toString() ?? "0"),
+                data.allowPartialPayment ?? false,
+                data.title,
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(int participantCount) {
     final tabs = ['ABOUT', 'OFFERS', 'PARTICIPANT', 'COMMENTS'];
     return Container(
       decoration: BoxDecoration(
@@ -478,6 +551,9 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
               setState(() {
                 selectedTab = tab;
               });
+              if (tab == 'COMMENTS') {
+                _scrollPageToBottom();
+              }
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -490,15 +566,43 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
                       color: isSelected ? Color(0xff8e96a399) : null,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
-                      tab,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                        color: isSelected ? Colors.white : Colors.grey[600],
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          tab,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                            color: isSelected
+                                ? Colors.white
+                                : Colors.grey[600],
+                          ),
+                        ),
+                        if (tab == 'PARTICIPANT') ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '$participantCount',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ],
@@ -517,6 +621,7 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
     bool isCreator,
     String? currentUserId,
     Participant? myShare,
+    bool hasUnpaidParticipants,
   ) {
     switch (tab) {
       case 'ABOUT':
@@ -524,9 +629,14 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
       case 'OFFERS':
         return _buildOffersTab();
       case 'PARTICIPANT':
-        return _buildParticipantTab(context, data, isCreator);
+        return _buildParticipantTab(
+          context,
+          data,
+          isCreator,
+          hasUnpaidParticipants,
+        );
       case 'COMMENTS':
-        return _buildCommentsTab();
+        return _buildCommentsTab(myShare);
       default:
         return const SizedBox();
     }
@@ -573,13 +683,18 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
     );
   }
 
-  Widget _buildParticipantTab(BuildContext context, Data data, bool isCreator) {
+  Widget _buildParticipantTab(
+    BuildContext context,
+    Data data,
+    bool isCreator,
+    bool hasUnpaidParticipants,
+  ) {
     final participants = data.participants ?? [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (isCreator) ...[
+        if (isCreator && hasUnpaidParticipants) ...[
           Container(
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.only(bottom: 16),
@@ -652,9 +767,10 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
     );
   }
 
-  Widget _buildCommentsTab() {
-    return Center(
-      child: Text('No comments yet', style: TextStyle(color: Colors.grey[600])),
+  Widget _buildCommentsTab(Participant? myShare) {
+    return SplitBillCommentsView(
+      billId: widget.billId,
+      participantId: myShare?.id,
     );
   }
 
@@ -680,116 +796,73 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
 
   Widget _buildParticipantRow(Participant p) {
     final name = p.user?.firstName ?? p.guestName ?? 'Guest';
-    final amount = p.amountOwed ?? 0;
-    final status = p.status?.toLowerCase() ?? 'pending';
-    final isPaid = status == 'paid';
+    final amountOwed = (p.amountOwed ?? 0).toDouble();
     final amountPaid = double.tryParse(p.amountPaid?.toString() ?? '0') ?? 0;
+    final progress = amountOwed > 0
+        ? (amountPaid / amountOwed).clamp(0.0, 1.0)
+        : 0.0;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           p.user?.image?.isNotEmpty ?? false
-              ? CustomNetworkImage(
-                  imageUrl: p.user?.image ?? "",
-                  radius: 40,
-                )
+              ? CustomNetworkImage(imageUrl: p.user?.image ?? "", radius: 56)
               : Container(
-                  width: 40,
-                  height: 40,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(16),
                     color: const Color(0xFF007A74).withValues(alpha: 0.1),
                   ),
                   child: Center(
                     child: Text(
-                      name[0].toUpperCase(),
+                      name.isNotEmpty ? name[0].toUpperCase() : 'G',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF007A74),
+                        fontSize: 20,
                       ),
                     ),
                   ),
                 ),
           const SizedBox(width: 12),
+          SizedBox(
+            width: 80,
+            child: Text(
+              name,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Gap(5),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
+                  '₦${formatter.format(amountPaid)} Funded of ₦${formatter.format(amountOwed)}',
+                  style: txStyle13,
                 ),
-                const SizedBox(height: 2),
-                if (!isPaid)
-                  Text(
-                    '₦${formatter.format(amount)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                      // decoration: (amountPaid > 0 && !isPaid) ? TextDecoration.lineThrough : null,
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(50),
+                  child: LinearProgressIndicator(
+                    minHeight: 8,
+                    value: progress,
+                    backgroundColor: Colors.grey[200],
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Color(0xFF007A74),
                     ),
                   ),
-                if (amountPaid > 0) ...[
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Text(
-                        'Paid: ₦${formatter.format(amountPaid)}',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF007A74),
-                        ),
-                      ),
-                      if (!isPaid) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          '•',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '₦${formatter.format(amount - amountPaid)} left',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
+                ),
               ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: isPaid
-                  ? Colors.green.withValues(alpha: 0.1)
-                  : Colors.orange.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              isPaid ? 'Paid' : capitalizeFirstText(status),
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: isPaid ? Colors.green : Colors.orange,
-              ),
             ),
           ),
         ],
@@ -804,55 +877,65 @@ class _SplitBillDetailsScreenState extends State<SplitBillDetailsScreen> {
     String? billId,
     String? minimumPaymentAmount,
     double? amountRemaining,
+    bool allowPartialPayment,
+    String? billTitle,
   ) {
     final hasPaid = myShare?.status?.toLowerCase() == 'paid';
+    final amountOwed =
+        double.tryParse(myShare?.amountOwed.toString() ?? "0") ?? 0;
+    final remaining = amountRemaining ?? 0;
 
-    if (isCreator) {
-      // return CustomButton(
-      //   onTap: () {
-      //     showSuccessToast('Manage split feature coming soon');
-      //   },
-      //   height: 52,
-      //   label: 'MANAGE SPLIT',
-      //   backgroundColor: const Color(0xFF007A74),
-      //   borderColor: const Color(0xFF007A74),
-      //   enabled: true,
-      // );
-      return const SizedBox();
-    } else {
-      return CustomButton(
-        onTap: () {
-          if (hasPaid) return;
-          // showSuccessToast('Proceeding to payment');
-          Get.to(
-            BillPaymentMethodScreen(
-              participantId: "${myShare?.id}",
-              billID: "${billId}",
-              minPaymentAmount:
-                  double.tryParse(minimumPaymentAmount ?? "0") ?? 0,
-              payingRemainingAmount:
-                  (amountRemaining != null && amountRemaining > 0)
-                  ? true
-                  : false,
-              amount: (amountRemaining != null && amountRemaining > 0)
-                  ? amountRemaining
-                  : (double.tryParse(myShare?.amountOwed.toString() ?? "0") ??
-                        0),
+    return Row(
+      children: [
+        if (isCreator)
+          Expanded(
+            child: CustomButton(
+              height: 45,
+              backgroundColor: appSecondaryColor,
+              borderColor: appSecondaryColor,
+              onTap: () {
+                Get.to(EditSplitBillScreen(billId: widget.billId));
+              },
+              label: "Mange",
             ),
-            transition: Transition.rightToLeft,
-          );
-        },
-        height: 52,
-        label: hasPaid ? 'PAID' : 'SORT BILL',
-        backgroundColor: hasPaid
-            ? Colors.green.shade600
-            : const Color(0xFF007A74),
-        borderColor: hasPaid ? Colors.green.shade600 : const Color(0xFF007A74),
-        enabled: true,
-        icon: hasPaid
-            ? const Icon(Icons.check_circle, color: Colors.white, size: 20)
-            : null,
-      );
-    }
+          ),
+        Gap(10),
+        if (!hasPaid)
+          Expanded(
+            child: CustomButton(
+              onTap: () {
+                if (hasPaid) return;
+                showSortBillBottomSheet(
+                  context: context,
+                  billId: "$billId",
+                  participantId: "${myShare?.id}",
+                  amountOwed: amountOwed,
+                  amountRemaining: remaining,
+                  minPaymentAmount:
+                      double.tryParse(minimumPaymentAmount ?? "0") ?? 0,
+                  allowPartialPayment: allowPartialPayment,
+                  billTitle: billTitle,
+                );
+              },
+              height: 45,
+              label: hasPaid ? 'PAID' : 'SORT BILL',
+              backgroundColor: hasPaid
+                  ? Colors.green.shade600
+                  : const Color(0xFF007A74),
+              borderColor: hasPaid
+                  ? Colors.green.shade600
+                  : const Color(0xFF007A74),
+              enabled: true,
+              icon: hasPaid
+                  ? const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 20,
+                    )
+                  : null,
+            ),
+          ),
+      ],
+    );
   }
 }

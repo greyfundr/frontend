@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 
@@ -74,7 +75,11 @@ class UiBusyWidget extends StatelessWidget {
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [const CustomCircularProgressIndicator(strokeWidth: 5)],
+          children: [
+            CustomCircularProgressIndicator(
+              strokeWidth: Platform.isAndroid ? 2 : 5,
+            ),
+          ],
         ),
       ),
     );
@@ -99,7 +104,7 @@ class UiErrorWidget extends StatelessWidget {
             Gap(10),
             Text("Please try again later."),
             Gap(10),
-            CustomButton(onTap: onRetry ?? (){}, label: "Try again"),
+            CustomButton(onTap: onRetry ?? () {}, label: "Try again"),
           ],
         ),
       ),
@@ -109,11 +114,14 @@ class UiErrorWidget extends StatelessWidget {
 
 class NumberTextInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     if (newValue.text.isEmpty) return newValue;
 
     String cleaned = newValue.text.replaceAll(RegExp(r'[^0-9.]'), '');
-    
+
     // Prevent multiple decimal points
     if (cleaned.split('.').length > 2) {
       return oldValue;
@@ -168,11 +176,7 @@ class UiNoDataAvailableWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SvgPicture.asset(
-              "assets/svgs/empty_state.svg",
-              height: 50,
-              color: Get.theme.iconTheme.color,
-            ),
+            const _NoDataIconCarousel(size: 40),
             if (message != null) ...[
               Gap(5),
               Text(message!, style: txStyle14, textAlign: TextAlign.center),
@@ -194,6 +198,91 @@ class UiNoDataAvailableWidget extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NoDataIconCarousel extends StatefulWidget {
+  final double size;
+  const _NoDataIconCarousel({this.size = 40});
+
+  @override
+  State<_NoDataIconCarousel> createState() => _NoDataIconCarouselState();
+}
+
+class _NoDataIconCarouselState extends State<_NoDataIconCarousel> {
+  static const _assets = <String>[
+    'assets/svgs/coins.svg',
+    'assets/svgs/game.svg',
+    'assets/svgs/hand-coins.svg',
+    'assets/svgs/heart.svg',
+    'assets/svgs/money.svg',
+    'assets/svgs/package.svg',
+  ];
+
+  static const _holdDuration = Duration(milliseconds: 100);
+  static const _crossfadeDuration = Duration(milliseconds: 100);
+
+  int _index = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(_holdDuration + _crossfadeDuration, (_) {
+      if (!mounted) return;
+      setState(() => _index = (_index + 1) % _assets.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tint = Get.theme.iconTheme.color;
+    return SizedBox(
+      width: widget.size + 0,
+      height: widget.size + 0,
+      child: AnimatedSwitcher(
+        duration: _crossfadeDuration,
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          final isIncoming = child.key == ValueKey<int>(_index);
+          final slide = Tween<Offset>(
+            begin: Offset(0, isIncoming ? 0.35 : 0),
+            end: Offset(0, isIncoming ? 0 : -0.35),
+          ).animate(animation);
+          final scale = Tween<double>(
+            begin: isIncoming ? 0.92 : 1,
+            end: isIncoming ? 1 : 0.92,
+          ).animate(animation);
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: slide,
+              child: ScaleTransition(scale: scale, child: child),
+            ),
+          );
+        },
+        layoutBuilder: (current, previous) {
+          return Stack(
+            alignment: Alignment.center,
+            children: <Widget>[...previous, if (current != null) current],
+          );
+        },
+        child: SvgPicture.asset(
+          _assets[_index],
+          key: ValueKey<int>(_index),
+          height: widget.size,
+          width: widget.size,
+          color: tint,
         ),
       ),
     );
@@ -257,6 +346,14 @@ class UiUserNotLoggedIn extends StatelessWidget {
 String formatDate(DateTime date) {
   try {
     return DateFormat('d MMMM yyyy').format(date);
+  } catch (e) {
+    return 'N/A';
+  }
+}
+
+String formatDateForApi(DateTime date) {
+  try {
+    return DateFormat('yyyy-MM-dd').format(date);
   } catch (e) {
     return 'N/A';
   }
@@ -720,7 +817,6 @@ String convertDurationToTimeString(String duration) {
   return '$hoursString:$minutesString';
 }
 
-
 String formatPhoneNumber(String phoneNumber) {
   if (phoneNumber.isEmpty) return phoneNumber;
   if (phoneNumber.startsWith("+234")) {
@@ -731,7 +827,6 @@ String formatPhoneNumber(String phoneNumber) {
   }
   return "+234$phoneNumber";
 }
-
 
 class UiNoDataWidget extends StatelessWidget {
   final String title;
@@ -781,19 +876,19 @@ class UiNoDataWidget extends StatelessWidget {
                 Gap(10),
                 subTitle.isNotEmpty
                     ? SizedBox(
-                      width: SizeConfig.widthOf(80),
-                      child: CustomOnTap(
-                        onTap: onTap ?? () {},
-                        child: Text(
-                          subTitle,
-                          style: txStyle14.copyWith(
-                            color: Colors.grey,
-                            height: 1.5,
+                        width: SizeConfig.widthOf(80),
+                        child: CustomOnTap(
+                          onTap: onTap ?? () {},
+                          child: Text(
+                            subTitle,
+                            style: txStyle14.copyWith(
+                              color: Colors.grey,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    )
+                      )
                     : const SizedBox.shrink(),
 
                 Gap(10),

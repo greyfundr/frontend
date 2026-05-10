@@ -81,7 +81,7 @@ class AuthProvider extends BaseNotifier with Validators {
     });
   }
 
-  void checkPasswordStrength(String password) {
+  int checkPasswordStrength(String password) {
     int strength = 0;
     if (password.length >= 6) strength++;
     if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
@@ -89,6 +89,7 @@ class AuthProvider extends BaseNotifier with Validators {
     if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
     passwordStrength = strength;
     notifyListeners();
+    return strength;
   }
 
   final emailController = TextEditingController();
@@ -128,6 +129,9 @@ class AuthProvider extends BaseNotifier with Validators {
     // signupPageController.dispose();
     currentSignupPage = 0;
     selectedRole = "";
+    passwordStrength = 0;
+    emailController.clear();
+    phoneController.clear();
     notifyListeners();
   }
 
@@ -224,6 +228,25 @@ class AuthProvider extends BaseNotifier with Validators {
     }
   }
 
+
+    Future<bool> verifyResetPasswordOtp({
+    required String email,
+    required String otp,
+  }) async {
+    EasyLoading.show();
+    try {
+      await authApi.verifyResetPasswordOtp(emailOrPhone: email, otp: otp);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      log("ERROR ON VERIFY OTP $e ");
+      showErrorToast("$e");
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
   Future<bool> resendOtpApi({required String email}) async {
     EasyLoading.show();
     try {
@@ -267,6 +290,7 @@ class AuthProvider extends BaseNotifier with Validators {
     required String firstName,
     required String lastName,
     required String username,
+     required String dob,
   }) async {
     EasyLoading.show();
     try {
@@ -275,6 +299,7 @@ class AuthProvider extends BaseNotifier with Validators {
         lastName: lastName,
         username: username,
         agreeToTerms: true,
+        dob: dob,
       );
       notifyListeners();
       return true;
@@ -407,6 +432,7 @@ class AuthProvider extends BaseNotifier with Validators {
 
   void disposePin() {
     newPin = "";
+    confirmNewPin = "";
     notifyListeners();
   }
 }

@@ -88,7 +88,7 @@ class _VerifyOtpWidgetState extends State<VerifyOtpWidget> {
 
         CustomButton(
           onTap: () async {
-            bool res = await authProvider.verifyOtpApi(
+            bool res = await authProvider.verifyResetPasswordOtp(
               email: authProvider.emailOrPhoneForgotPasswordController.text,
               otp: otpController.text,
             );

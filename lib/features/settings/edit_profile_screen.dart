@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -7,9 +8,13 @@ import 'package:greyfundr/components/custom_app_bar.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_date_picker_textField.dart';
 import 'package:greyfundr/components/custom_network_image.dart';
+import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/core/providers/user_provider.dart';
 import 'package:greyfundr/features/settings/interest_selection_screen.dart';
+import 'package:greyfundr/shared/responsiveState/responsive_state.dart';
+import 'package:greyfundr/shared/responsiveState/view_state.dart';
+import 'package:greyfundr/shared/text_style.dart';
 import 'package:greyfundr/shared/utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
@@ -35,6 +40,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   UserProvider? userProvider;
   bool isChanged = false;
+  Timer? _usernameDebounce;
 
   @override
   void initState() {
@@ -51,6 +57,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
+    _usernameDebounce?.cancel();
     firstNameController.removeListener(_checkIfChanged);
     lastNameController.removeListener(_checkIfChanged);
     usernameController.removeListener(_checkIfChanged);
@@ -60,6 +67,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     usernameController.dispose();
     bioController.dispose();
     super.dispose();
+  }
+
+  void _onUsernameChanged(String? val, UserProvider provider) {
+    _usernameDebounce?.cancel();
+    final username = (val ?? '').trim();
+    final currentUsername = provider.userProfileModel?.username ?? '';
+    if (username.isEmpty || username == currentUsername) {
+      provider.resetUsernameState();
+      return;
+    }
+    _usernameDebounce = Timer(const Duration(milliseconds: 500), () {
+      provider.checkIfUsernameExist(username: username);
+    });
   }
 
   void _checkIfChanged() {
@@ -207,10 +227,66 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             controller: lastNameController,
           ),
           Gap(20),
-          CustomTextField(
-            labelText: "Username",
-            hintText: "Enter your username",
-            controller: usernameController,
+          Builder(
+            builder: (_) {
+              final currentUsername =
+                  userProvider.userProfileModel?.username ?? "";
+              final typedUsername = usernameController.text.trim();
+              final showTakenError =
+                  userProvider.usernameState == ViewState.Success &&
+                  userProvider.usernameExist &&
+                  typedUsername.isNotEmpty &&
+                  typedUsername != currentUsername;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 18,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Username",
+                          style: txStyle13.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Visibility(
+                          visible: showTakenError,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Text(
+                            "Username already taken",
+                            style: txStyle12.copyWith(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CustomTextField(
+                    hintText: "Enter your username",
+                    controller: usernameController,
+                    onChanged: (val) {
+                      _onUsernameChanged(val, userProvider);
+                      setState(() {});
+                    },
+                    suffixIcon: SizedBox(
+                      height: 20,
+                      child: ResponsiveState(
+                        state: userProvider.usernameState,
+                        busyWidget: UiBusyWidget(height: 16),
+                        successWidget: Icon(
+                          showTakenError ? Icons.close : Icons.check,
+                          color: showTakenError ? Colors.transparent : null,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           Gap(20),
           CustomTextField(
@@ -229,9 +305,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             minimumDate: DateTime.now().subtract(
               const Duration(days: 365 * 100),
             ),
-            maximumDate: DateTime.now().subtract(
-              const Duration(days: 365 * 6),
-            ),
+            maximumDate: DateTime.now().subtract(const Duration(days: 365 * 6)),
             isRequired: false,
             onDateChanged: (date) {
               setState(() {
@@ -293,7 +367,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           Gap(20),
           CustomButton(
             enabled: isChanged,
+            loading: userProvider.usernameState == ViewState.Busy,
             onTap: () async {
+              if (await userProvider.checkIfUsernameExist(
+                username: usernameController.text.trim(),
+              )) {
+                showErrorToast("Username already taken");
+                return;
+              }
               if (isChanged) {
                 bool success = await userProvider.editProfile(
                   firstName: firstNameController.text,

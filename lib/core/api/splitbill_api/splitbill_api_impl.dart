@@ -8,9 +8,11 @@ import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
 import 'package:greyfundr/core/models/all_user_model.dart';
 import 'package:greyfundr/core/models/split_bill_details_model.dart';
+import 'package:greyfundr/core/models/split_bill_query_model.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/core/models/split_user_model.dart' as splitUser;
 import 'package:greyfundr/core/models/my_split_bill_model.dart';
+import 'package:greyfundr/core/models/split_bill_comment_model.dart';
 import 'package:greyfundr/core/models/split_bill_invite_model.dart';
 
 class SplitBillApiImpl implements SplitBillApi {
@@ -564,7 +566,11 @@ class SplitBillApiImpl implements SplitBillApi {
   Future<MySplitBillModel> getMySplitBills() async {
     try {
       final url = '${ApiRoute.createSplitBillRoute}/my-bills';
-      final responseBody = await _apiClient.get(url, requiresToken: true);
+      final responseBody = await _apiClient.get(
+        url,
+        requiresToken: true,
+        hideLog: false,
+      );
       return mySplitBillModelFromJson(responseBody);
     } catch (e) {
       log('getMySplitBills failed: $e');
@@ -605,7 +611,7 @@ class SplitBillApiImpl implements SplitBillApi {
     required String dueDate,
     required List<Map> participants,
     String? recipientUserId,
-    String? billReceipt,
+    List<String>? receipts,
     bool? allowPartialPayments,
     double? minPaymentAmountForPartial,
     String? splitMethod,
@@ -619,7 +625,7 @@ class SplitBillApiImpl implements SplitBillApi {
       "dueDate": dueDate,
       "participants": participants,
       "recipientUserId": recipientUserId,
-      "billReceipt": billReceipt,
+      "receipts": receipts ?? [],
       "allowPartialPayment": allowPartialPayments,
       "minPaymentAmount": minPaymentAmountForPartial ?? 0.0,
       "splitMethod": splitMethod,
@@ -669,13 +675,19 @@ class SplitBillApiImpl implements SplitBillApi {
     String? billId,
     String? amount,
     String? transactionPin,
+    String? onBehalfOfParticipantId,
   }) async {
     final responseBody = await _apiClient.post(
       "${ApiRoute.getSplitBillRoute}/$billId/participants/$participantId/pay",
       body: {
-        "amount": amount != null ? double.tryParse(amount.replaceAll(',', '')) ?? 0.0 : 0.0,
+        "amount": amount != null
+            ? double.tryParse(amount.replaceAll(',', '')) ?? 0.0
+            : 0.0,
         "paymentMethod": "wallet",
         if (transactionPin != null) "transactionPin": transactionPin,
+        if (onBehalfOfParticipantId != null &&
+            onBehalfOfParticipantId.isNotEmpty)
+          "onBehalfOfParticipantId": onBehalfOfParticipantId,
       },
       headers: header,
       hideLog: false,
@@ -685,20 +697,26 @@ class SplitBillApiImpl implements SplitBillApi {
   }
 
   @override
-  Future payForBillWithPaystack({
+  Future<String> payForBillWithPaystack({
     String? participantId,
     String? billId,
     String? amount,
+    String? onBehalfOfParticipantId,
   }) async {
     final responseBody = await _apiClient.post(
-      "${ApiRoute.getSplitBillRoute}/$billId/$billId/participants/$participantId/pay",
+      "${ApiRoute.getSplitBillRoute}/$billId/participants/$participantId/pay",
       body: {
         "amount": amount != null ? double.tryParse(amount)?.toInt() ?? 0 : 0,
         "paymentMethod": "paystack",
+        if (onBehalfOfParticipantId != null &&
+            onBehalfOfParticipantId.isNotEmpty)
+          "onBehalfOfParticipantId": onBehalfOfParticipantId,
       },
       requiresToken: true,
     );
-    return (responseBody);
+    var decodedResponse = jsonDecode(responseBody);
+    log('payForBillWithPaystack response: $decodedResponse');
+    return decodedResponse["data"]["authorizationUrl"];
   }
 
   @override
@@ -726,5 +744,90 @@ class SplitBillApiImpl implements SplitBillApi {
       requiresToken: true,
     );
     return true;
+  }
+
+  @override
+  Future<bool> sendSplitBillQuery({
+    required String billId,
+    required String content,
+  }) async {
+    await _apiClient.post(
+      "${ApiRoute.createSplitBillRoute}/$billId/query",
+      headers: header,
+      body: {"message": content},
+      requiresToken: true,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> addParticipantComment({
+    required String billId,
+    required String participantId,
+    required String content,
+    String displayType = 'full_name',
+  }) async {
+    await _apiClient.post(
+      "${ApiRoute.createSplitBillRoute}/$billId/participants/$participantId/comments",
+      headers: header,
+      body: {"content": content, "displayType": displayType},
+      requiresToken: true,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> editParticipantComment({
+    required String billId,
+    required String participantId,
+    required String commentId,
+    required String content,
+    String? displayType,
+  }) async {
+    await _apiClient.patch(
+      "${ApiRoute.createSplitBillRoute}/$billId/participants/$participantId/comments/$commentId",
+      headers: header,
+      body: {
+        "content": content,
+        if (displayType != null) "displayType": displayType,
+      },
+      requiresToken: true,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> deleteParticipantComment({
+    required String billId,
+    required String participantId,
+    required String commentId,
+  }) async {
+    await _apiClient.delete(
+      "${ApiRoute.createSplitBillRoute}/$billId/participants/$participantId/comments/$commentId",
+      headers: header,
+      requiresToken: true,
+    );
+    return true;
+  }
+
+  @override
+  Future<List<SplitBillQueryDatum>> getSplitBillQueries(String billId) async {
+    final responseBody = await _apiClient.get(
+      "${ApiRoute.createSplitBillRoute}/$billId/queries",
+      headers: header,
+      requiresToken: true,
+    );
+    var convertedResponse = queryNotificationModelFromJson(responseBody);
+    return convertedResponse.queries ?? [];
+  }
+
+  @override
+  Future<SplitBillCommentResponse> getSplitBillComments(String billId) async {
+    final responseBody = await _apiClient.get(
+      "${ApiRoute.createSplitBillRoute}/$billId/comments",
+      headers: header,
+      requiresToken: true,
+    );
+    return splitBillCommentResponseFromJson(responseBody);
   }
 }

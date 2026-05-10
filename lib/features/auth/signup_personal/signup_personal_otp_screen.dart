@@ -85,6 +85,7 @@ class _SignupPersonalOtpScreenState extends State<SignupPersonalOtpScreen> {
                     );
 
                     if (res) {
+                      pinController.clear();
                       authProvider.startTimer();
                     }
                   },

@@ -187,6 +187,24 @@ mixin Validators {
     } else if (value.length < 8) {
       return 'Password is too short';
     }
+    return null;
+  }
+
+  String? validateSignupPassword(String value) {
+    if (value.trim().isEmpty) {
+      return 'Password field cannot be empty';
+    } else if (value.length < 8) {
+      return 'Password is too short';
+    }
+    if (!RegExp(r'[A-Z]').hasMatch(value)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!RegExp(r'\d').hasMatch(value)) {
+      return 'Password must contain at least one number';
+    }
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>_\-\[\]\\\/+=~`%]').hasMatch(value)) {
+      return 'Password must contain at least one special character';
+    }
     password = value;
     return null;
   }

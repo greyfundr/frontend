@@ -1,8 +1,12 @@
+import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:greyfundr/components/custom_snackbars.dart';
+import 'package:greyfundr/core/api/splitbill_api/splitbill_api.dart';
+import 'package:greyfundr/core/models/all_user_model.dart';
+import 'package:greyfundr/core/models/event_contributions_response_model.dart';
 import 'package:greyfundr/core/models/event_details_model.dart';
 import 'package:greyfundr/core/models/google_place_autocomplete_model.dart';
 import 'package:greyfundr/core/models/user_event_model.dart';
@@ -17,6 +21,57 @@ import 'package:greyfundr/shared/responsiveState/base_view_model.dart';
 import 'package:greyfundr/shared/responsiveState/view_state.dart';
 
 // Helper models
+
+class EventLeaderboardEntry {
+  final String? userId;
+  final String? firstName;
+  final String? lastName;
+  final String? username;
+  final double totalAmount;
+
+  EventLeaderboardEntry({
+    this.userId,
+    this.firstName,
+    this.lastName,
+    this.username,
+    this.totalAmount = 0,
+  });
+
+  String get fullName {
+    final name = [firstName ?? '', lastName ?? '']
+        .where((p) => p.trim().isNotEmpty)
+        .join(' ')
+        .trim();
+    if (name.isNotEmpty) return name;
+    return username ?? 'Anonymous';
+  }
+
+  String get initials {
+    final source = fullName.trim();
+    if (source.isEmpty) return '?';
+    final parts = source.split(RegExp(r'\s+'));
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
+  }
+
+  factory EventLeaderboardEntry.fromJson(Map<String, dynamic> json) {
+    final raw = json['totalAmount'];
+    double parsedAmount = 0;
+    if (raw is num) {
+      parsedAmount = raw.toDouble();
+    } else if (raw is String) {
+      parsedAmount = double.tryParse(raw) ?? 0;
+    }
+    return EventLeaderboardEntry(
+      userId: json['userId']?.toString(),
+      firstName: json['firstName']?.toString(),
+      lastName: json['lastName']?.toString(),
+      username: json['username']?.toString(),
+      totalAmount: parsedAmount,
+    );
+  }
+}
 
 class EventDetailSection {
   // rsvp
@@ -893,6 +948,200 @@ class EventProvider extends BaseNotifier {
     }
   }
 
+  // ── Gift event form state ───────────────────────────────────────
+  final SplitBillApi _splitBillApi = locator<SplitBillApi>();
+  final TextEditingController giftAmountController = TextEditingController();
+  final TextEditingController giftCommentController = TextEditingController();
+  final TextEditingController giftBehalfSearchController =
+      TextEditingController();
+  String giftBehalfOfName = '';
+  String giftBehalfOfUserId = '';
+  XFile? giftPhotoFile;
+  String? giftPhotoUrl;
+  String giftDisplayName = '';
+  bool giftIsAnonymous = false;
+
+  List<AllUsersModel> giftBehalfSearchResults = [];
+  ViewState giftBehalfSearchState = ViewState.Idle;
+  Timer? _giftBehalfDebounce;
+
+  double get giftAmount {
+    final clean = giftAmountController.text.replaceAll(',', '');
+    return double.tryParse(clean) ?? 0;
+  }
+
+  bool get giftHasComment => giftCommentController.text.trim().isNotEmpty;
+  bool get giftHasBehalfOf => giftBehalfOfName.trim().isNotEmpty;
+  bool get giftHasCustomPhoto => giftPhotoFile != null;
+
+  void initGiftForm({String? defaultProfileUrl}) {
+    giftAmountController.clear();
+    giftCommentController.clear();
+    giftBehalfSearchController.clear();
+    giftBehalfOfName = '';
+    giftBehalfOfUserId = '';
+    giftBehalfSearchResults = [];
+    giftBehalfSearchState = ViewState.Idle;
+    giftPhotoFile = null;
+    giftPhotoUrl = defaultProfileUrl;
+    giftIsAnonymous = false;
+    final user = UserLocalStorageService().getUserData();
+    final fullName =
+        '${user?.firstName ?? ''} ${user?.lastName ?? ''}'.trim();
+    giftDisplayName = fullName.isNotEmpty
+        ? fullName
+        : (user?.username ?? '');
+    notifyListeners();
+  }
+
+  Future<String?> uploadGiftPhoto() async {
+    if (giftPhotoFile == null) return null;
+    try {
+      return await _eventApi.uploadSingleImage(giftPhotoFile!.path);
+    } catch (e, stack) {
+      log('Gift photo upload failed: $e', stackTrace: stack);
+      return null;
+    }
+  }
+
+  void setGiftBehalfOfUser(AllUsersModel user) {
+    giftBehalfOfUserId = user.id ?? '';
+    giftBehalfOfName =
+        user.username ?? user.firstName ?? user.phoneNumber ?? 'User';
+    giftBehalfSearchResults = [];
+    giftBehalfSearchState = ViewState.Idle;
+    giftBehalfSearchController.clear();
+    notifyListeners();
+  }
+
+  void clearGiftBehalfOf() {
+    giftBehalfOfName = '';
+    giftBehalfOfUserId = '';
+    notifyListeners();
+  }
+
+  void setGiftAnonymous() {
+    final anonymousId =
+        UserLocalStorageService().getUserData()?.anonymousId?.trim() ?? '';
+    giftDisplayName = anonymousId.isNotEmpty ? anonymousId : 'Anonymous';
+    giftIsAnonymous = true;
+    notifyListeners();
+  }
+
+  void clearGiftAnonymous() {
+    final user = UserLocalStorageService().getUserData();
+    final fullName =
+        '${user?.firstName ?? ''} ${user?.lastName ?? ''}'.trim();
+    giftDisplayName = fullName.isNotEmpty ? fullName : (user?.username ?? '');
+    giftIsAnonymous = false;
+    notifyListeners();
+  }
+
+  void clearGiftBehalfSearch() {
+    giftBehalfSearchController.clear();
+    giftBehalfSearchResults = [];
+    giftBehalfSearchState = ViewState.Idle;
+    _giftBehalfDebounce?.cancel();
+    notifyListeners();
+  }
+
+  void onGiftBehalfQueryChanged(String value) {
+    _giftBehalfDebounce?.cancel();
+    _giftBehalfDebounce = Timer(
+      const Duration(milliseconds: 500),
+      () => searchGiftBehalfOf(value),
+    );
+  }
+
+  Future<void> searchGiftBehalfOf(String identifier) async {
+    void setCustomState(ViewState state) {
+      giftBehalfSearchState = state;
+      notifyListeners();
+    }
+
+    final query = identifier.trim();
+    if (query.isEmpty) {
+      giftBehalfSearchResults = [];
+      setCustomState(ViewState.Idle);
+      return;
+    }
+
+    final isEmail = RegExp(
+      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+    ).hasMatch(query);
+    final digitsOnly = query.replaceAll(RegExp(r'\D'), '');
+    final isPhone = digitsOnly.length >= 10 && digitsOnly.length <= 15;
+
+    String? phone;
+    if (isPhone) {
+      phone = formatPhoneNumber(query).replaceAll('+', '');
+    }
+
+    setCustomState(ViewState.Busy);
+    try {
+      final results = await _splitBillApi.searchForUser(
+        email: isEmail ? query : null,
+        username: (!isEmail && !isPhone) ? query : null,
+        phoneNumber: phone,
+      );
+      giftBehalfSearchResults = results;
+      setCustomState(
+        results.isEmpty ? ViewState.NoDataAvailable : ViewState.Success,
+      );
+    } catch (e, stack) {
+      log('Gift behalf-of search error: $e', stackTrace: stack);
+      setCustomState(ViewState.Error);
+    }
+  }
+
+  void setGiftComment(String comment) {
+    giftCommentController.text = comment;
+    notifyListeners();
+  }
+
+  void clearGiftComment() {
+    giftCommentController.clear();
+    notifyListeners();
+  }
+
+  Future<void> pickGiftPhoto({required bool fromCamera}) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: fromCamera ? ImageSource.camera : ImageSource.gallery,
+      imageQuality: 70,
+    );
+    if (picked != null) {
+      giftPhotoFile = picked;
+      notifyListeners();
+    }
+  }
+
+  void resetGiftPhoto() {
+    giftPhotoFile = null;
+    notifyListeners();
+  }
+
+  String? giftAmountError() {
+    if (giftAmount <= 0) return 'Enter an amount';
+    if (giftAmount < 100) return 'Minimum gift is ₦100';
+    return null;
+  }
+
+  bool get isGiftFormValid => giftAmountError() == null;
+
+  Map<String, dynamic> buildGiftPayload({String? imageUrl}) {
+    final hasBehalfOf = giftBehalfOfName.isNotEmpty;
+    return {
+      'isAnonymous': giftIsAnonymous,
+      if (giftDisplayName.isNotEmpty) 'displayName': giftDisplayName,
+      'onBehalfOf': hasBehalfOf ? 'user' : 'self',
+      if (hasBehalfOf) 'onBehalfOfUserId': giftBehalfOfUserId,
+      if (hasBehalfOf) 'onBehalfOfFullName': giftBehalfOfName,
+      if (giftHasComment) 'comment': giftCommentController.text.trim(),
+      if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
+    };
+  }
+
   EventDetailsModel? eventDetailsModel;
   ViewState selectedEventState = ViewState.Idle;
   Future<void> getEventById(String id) async {
@@ -910,36 +1159,142 @@ class EventProvider extends BaseNotifier {
     }
   }
 
-  Future<void> contributeToEvent(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  ViewState eventContributionState = ViewState.Idle;
+
+  Future<bool> contributeToEvent({
+    required String eventId,
+    required String type,
+    required num amount,
+    required String paymentMethod,
+    Map<String, dynamic>? extraPayload,
+  }) async {
+    eventContributionState = ViewState.Busy;
+    notifyListeners();
+    EasyLoading.show(status: "Processing payment...");
     try {
-      EasyLoading.show(status: "Processing contribution...");
-      await _eventApi.contributeToEvent(id: id, payload: payload);
-      showSuccessToast("Contribution successful");
+      final payload = <String, dynamic>{
+        "type": type,
+        "amount": amount,
+        "paymentMethod": paymentMethod,
+        ...?extraPayload,
+      };
+      await _eventApi.contributeToEvent(id: eventId, payload: payload);
+      showSuccessToast("Payment successful");
+      eventContributionState = ViewState.Success;
+      notifyListeners();
+      return true;
     } catch (e) {
-      log("Error contributing to event: $e");
-      showErrorToast("Contribution failed");
+      log("ERROR ON EVENT CONTRIBUTION PAYMENT $e");
+      showErrorToast("$e");
+      eventContributionState = ViewState.Error;
+      notifyListeners();
+      return false;
     } finally {
       EasyLoading.dismiss();
+      notifyListeners();
     }
   }
 
-  List<dynamic>? leaderboard;
+  Future<String> initiatePaystackEventContribution({
+    required String eventId,
+    required String type,
+    required num amount,
+    Map<String, dynamic>? extraPayload,
+  }) async {
+    eventContributionState = ViewState.Busy;
+    notifyListeners();
+    EasyLoading.show(status: "Initializing payment...");
+    try {
+      final payload = <String, dynamic>{
+        "type": type,
+        "amount": amount,
+        "paymentMethod": "paystack",
+        "details": {...?extraPayload},
+      };
+      final res = await _eventApi.contributeToEvent(
+        id: eventId,
+        payload: payload,
+      );
+      eventContributionState = ViewState.Success;
+      notifyListeners();
+      final data = res["data"];
+      if (data is Map<String, dynamic>) {
+        final authUrl = data["authorization_url"]?.toString() ?? "";
+        if (authUrl.isNotEmpty) return authUrl;
+      }
+      return "";
+    } catch (e) {
+      log("ERROR ON INITIATE PAYSTACK EVENT CONTRIBUTION $e");
+      showErrorToast("Unable to initialize Paystack payment");
+      eventContributionState = ViewState.Error;
+      notifyListeners();
+      return "";
+    } finally {
+      EasyLoading.dismiss();
+      notifyListeners();
+    }
+  }
+
+  List<EventLeaderboardEntry> leaderboard = [];
   ViewState leaderboardState = ViewState.Idle;
   Future<void> getEventLeaderboard(String id) async {
     try {
       leaderboardState = ViewState.Busy;
       notifyListeners();
-      leaderboard = await _eventApi.getEventLeaderboard(id);
-      leaderboardState = ViewState.Success;
+      final raw = await _eventApi.getEventLeaderboard(id);
+      leaderboard = raw
+          .whereType<Map<String, dynamic>>()
+          .map(EventLeaderboardEntry.fromJson)
+          .toList();
+      leaderboardState = leaderboard.isEmpty
+          ? ViewState.NoDataAvailable
+          : ViewState.Success;
     } catch (e) {
       log("Error fetching leaderboard: $e");
       leaderboardState = ViewState.Error;
     } finally {
       notifyListeners();
     }
+  }
+
+  // ─── Event All Contributors (donors) ──────────────────────────
+  List<EventContribution> contributions = [];
+  ViewState contributionsState = ViewState.Idle;
+  String? _contributionsEventId;
+
+  Future<void> getEventContributions(
+    String id, {
+    bool refresh = false,
+  }) async {
+    if (!refresh &&
+        _contributionsEventId == id &&
+        contributions.isNotEmpty) {
+      contributionsState = ViewState.Success;
+      notifyListeners();
+      return;
+    }
+    _contributionsEventId = id;
+    contributions = [];
+    contributionsState = ViewState.Busy;
+    notifyListeners();
+    try {
+      contributions = await _eventApi.getEventContributions(id);
+      contributionsState = contributions.isEmpty
+          ? ViewState.NoDataAvailable
+          : ViewState.Success;
+    } catch (e) {
+      log("Error fetching contributions: $e");
+      contributionsState = ViewState.Error;
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  void clearEventContributions() {
+    contributions = [];
+    _contributionsEventId = null;
+    contributionsState = ViewState.Idle;
+    notifyListeners();
   }
 
   // ──────────────────────────────────────────────────────────────

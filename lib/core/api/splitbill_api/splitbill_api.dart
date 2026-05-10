@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:greyfundr/core/models/all_user_model.dart';
 import 'package:greyfundr/core/models/split_bill_details_model.dart';
+import 'package:greyfundr/core/models/split_bill_query_model.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/core/models/split_user_model.dart' as splitUser;
 import 'package:greyfundr/core/models/my_split_bill_model.dart';
+import 'package:greyfundr/core/models/split_bill_comment_model.dart';
 import 'package:greyfundr/core/models/split_bill_invite_model.dart';
 
 abstract class SplitBillApi {
@@ -89,7 +91,7 @@ abstract class SplitBillApi {
     required String dueDate,
     required List<Map> participants,
     String? recipientUserId,
-    String? billReceipt,
+    List<String>? receipts,
     bool? allowPartialPayments,
     double? minPaymentAmountForPartial,
     String? splitMethod,
@@ -106,12 +108,14 @@ abstract class SplitBillApi {
     String? billId,
     String? amount,
     String? transactionPin,
+    String? onBehalfOfParticipantId,
   });
 
-  Future payForBillWithPaystack({
+  Future<String> payForBillWithPaystack({
     String? participantId,
     String? billId,
     String? amount,
+    String? onBehalfOfParticipantId,
   });
 
   /// Accept a split bill invite
@@ -122,4 +126,40 @@ abstract class SplitBillApi {
 
   /// Send reminders to participants
   Future sendSplitBillReminder(String billId);
+
+  /// Send a one-time query/message to the bill creator before accepting
+  Future<bool> sendSplitBillQuery({
+    required String billId,
+    required String content,
+  });
+
+  /// Add a comment to a split bill participant
+  Future<bool> addParticipantComment({
+    required String billId,
+    required String participantId,
+    required String content,
+    String displayType = 'full_name',
+  });
+
+  /// Edit your own participant comment
+  Future<bool> editParticipantComment({
+    required String billId,
+    required String participantId,
+    required String commentId,
+    required String content,
+    String? displayType,
+  });
+
+  /// Delete a participant comment (own or as creator/moderator)
+  Future<bool> deleteParticipantComment({
+    required String billId,
+    required String participantId,
+    required String commentId,
+  });
+
+  /// Get all comments on a split bill
+  Future<SplitBillCommentResponse> getSplitBillComments(String billId);
+
+  /// Get all queries/notifications raised on a split bill
+  Future<List<SplitBillQueryDatum>> getSplitBillQueries(String billId);
 }

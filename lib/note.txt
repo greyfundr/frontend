@@ -1,5 +1,13 @@
-- pin on resume '
-- bug in contact selection
-- create event in create new
-- profile picture 
-- dynamic link 
+ CustomDatePickerTextFiled(
+              labelText: "Due Date",
+              hintText: "When should this be settled?",
+              selectedDate: provider.dueDate?.toIso8601String() ?? "",
+              initialDate: DateTime.now(),
+              minimumDate: DateTime.now().subtract(const Duration(seconds: 10)),
+              maximumDate: DateTime.now().add(const Duration(days: 365)),
+              isRequired: true,
+              onDateChanged: (date) {
+                provider.dueDate = date;
+                provider.checkIfSplitBillIsComplete();
+              },
+            ),

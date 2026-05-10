@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:animated_digit/animated_digit.dart';
 import 'package:gap/gap.dart';
 import 'package:get/get.dart';
+import 'package:greyfundr/components/custom_network_image.dart';
+import 'package:greyfundr/core/models/event_contributions_response_model.dart';
 import 'package:greyfundr/core/models/event_details_model.dart';
+import 'package:greyfundr/core/providers/socket_provider.dart';
+import 'package:greyfundr/features/bill/event_gift_bottom_sheet.dart';
 import 'package:greyfundr/features/event/event_description_screen.dart';
 import 'package:greyfundr/features/event/event_provider.dart';
 import 'package:greyfundr/features/payment/payment_method_screen.dart';
@@ -26,6 +29,7 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
   int _currentIndex = 0;
 
   EventProvider? eventProvider;
+  SocketProvider? _socketProvider;
 
   @override
   void initState() {
@@ -33,6 +37,12 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
     Future.delayed(Duration.zero, () {
       eventProvider = Provider.of<EventProvider>(context, listen: false);
       eventProvider?.getEventById(widget.eventId);
+      eventProvider?.getEventLeaderboard(widget.eventId);
+      _socketProvider = Provider.of<SocketProvider>(context, listen: false);
+      _socketProvider?.subscribe('event', widget.eventId, () {
+        eventProvider?.getEventById(widget.eventId);
+        eventProvider?.getEventLeaderboard(widget.eventId);
+      });
     });
   }
 
@@ -43,6 +53,7 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
   @override
   void dispose() {
     _pageController.dispose();
+    _socketProvider?.unsubscribe('event', widget.eventId);
     super.dispose();
   }
 
@@ -79,8 +90,7 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Gap(20),
-
+                            // Gap(20),
                             Text(
                               "${event.name ?? 'Event Name'}",
                               style: txStyle18SemiBold,
@@ -95,16 +105,33 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
                       SliverPersistentHeader(
                         pinned: true,
                         delegate: _SliverTabBarDelegate(
-                          const TabBar(
+                          TabBar(
                             isScrollable: true,
-                            labelColor: appPrimaryColor,
-                            unselectedLabelColor: Colors.black54,
-                            indicatorColor: appPrimaryColor,
-                            tabs: [
-                              Tab(text: 'Details'),
+                            tabAlignment: TabAlignment.start,
+                            labelColor: Colors.white,
+                            unselectedLabelColor: Colors.black87,
+                            labelStyle: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                            unselectedLabelStyle: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13,
+                            ),
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            dividerColor: Colors.transparent,
+                            indicatorPadding: const EdgeInsets.symmetric(
+                              vertical: 8,
+                            ),
+                            indicator: BoxDecoration(
+                              color: appPrimaryColor,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            tabs: const [
+                              Tab(text: 'About'),
                               Tab(text: 'Activity'),
                               Tab(text: 'Comment'),
-                              Tab(text: 'Donation Board'),
+                              Tab(text: 'Gift'),
                             ],
                           ),
                         ),
@@ -115,8 +142,8 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
                     children: [
                       _RsvpDetailsTab(),
                       _RsvpActivityTab(),
+                      SizedBox(),
                       _RsvpCommentTab(),
-                      _RsvpDonationBoardTab(),
                     ],
                   ),
                 ),
@@ -128,8 +155,8 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
-          color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+          color: Colors.transparent,
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 5),
           child: Row(
             children: [
               Expanded(
@@ -162,7 +189,15 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
                   height: 50,
                   child: ElevatedButton(
                     onPressed: () {
-                      _showGiftAmountBottomSheet();
+                      final event = context
+                          .read<EventProvider>()
+                          .eventDetailsModel;
+                      if (event == null) return;
+                      showEventGiftBottomSheet(
+                        context: context,
+                        eventId: widget.eventId,
+                        event: event,
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: appPrimaryColor,
@@ -477,170 +512,6 @@ class _RsvpDetailsScreenState extends State<RsvpDetailsScreen> {
       context,
       backgroundColor: Colors.transparent,
     );
-  }
-
-  Future<void> _showGiftAmountBottomSheet() async {
-    final amountController = TextEditingController();
-    final amountFocusNode = FocusNode();
-
-    await showCustomBottomSheet(
-      StatefulBuilder(
-        builder: (context, setSheetState) {
-          final amount = double.tryParse(amountController.text) ?? 0;
-
-          return Padding(
-            padding: MediaQuery.of(context).viewInsets,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset('assets/images/bottom_sheet_cureve_right.png'),
-                Container(
-                  color: const Color(0xffF1F1F7),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: SizeConfig.widthOf(5),
-                        vertical: 20,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Gift This Event',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () => Get.back(),
-                                icon: const Icon(Icons.close),
-                              ),
-                            ],
-                          ),
-                          const Gap(10),
-                          GestureDetector(
-                            onTap: () {
-                              amountFocusNode.requestFocus();
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              child: Column(
-                                children: [
-                                  if (amount <= 0)
-                                    Text(
-                                      'Enter amount',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 30,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.grey[500],
-                                      ),
-                                    )
-                                  else
-                                    AnimatedDigitWidget(
-                                      value: amount,
-                                      textStyle: const TextStyle(
-                                        fontSize: 34,
-                                        fontWeight: FontWeight.w800,
-                                        color: appPrimaryColor,
-                                      ),
-                                      enableSeparator: true,
-                                      prefix: '₦',
-                                    ),
-                                  const Gap(4),
-                                  Text(
-                                    'Tap to type amount',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: 0,
-                            height: 0,
-                            child: TextField(
-                              controller: amountController,
-                              focusNode: amountFocusNode,
-                              autofocus: true,
-                              keyboardType: TextInputType.number,
-                              showCursor: false,
-                              onChanged: (value) {
-                                final sanitized = value.replaceAll(
-                                  RegExp(r'[^0-9]'),
-                                  '',
-                                );
-                                if (sanitized != value) {
-                                  amountController.value = TextEditingValue(
-                                    text: sanitized,
-                                    selection: TextSelection.collapsed(
-                                      offset: sanitized.length,
-                                    ),
-                                  );
-                                }
-                                setSheetState(() {});
-                              },
-                              decoration: const InputDecoration.collapsed(
-                                hintText: '',
-                              ),
-                            ),
-                          ),
-                          const Gap(16),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 50,
-                            child: ElevatedButton(
-                              onPressed: amount <= 0
-                                  ? null
-                                  : () {
-                                      Get.back();
-                                      Get.to(
-                                        PaymentMethodScreen(
-                                          type: 'gifting',
-                                          eventId: widget.eventId,
-                                          amount: amount,
-                                        ),
-                                        transition: Transition.rightToLeft,
-                                      );
-                                    },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: appPrimaryColor,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor: Colors.grey[300],
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text(
-                                'Next',
-                                style: TextStyle(fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-      context,
-      backgroundColor: Colors.transparent,
-    );
-
-    amountController.dispose();
-    amountFocusNode.dispose();
   }
 
   int _toInt(dynamic value) {
@@ -1058,12 +929,608 @@ class _RsvpActivityTab extends StatelessWidget {
   }
 }
 
-class _RsvpCommentTab extends StatelessWidget {
+class _RsvpCommentTab extends StatefulWidget {
   const _RsvpCommentTab();
 
   @override
+  State<_RsvpCommentTab> createState() => _RsvpCommentTabState();
+}
+
+class _RsvpCommentTabState extends State<_RsvpCommentTab> {
+  String subTab = 'ALL';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<EventProvider>(context, listen: false);
+      final eventId = provider.eventDetailsModel?.id ?? '';
+      if (eventId.isNotEmpty) {
+        provider.getEventContributions(eventId);
+      }
+    });
+  }
+
+  void _onSubTabSelected(String key) {
+    if (subTab == key) return;
+    setState(() => subTab = key);
+    final provider = Provider.of<EventProvider>(context, listen: false);
+    final eventId = provider.eventDetailsModel?.id ?? '';
+    if (eventId.isEmpty) return;
+    if (key == 'ALL' && provider.contributions.isEmpty) {
+      provider.getEventContributions(eventId);
+    } else if (key == 'TOP' && provider.leaderboard.isEmpty) {
+      provider.getEventLeaderboard(eventId);
+    }
+  }
+
+  Future<void> _onRefresh(EventProvider provider, String eventId) {
+    if (subTab == 'ALL') {
+      return provider.getEventContributions(eventId, refresh: true);
+    }
+    return provider.getEventLeaderboard(eventId);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Center(child: Text('Coming soon'));
+    final provider = Provider.of<EventProvider>(context);
+    final eventId = provider.eventDetailsModel?.id ?? '';
+
+    return Column(
+      children: [
+        _DonorsSubTabBar(
+          selected: subTab,
+          onSelected: _onSubTabSelected,
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            color: appPrimaryColor,
+            onRefresh: () => _onRefresh(provider, eventId),
+            child: subTab == 'ALL'
+                ? _buildAllDonors(provider)
+                : _buildTopDonors(provider),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAllDonors(EventProvider provider) {
+    return ResponsiveStateFunction(
+      state: provider.contributionsState,
+      onIdle: () => const _LeaderboardSkeleton(),
+      onBusy: () => const _LeaderboardSkeleton(),
+      onError: () => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(height: SizeConfig.heightOf(15)),
+          Center(
+            child: Text(
+              "Couldn't load donors",
+              style: txStyle14.copyWith(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+      onNoDataAvailable: () => _emptyDonors(),
+      onSuccess: () => _AllDonorsList(entries: provider.contributions),
+    );
+  }
+
+  Widget _buildTopDonors(EventProvider provider) {
+    return ResponsiveStateFunction(
+      state: provider.leaderboardState,
+      onIdle: () => const _LeaderboardSkeleton(),
+      onBusy: () => const _LeaderboardSkeleton(),
+      onError: () => ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(height: SizeConfig.heightOf(15)),
+          Center(
+            child: Text(
+              "Couldn't load leaderboard",
+              style: txStyle14.copyWith(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+      onNoDataAvailable: () => _emptyDonors(),
+      onSuccess: () => _LeaderboardList(entries: provider.leaderboard),
+    );
+  }
+
+  Widget _emptyDonors() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(height: SizeConfig.heightOf(15)),
+        Center(
+          child: Column(
+            children: [
+              Icon(
+                Icons.emoji_events_outlined,
+                size: 48,
+                color: Colors.grey[400],
+              ),
+              const Gap(10),
+              Text(
+                "No contributors yet",
+                style: txStyle16.copyWith(
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Gap(4),
+              Text(
+                "Be the first to support this event",
+                style: txStyle13.copyWith(color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DonorsSubTabBar extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  const _DonorsSubTabBar({required this.selected, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      {'key': 'ALL', 'label': 'All Donors'},
+      {'key': 'TOP', 'label': 'Top Donors'},
+    ];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      decoration: BoxDecoration(
+        color: const Color(0xffF7F8FA),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[200]!),
+        ),
+      ),
+      child: Row(
+        children: items.map((t) {
+          final key = t['key']!;
+          final label = t['label']!;
+          final isSelected = selected == key;
+          return GestureDetector(
+            onTap: () => onSelected(key),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 24),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color:
+                          isSelected ? appPrimaryColor : Colors.transparent,
+                      width: 2.5,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight:
+                        isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? appPrimaryColor : Colors.grey[700],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _AllDonorsList extends StatelessWidget {
+  final List<EventContribution> entries;
+
+  const _AllDonorsList({required this.entries});
+
+  String _formatAmount(double? amount) {
+    final whole = amount?.round();
+    final s = whole.toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      final remaining = s.length - i;
+      buf.write(s[i]);
+      if (remaining > 1 && remaining % 3 == 1) buf.write(',');
+    }
+    return '₦${buf.toString()}';
+  }
+
+  double get _totalRaised =>
+      entries.fold<double>(0, (sum, e) => sum + (e.amount ?? 0));
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: appPrimaryColor.withValues(alpha: 0.06),
+            border: Border.all(color: appPrimaryColor.withValues(alpha: 0.18)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.people_alt_rounded,
+                  color: appPrimaryColor, size: 26),
+              const Gap(12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "All donors",
+                      style: txStyle14.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const Gap(2),
+                    Text(
+                      "${entries.length} ${entries.length == 1 ? 'person' : 'people'} • ${_formatAmount(_totalRaised)} raised",
+                      style: txStyle12.copyWith(color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Gap(14),
+        ...entries.map((e) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _AllDonorsRow(
+              entry: e,
+              amountLabel: _formatAmount(double.tryParse("${e.amount}") ?? 0),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _AllDonorsRow extends StatelessWidget {
+  final EventContribution entry;
+  final String amountLabel;
+
+  const _AllDonorsRow({required this.entry, required this.amountLabel});
+
+  @override
+  Widget build(BuildContext context) {
+    final image = (entry.image ?? '').trim();
+    final hasImage = image.isNotEmpty;
+    final comment = (entry.comment ?? '').trim();
+    final hasComment = comment.isNotEmpty;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xffEDEFF3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (hasImage)
+            CustomNetworkImage(
+              imageUrl: image,
+              radius: 42,
+              borderRadius: 21,
+            )
+          else
+            Container(
+              width: 42,
+              height: 42,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: appPrimaryColor.withValues(alpha: 0.1),
+              ),
+              child: Text(
+                entry.displayName != null && entry.displayName!.isNotEmpty
+                    ? entry.displayName![0].toUpperCase()
+                    : 'U',
+                style: txStyle14.copyWith(
+                  color: appPrimaryColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          const Gap(12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        entry.displayName ?? 'Anonymous',
+                        style: txStyle14.copyWith(fontWeight: FontWeight.w700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Gap(8),
+                    Text(
+                      amountLabel,
+                      style: txStyle14.copyWith(
+                        color: appPrimaryColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                if (hasComment) ...[
+                  const Gap(6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: appPrimaryColor.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.format_quote_rounded,
+                          size: 14,
+                          color: appPrimaryColor.withValues(alpha: 0.7),
+                        ),
+                        const Gap(6),
+                        Expanded(
+                          child: Text(
+                            comment,
+                            style: txStyle12.copyWith(
+                              color: Colors.grey[800],
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LeaderboardSkeleton extends StatelessWidget {
+  const _LeaderboardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: 5,
+      separatorBuilder: (_, __) => const Gap(10),
+      itemBuilder: (_, __) => Container(
+        height: 64,
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(14),
+        ),
+      ),
+    );
+  }
+}
+
+class _LeaderboardList extends StatelessWidget {
+  final List<EventLeaderboardEntry> entries;
+
+  const _LeaderboardList({required this.entries});
+
+  String _formatAmount(double amount) {
+    final whole = amount.round();
+    final s = whole.toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      final remaining = s.length - i;
+      buf.write(s[i]);
+      if (remaining > 1 && remaining % 3 == 1) buf.write(',');
+    }
+    return '₦${buf.toString()}';
+  }
+
+  double get _totalRaised =>
+      entries.fold<double>(0, (sum, e) => sum + e.totalAmount);
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            gradient: LinearGradient(
+              colors: [
+                appPrimaryColor.withValues(alpha: 0.18),
+                appPrimaryColor.withValues(alpha: 0.06),
+              ],
+            ),
+            border: Border.all(color: appPrimaryColor.withValues(alpha: 0.25)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.emoji_events, color: appPrimaryColor, size: 28),
+              const Gap(12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Top contributors",
+                      style: txStyle14.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const Gap(2),
+                    Text(
+                      "${entries.length} ${entries.length == 1 ? 'person' : 'people'} • ${_formatAmount(_totalRaised)} raised",
+                      style: txStyle12.copyWith(color: Colors.grey[700]),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Gap(14),
+        ...List.generate(entries.length, (index) {
+          final entry = entries[index];
+          final rank = index + 1;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: _LeaderboardRow(
+              rank: rank,
+              entry: entry,
+              amountLabel: _formatAmount(entry.totalAmount),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _LeaderboardRow extends StatelessWidget {
+  final int rank;
+  final EventLeaderboardEntry entry;
+  final String amountLabel;
+
+  const _LeaderboardRow({
+    required this.rank,
+    required this.entry,
+    required this.amountLabel,
+  });
+
+  Color _accentColor() {
+    switch (rank) {
+      case 1:
+        return const Color(0xFFE6B800);
+      case 2:
+        return const Color(0xFF8E9AAF);
+      case 3:
+        return const Color(0xFFCD7F32);
+      default:
+        return appPrimaryColor;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _accentColor();
+    final isPodium = rank <= 3;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isPodium
+              ? accent.withValues(alpha: 0.4)
+              : const Color(0xffEDEFF3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: accent.withValues(alpha: 0.15),
+            ),
+            child: isPodium
+                ? Icon(Icons.emoji_events, size: 18, color: accent)
+                : Text(
+                    '#$rank',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      color: accent,
+                    ),
+                  ),
+          ),
+          const Gap(12),
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: appPrimaryColor.withValues(alpha: 0.1),
+            ),
+            child: Text(
+              entry.initials,
+              style: txStyle14.copyWith(
+                color: appPrimaryColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const Gap(12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.fullName,
+                  style: txStyle14.copyWith(fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if ((entry.username ?? '').isNotEmpty) ...[
+                  const Gap(2),
+                  Text(
+                    '@${entry.username}',
+                    style: txStyle12.copyWith(color: Colors.grey[600]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const Gap(8),
+          Text(
+            amountLabel,
+            style: txStyle14.copyWith(
+              color: appPrimaryColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

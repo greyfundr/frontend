@@ -59,6 +59,8 @@ class Bill {
     String? myRole;
     MyShare? myShare;
     dynamic ?minPaymentAmount;
+    bool ?allowPartialPayment;
+
 
     Bill({
         this.id,
@@ -82,7 +84,8 @@ class Bill {
         this.createdBy,
         this.myRole,
         this.myShare,
-        this.minPaymentAmount
+        this.minPaymentAmount,
+        this.allowPartialPayment
     });
 
     factory Bill.fromJson(Map<String, dynamic> json) => Bill(
@@ -107,7 +110,8 @@ class Bill {
         createdBy: json["createdBy"] == null ? null : CreatedBy.fromJson(json["createdBy"]),
         myRole: json["myRole"],
         myShare: json["myShare"] == null ? null : MyShare.fromJson(json["myShare"]),
-        minPaymentAmount: json["minPaymentAmount"]
+        minPaymentAmount: json["minPaymentAmount"],
+        allowPartialPayment: json["allowPartialPayment"],
     );
 
     Map<String, dynamic> toJson() => {

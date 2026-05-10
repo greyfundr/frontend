@@ -91,12 +91,17 @@ class LiveEventWidget extends StatelessWidget {
     final eventProvider = Provider.of<EventProvider>(context);
 
     if (eventProvider.allEventsState == ViewState.Busy) {
-      return const Center(child: CircularProgressIndicator());
+      return UiBusyWidget();
     }
 
     if (eventProvider.allEventsState == ViewState.NoDataAvailable ||
         (eventProvider.liveEvents?.isEmpty ?? true)) {
-      return const Center(child: Text("No live events available"));
+      return Center(
+        child: UiNoDataAvailableWidget(
+          height: SizeConfig.heightOf(40),
+          message: "Event happening today will be shown here",
+        ),
+      );
     }
 
     if (eventProvider.allEventsState == ViewState.Error) {

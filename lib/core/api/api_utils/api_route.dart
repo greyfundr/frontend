@@ -11,6 +11,7 @@ class ApiRoute {
   static final String loginRoute = "$baseUrl/auth/login";
   static final String refreshTokenRoute = "$baseUrl/auth/refresh";
   static final String verifyOtpRoute = "$baseUrl/auth/verify-otp";
+  static final String verifyResetPasswordOtpRoute = "$baseUrl/auth/verify-reset-otp";
   static final String resendOtpRoute = "$baseUrl/auth/resend-otp";
   static final String forgotPasswordRoute = "$baseUrl/auth/forgot-password";
   static final String createPasswordRoute = "$baseUrl/auth/reset-password";
@@ -44,9 +45,19 @@ class ApiRoute {
   // User / Profile Routes
   // ──────────────────────────────────────────────────────────────
   static final String userProfileRoute = "$baseUrl/users/profile";
+   static final String updateFcmToke = "$baseUrl/users/set-fcm-token";
   static final String getUserRoute = "$baseUrl/users";
   static final String kycSessionRoute = "$baseUrl/users/kyc/session";
   static final String submitBvnRoute = "$baseUrl/users/kyc/bvn";
+  static final String checkIfUsernameExist = "$baseUrl/auth/check-username";
+
+  // Notifications
+  static final String notificationsRoute = "$baseUrl/notifications";
+  static final String markNotificationsReadRoute =
+      "$baseUrl/notifications/read";
+  static String deleteNotificationRoute(String id) =>
+      "$baseUrl/notifications/$id";
+
 
   // Wallet Routes
   static final String walletRoute = "$baseUrl/wallet";
@@ -68,7 +79,7 @@ class ApiRoute {
   // ──────────────────────────────────────────────────────────────
   static final String createCampaignRoute = "$baseUrl/campaigns";
   static final String createEventRoute = "$baseUrl/events";
-  static final String donateToCampaignRoute = "$baseUrl/campaigns/{id}/donate";
+  static final String donateToCampaignRoute = "$baseUrl/campaigns";
   static final String uploadImageRoute = "$baseUrl/upload/campaign-images";
   // static const String uploadImagesRoute = "$baseUrl/upload/image";
   static final String getCampaignApprovalRoute =
@@ -83,6 +94,8 @@ class ApiRoute {
       "$baseUrl/events/$id/contribute";
   static String getEventLeaderboardRoute(String id) =>
       "$baseUrl/events/$id/leaderboard";
+  static String getEventContributionsRoute(String id) =>
+      "$baseUrl/events/$id/contributions";
 
   // RSVP Routes
   static String rsvpToEventRoute(String eventId) =>
@@ -101,6 +114,13 @@ class ApiRoute {
   // You can add more campaign-related routes here later, for example:
   static final String getCampaignRoute = "$baseUrl/campaigns/{id}";
   static final String getMyCampaignsRoute = "$baseUrl/campaigns/my-campaigns";
+  static String getCampaignDonationsRoute(String id) =>
+      "$baseUrl/campaigns/$id/donations";
+  static String getCampaignTopDonorsRoute(String id) =>
+      "$baseUrl/campaigns/$id/top-donors";
+  static String campaignLikeRoute(String id) => "$baseUrl/campaigns/$id/like";
+  static String campaignCommentsRoute(String id) =>
+      "$baseUrl/campaigns/$id/comments";
   // static final String getCampaignApprovalRoute = "$baseUrl/campaign/{id}/approval";
   static final String updateCampaignRoute = "$baseUrl/campaigns/{id}";
 

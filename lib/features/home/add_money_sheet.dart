@@ -222,7 +222,7 @@ class _PaystackUrlSheetState extends State<PaystackUrlSheet> {
   Widget build(BuildContext context) {
     return pageIniting
         ? SizedBox(
-            height: SizeConfig.heightOf(90),
+            height: SizeConfig.heightOf(100),
             child: Center(
               child: SizedBox(
                 height: 16,
@@ -238,7 +238,7 @@ class _PaystackUrlSheetState extends State<PaystackUrlSheet> {
             ),
           )
         : SizedBox(
-            height: SizeConfig.heightOf(85),
+            height: SizeConfig.heightOf(95),
             child: Padding(
               padding: MediaQuery.of(context).viewInsets,
 

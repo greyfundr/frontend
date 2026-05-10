@@ -169,7 +169,7 @@ class _FundraisingTargetScreenState extends State<FundraisingTargetScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ReviewCampaignScreen(campaign: widget.campaign),
+        builder: (_) => ReviewCampaignScreen( ),
       ),
     );
   }

@@ -80,6 +80,7 @@ class Step1NamesAndCo extends StatelessWidget {
                           "Conference",
                           "Party",
                           "Wedding",
+                          "Burial",
                           "Other",
                         ] // Fallback
                       : categories,

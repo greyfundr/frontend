@@ -24,7 +24,7 @@ List<RoleSelectionClass> roles = [
     roleName: "Group",
     roleImage: "assets/images/group.png",
     roleDescription:
-        "This account type allows you to create and manage a group account, where multiple users can collaborate and contribute to the same account. Ideal for community, business, organizations, charities and non-profits.",
+        "By setting up a Group Account, multiple users can collaborate and contribute to the same account",
   ),
 ];
 
@@ -122,7 +122,7 @@ class _SignupRoleSelectionScreenState extends State<SignupRoleSelectionScreen> {
                               // Gap(5),
                               Text(
                                 role.roleDescription,
-                                maxLines: isSelected ? 10 : 2,
+                                maxLines: isSelected ? 10 : 3,
                                 overflow: TextOverflow.ellipsis,
                                 style: txStyle12.copyWith(color: greyTextColor),
                               ),

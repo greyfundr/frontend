@@ -7,13 +7,16 @@ import 'package:greyfundr/components/custom_snackbars.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/api/user_api/user_api.dart';
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
+import 'package:greyfundr/core/models/notification_model.dart' as nm;
 import 'package:greyfundr/core/models/user_profile_model.dart';
 import 'package:greyfundr/features/auth/create_pin_screen.dart';
 import 'package:greyfundr/features/auth/create_transaction_pin_screen.dart';
 import 'package:greyfundr/services/local_storage.dart';
 import 'package:greyfundr/services/locator.dart';
+import 'package:greyfundr/shared/responsiveState/view_state.dart';
+import 'package:greyfundr/shared/validator.dart';
 
-class UserProvider with ChangeNotifier {
+class UserProvider extends ChangeNotifier with Validators {
   // Services
   final UserApi _userApi = locator<UserApi>();
   final AuthApi _authApi = locator<AuthApi>();
@@ -64,10 +67,13 @@ class UserProvider with ChangeNotifier {
       return false;
     }
     if (_userProfileModel?.wallet?.isTransactionPinSet != true) {
-      Get.offAll(CreateTransactionPinScreen(), transition: Transition.rightToLeft);
+      Get.offAll(
+        CreateTransactionPinScreen(),
+        transition: Transition.rightToLeft,
+      );
       return false;
     }
-    
+
     return false;
   }
 
@@ -265,6 +271,35 @@ class UserProvider with ChangeNotifier {
     return {};
   }
 
+  ViewState usernameState = ViewState.Idle;
+  bool usernameExist = false;
+  Future<bool> checkIfUsernameExist({required String username}) async {
+    setCustomState(ViewState state) {
+      usernameState = state;
+      notifyListeners();
+    }
+
+    try {
+      setCustomState(ViewState.Busy);
+      bool res = await _userApi.checkIfUsernameExist(username: username);
+      usernameExist = res;
+      setCustomState(ViewState.Success);
+      notifyListeners();
+      return res;
+    } catch (e) {
+      showErrorToast("$e");
+      log("$e");
+      setCustomState(ViewState.Error);
+      return true;
+    } finally {}
+  }
+
+  void resetUsernameState() {
+    usernameState = ViewState.Idle;
+    usernameExist = false;
+    notifyListeners();
+  }
+
   Future<void> updateFcmToken() async {
     String token = await localStorage.getString("fcmToken");
     if (token.isNotEmpty) {
@@ -272,7 +307,95 @@ class UserProvider with ChangeNotifier {
       log("FCM token updated successfully");
     } else {
       log("No FCM token found to update");
-      showErrorToast("Failed to update FCM token: No token found");
+      // showErrorToast("Failed to update FCM token: No token found");
+    }
+  }
+
+  // ─── Notifications ─────────────────────────────────────────────
+  ViewState notificationsState = ViewState.Idle;
+  List<nm.Notification> notifications = [];
+  int notificationsTotal = 0;
+  int unreadNotificationsCount = 0;
+  int notificationsPage = 1;
+  int notificationsTotalPages = 1;
+
+  void _setNotificationsState(ViewState state) {
+    notificationsState = state;
+    notifyListeners();
+  }
+
+  Future<void> fetchNotifications({int page = 1}) async {
+    if (page == 1 && notifications.isEmpty) {
+      _setNotificationsState(ViewState.Busy);
+    }
+    try {
+      final result = await _userApi.fetchNotifications(page: page);
+      notifications = result.notifications ?? [];
+      notificationsTotal = result.total ?? 0;
+      unreadNotificationsCount = result.unreadCount ?? 0;
+      notificationsPage = result.page ?? 1;
+      notificationsTotalPages = result.totalPages ?? 1;
+      _setNotificationsState(
+        notifications.isEmpty ? ViewState.NoDataAvailable : ViewState.Success,
+      );
+    } catch (e, stack) {
+      log("ERROR FETCHING NOTIFICATIONS: $e", stackTrace: stack);
+      _setNotificationsState(ViewState.Error);
+    }
+  }
+
+  Future<bool> markNotificationsAsRead({List<String>? ids}) async {
+    try {
+      final ok = await _userApi.markNotificationsAsRead(ids: ids);
+      if (ok) {
+        if (ids == null || ids.isEmpty) {
+          notifications = notifications
+              .map(
+                (n) => n
+                  ..isRead = true
+                  ..readAt = DateTime.now().toIso8601String(),
+              )
+              .toList();
+          unreadNotificationsCount = 0;
+        } else {
+          final idSet = ids.toSet();
+          for (final n in notifications) {
+            if (n.id != null && idSet.contains(n.id) && !(n.isRead ?? false)) {
+              n.isRead = true;
+              n.readAt = DateTime.now().toIso8601String();
+              if (unreadNotificationsCount > 0) unreadNotificationsCount--;
+            }
+          }
+        }
+        notifyListeners();
+      }
+      return ok;
+    } catch (e, stack) {
+      log("ERROR MARKING NOTIFICATIONS READ: $e", stackTrace: stack);
+      return false;
+    }
+  }
+
+  Future<bool> deleteNotification(String id) async {
+    try {
+      final removed = notifications.firstWhere(
+        (n) => n.id == id,
+        orElse: () => nm.Notification(),
+      );
+      await _userApi.deleteNotification(id);
+      notifications.removeWhere((n) => n.id == id);
+      if ((removed.isRead == false) && unreadNotificationsCount > 0) {
+        unreadNotificationsCount--;
+      }
+      if (notifications.isEmpty) {
+        notificationsState = ViewState.NoDataAvailable;
+      }
+      notifyListeners();
+      return true;
+    } catch (e, stack) {
+      log("ERROR DELETING NOTIFICATION: $e", stackTrace: stack);
+      showErrorToast("Failed to delete notification");
+      return false;
     }
   }
 }

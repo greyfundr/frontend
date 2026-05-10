@@ -12,7 +12,9 @@ import 'package:greyfundr/core/dependencies/locator.dart';
 import 'package:greyfundr/core/models/all_user_model.dart';
 import 'package:greyfundr/core/models/my_split_bill_model.dart';
 import 'package:greyfundr/core/models/split_bill_details_model.dart';
+import 'package:greyfundr/core/models/split_bill_comment_model.dart';
 import 'package:greyfundr/core/models/split_bill_invite_model.dart';
+import 'package:greyfundr/core/models/split_bill_query_model.dart';
 import 'package:greyfundr/core/models/split_bill_response_model.dart';
 import 'package:greyfundr/features/new_split_bill/split_bill_success_screen.dart';
 import 'package:greyfundr/shared/responsiveState/base_view_model.dart';
@@ -23,10 +25,23 @@ class NewSplitBillProvider extends BaseNotifier {
   var titleController = TextEditingController();
   var descriptionController = TextEditingController();
   var totalAmountController = TextEditingController();
-  File? receiptFile;
+  static const int maxReceipts = 3;
+  List<File> receiptFiles = [];
   File? billImageFile;
-  String? receiptUrl;
   String? billImageUrl;
+
+  void addReceiptFiles(List<File> files) {
+    final remaining = maxReceipts - receiptFiles.length;
+    if (remaining <= 0) return;
+    receiptFiles.addAll(files.take(remaining));
+    notifyListeners();
+  }
+
+  void removeReceiptFile(int index) {
+    if (index < 0 || index >= receiptFiles.length) return;
+    receiptFiles.removeAt(index);
+    notifyListeners();
+  }
   DateTime? dueDate;
   bool allowPartialPayments = false;
   TextEditingController minPaymentAmountForPartial = TextEditingController();
@@ -39,6 +54,100 @@ class NewSplitBillProvider extends BaseNotifier {
   // Participants management - stores map of id -> participant type
   Map<String, dynamic> selectedParticipantsMap = {};
   var searchParticipantController = TextEditingController();
+
+  // ── Sort-bill form state ──────────────────────────────────────
+  final TextEditingController sortBillAmountController =
+      TextEditingController();
+  final TextEditingController sortBillCommentController =
+      TextEditingController();
+  double _sortBillMinAmount = 0;
+  double _sortBillAmountOwed = 0;
+  double _sortBillAmountRemaining = 0;
+  bool _sortBillAllowPartial = false;
+  bool _sortBillPayingRemaining = false;
+  String sortBillBehalfOfParticipantId = '';
+  String sortBillBehalfOfName = '';
+  double sortBillBehalfOfAmount = 0;
+
+  double get sortBillMinAmount => _sortBillMinAmount;
+  double get sortBillAmountOwed => _sortBillAmountOwed;
+  double get sortBillAmountRemaining => _sortBillAmountRemaining;
+  bool get sortBillAllowPartial => _sortBillAllowPartial;
+  bool get sortBillPayingRemaining => _sortBillPayingRemaining;
+  bool get sortBillHasBehalfOf => sortBillBehalfOfParticipantId.isNotEmpty;
+
+  double get _sortBillBaseline =>
+      _sortBillPayingRemaining ? _sortBillAmountRemaining : _sortBillAmountOwed;
+
+  double get sortBillCeiling => _sortBillBaseline + sortBillBehalfOfAmount;
+
+  double get sortBillAmount {
+    final clean = sortBillAmountController.text.replaceAll(',', '');
+    return double.tryParse(clean) ?? 0;
+  }
+
+  void _onSortBillAmountChanged() => notifyListeners();
+
+  void initSortBillForm({
+    required double amountOwed,
+    required double amountRemaining,
+    required double minPaymentAmount,
+    required bool allowPartialPayment,
+  }) {
+    _sortBillAmountOwed = amountOwed;
+    _sortBillAmountRemaining = amountRemaining;
+    _sortBillMinAmount = minPaymentAmount;
+    _sortBillAllowPartial = allowPartialPayment;
+    _sortBillPayingRemaining = amountRemaining > 0;
+    sortBillBehalfOfParticipantId = '';
+    sortBillBehalfOfName = '';
+    sortBillBehalfOfAmount = 0;
+    sortBillAmountController.text = _sortBillBaseline.toStringAsFixed(0);
+    sortBillCommentController.clear();
+    sortBillAmountController.removeListener(_onSortBillAmountChanged);
+    sortBillAmountController.addListener(_onSortBillAmountChanged);
+    notifyListeners();
+  }
+
+  void setSortBillBehalfOfParticipant({
+    required String participantId,
+    required String name,
+    required double amount,
+  }) {
+    sortBillBehalfOfParticipantId = participantId;
+    sortBillBehalfOfName = name;
+    sortBillBehalfOfAmount = amount;
+    sortBillAmountController.text = sortBillCeiling.toStringAsFixed(0);
+    notifyListeners();
+  }
+
+  void clearSortBillBehalfOf() {
+    sortBillBehalfOfParticipantId = '';
+    sortBillBehalfOfName = '';
+    sortBillBehalfOfAmount = 0;
+    sortBillAmountController.text = _sortBillBaseline.toStringAsFixed(0);
+    notifyListeners();
+  }
+
+  String? sortBillAmountError() {
+    final amount = sortBillAmount;
+    if (amount <= 0) return 'Enter a valid amount';
+    if (_sortBillAllowPartial) {
+      if (_sortBillMinAmount > 0 &&
+          !_sortBillPayingRemaining &&
+          amount < _sortBillMinAmount) {
+        return 'Amount cannot be less than the minimum allowed';
+      }
+      if (amount > sortBillCeiling) {
+        return 'Amount cannot exceed your share';
+      }
+    } else if (amount != sortBillCeiling) {
+      return 'Amount must equal your share';
+    }
+    return null;
+  }
+
+  bool get isSortBillFormValid => sortBillAmountError() == null;
 
   // check if all participant amount is equal
   void checkIfAmountsAreEqual() {
@@ -64,10 +173,30 @@ class NewSplitBillProvider extends BaseNotifier {
   var editTitleController = TextEditingController();
   var editDescriptionController = TextEditingController();
   var editTotalAmountController = TextEditingController();
-  File? editReceiptFile;
+  List<File> editReceiptFiles = [];
+  List<String> editReceiptUrls = [];
   File? editBillImageFile;
-  String? editReceiptUrl;
   String? editBillImageUrl;
+
+  void addEditReceiptFiles(List<File> files) {
+    final remaining =
+        maxReceipts - (editReceiptFiles.length + editReceiptUrls.length);
+    if (remaining <= 0) return;
+    editReceiptFiles.addAll(files.take(remaining));
+    notifyListeners();
+  }
+
+  void removeEditReceiptFile(int index) {
+    if (index < 0 || index >= editReceiptFiles.length) return;
+    editReceiptFiles.removeAt(index);
+    notifyListeners();
+  }
+
+  void removeEditReceiptUrl(int index) {
+    if (index < 0 || index >= editReceiptUrls.length) return;
+    editReceiptUrls.removeAt(index);
+    notifyListeners();
+  }
   DateTime? editDueDate;
   bool editAllowPartialPayments = false;
   TextEditingController editMinPaymentAmountForPartial =
@@ -90,8 +219,14 @@ class NewSplitBillProvider extends BaseNotifier {
     editMinPaymentAmountForPartial.text = (data.minPaymentAmount ?? 0)
         .toString();
     editSplitMethod = data.splitMethod ?? 'EVEN';
+    log("Split method for edit: ${editSplitMethod}");
 
-    editReceiptUrl = data.billReceipt;
+    editReceiptFiles = [];
+    editReceiptUrls = [];
+    final existingReceipt = data.billReceipt;
+    if (existingReceipt != null && existingReceipt.isNotEmpty) {
+      editReceiptUrls.add(existingReceipt);
+    }
     editBillImageUrl = data.imageUrl;
 
     editSelectedParticipantsMap.clear();
@@ -133,9 +268,9 @@ class NewSplitBillProvider extends BaseNotifier {
     editTotalAmountController.clear();
     editMinPaymentAmountForPartial.clear();
     editSelectedParticipantsMap.clear();
-    editReceiptFile = null;
+    editReceiptFiles = [];
+    editReceiptUrls = [];
     editBillImageFile = null;
-    editReceiptUrl = null;
     editBillImageUrl = null;
     editDueDate = null;
     notifyListeners();
@@ -177,18 +312,45 @@ class NewSplitBillProvider extends BaseNotifier {
     notifyListeners();
   }
 
-  void addEditParticipant(dynamic participant) {
+  void addEditParticipant(dynamic participant, {double? manualAmount}) {
     final id = participant.id ?? "";
     if (!editSelectedParticipantsMap.containsKey(id)) {
       editSelectedParticipantsMap[id] = participant;
-      applyEditEqualSplit();
+
+      if (editSplitMethod == 'MANUAL') {
+        participant.amountController ??= TextEditingController();
+        participant.amountController!.text = (manualAmount ?? 0)
+            .toStringAsFixed(2);
+
+        final totalAmount =
+            double.tryParse(
+              editTotalAmountController.text.replaceAll(',', ''),
+            ) ??
+            0.0;
+        participant.percentageController ??= TextEditingController();
+        if (totalAmount > 0 && manualAmount != null) {
+          final percentage = (manualAmount / totalAmount) * 100;
+          participant.percentageController!.text = percentage
+              .toStringAsFixed(2)
+              .replaceAll(RegExp(r'\.00$'), '');
+        } else {
+          participant.percentageController!.text = '0';
+        }
+      } else {
+        applyEditEqualSplit();
+      }
+
+      checkIfEditAmountsAreEqual();
       notifyListeners();
     }
   }
 
   void removeEditParticipant(String participantId) {
     editSelectedParticipantsMap.remove(participantId);
-    applyEditEqualSplit();
+    if (editSplitMethod != 'MANUAL') {
+      applyEditEqualSplit();
+    }
+    checkIfEditAmountsAreEqual();
     notifyListeners();
   }
 
@@ -264,7 +426,7 @@ class NewSplitBillProvider extends BaseNotifier {
         if (editBillImageUrl != null) "imageUrl": editBillImageUrl,
         "dueDate": editDueDate?.toIso8601String(),
         "participants": formattedParticipant,
-        if (editReceiptUrl != null) "billReceipt": editReceiptUrl,
+        "receipts": editReceiptUrls,
         "allowPartialPayment": editAllowPartialPayments,
         "minPaymentAmount":
             double.tryParse(
@@ -373,10 +535,10 @@ class NewSplitBillProvider extends BaseNotifier {
     required String description,
     required double totalAmount,
     String? imageUrl,
-    String? receiptUrl,
+    List<String>? receiptUrls,
     required String dueDateIso8601,
     required List participants,
-    bool? isEqualSplit,
+    bool isEqualSplit = false,
   }) async {
     EasyLoading.show();
     // log("Is")
@@ -417,14 +579,14 @@ class NewSplitBillProvider extends BaseNotifier {
         imageUrl: imageUrl,
         dueDate: dueDateIso8601,
         participants: formattedParticipant,
-        billReceipt: receiptUrl,
+        receipts: receiptUrls,
         allowPartialPayments: allowPartialPayments,
         minPaymentAmountForPartial:
             double.tryParse(
               minPaymentAmountForPartial.text.replaceAll(",", ""),
             ) ??
             0.0,
-        splitMethod: splitMethod,
+        splitMethod: isEqualSplit ? 'EVEN' : 'MANUAL',
       );
       Get.to(SplitBillSuccessScreen(title: title));
       return true;
@@ -617,7 +779,7 @@ class NewSplitBillProvider extends BaseNotifier {
     userSplitBills.clear();
     searchUserState = ViewState.Idle;
     selectedParticipantsMap.clear();
-    receiptFile = null;
+    receiptFiles = [];
     billImageFile = null;
     notifyListeners();
   }
@@ -688,6 +850,30 @@ class NewSplitBillProvider extends BaseNotifier {
   }
 
   var splitBillInvites = SplitBillInviteModel();
+  ViewState splitBillQueriesState = ViewState.Idle;
+  List<SplitBillQueryDatum> splitBillQueriesData = [];
+
+  Future<void> getSplitBillQueries(String billId) async {
+    void setCustomState(ViewState state) {
+      splitBillQueriesState = state;
+      notifyListeners();
+    }
+
+    setCustomState(ViewState.Busy);
+    try {
+      splitBillQueriesData = await splitBillApi.getSplitBillQueries(billId);
+
+      setCustomState(
+        splitBillQueriesData.isEmpty
+            ? ViewState.NoDataAvailable
+            : ViewState.Success,
+      );
+    } catch (e, stack) {
+      log('Get split bill queries error: $e', stackTrace: stack);
+      setCustomState(ViewState.Error);
+    }
+  }
+
   ViewState splitBillInvitesState = ViewState.Idle;
   Future<bool> getSplitBillInvites() async {
     setCustomState(ViewState state) {
@@ -713,12 +899,16 @@ class NewSplitBillProvider extends BaseNotifier {
 
   Future<bool> acceptSplitBillInvite(String billId) async {
     try {
+      EasyLoading.show();
+
       await splitBillApi.acceptSplitBillInvite(billId);
       await getSplitBillInvites();
       return true;
     } catch (e, stack) {
       log("Accept split bill invite error: $e", stackTrace: stack);
       return false;
+    } finally {
+      EasyLoading.dismiss();
     }
   }
 
@@ -748,11 +938,105 @@ class NewSplitBillProvider extends BaseNotifier {
     }
   }
 
+  Future<bool> sendSplitBillQuery({
+    required String billId,
+    required String content,
+  }) async {
+    EasyLoading.show(status: '');
+    try {
+      await splitBillApi.sendSplitBillQuery(billId: billId, content: content);
+      showSuccessToast("Comment sent to bill creator");
+      return true;
+    } catch (e, stack) {
+      log('Send split bill query error: $e', stackTrace: stack);
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> addParticipantComment({
+    required String billId,
+    required String participantId,
+    required String content,
+    String displayType = 'full_name',
+  }) async {
+    try {
+      await splitBillApi.addParticipantComment(
+        billId: billId,
+        participantId: participantId,
+        content: content,
+        displayType: displayType,
+      );
+      return true;
+    } catch (e, stack) {
+      log('Add participant comment error: $e', stackTrace: stack);
+      return false;
+    }
+  }
+
+  Future<bool> editParticipantComment({
+    required String billId,
+    required String participantId,
+    required String commentId,
+    required String content,
+    String? displayType,
+  }) async {
+    EasyLoading.show(status: 'Updating comment...');
+    try {
+      await splitBillApi.editParticipantComment(
+        billId: billId,
+        participantId: participantId,
+        commentId: commentId,
+        content: content,
+        displayType: displayType,
+      );
+      return true;
+    } catch (e, stack) {
+      log('Edit participant comment error: $e', stackTrace: stack);
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  Future<bool> deleteParticipantComment({
+    required String billId,
+    required String participantId,
+    required String commentId,
+  }) async {
+    EasyLoading.show(status: 'Deleting comment...');
+    try {
+      await splitBillApi.deleteParticipantComment(
+        billId: billId,
+        participantId: participantId,
+        commentId: commentId,
+      );
+      return true;
+    } catch (e, stack) {
+      log('Delete participant comment error: $e', stackTrace: stack);
+      return false;
+    } finally {
+      EasyLoading.dismiss();
+    }
+  }
+
+  Future<List<SplitBillComment>> getSplitBillComments(String billId) async {
+    try {
+      final response = await splitBillApi.getSplitBillComments(billId);
+      return response.comments;
+    } catch (e, stack) {
+      log('Get split bill comments error: $e', stackTrace: stack);
+      return [];
+    }
+  }
+
   Future<bool> payForSPlitBillWithWallet({
     String? participantId,
     String? billId,
     String? amount,
     String? transactionPin,
+    String? onBehalfOfParticipantId,
   }) async {
     EasyLoading.show(status: "Processing payment...");
 
@@ -762,6 +1046,7 @@ class NewSplitBillProvider extends BaseNotifier {
         billId: billId,
         amount: amount,
         transactionPin: transactionPin,
+        onBehalfOfParticipantId: onBehalfOfParticipantId,
       );
 
       return true;
@@ -778,17 +1063,19 @@ class NewSplitBillProvider extends BaseNotifier {
     String? participantId,
     String? billId,
     String? amount,
+    String? onBehalfOfParticipantId,
   }) async {
     EasyLoading.show(status: "Processing payment...");
 
     try {
-      await splitBillApi.payForBillWithPaystack(
+      String url = await splitBillApi.payForBillWithPaystack(
         participantId: participantId,
         billId: billId,
         amount: amount,
+        onBehalfOfParticipantId: onBehalfOfParticipantId,
       );
 
-      return "";
+      return url;
     } catch (e, stack) {
       log("Get my split bill invites error: $e", stackTrace: stack);
       return "";

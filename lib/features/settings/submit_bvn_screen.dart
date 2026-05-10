@@ -39,9 +39,14 @@ class _SubmitBvnScreenState extends State<SubmitBvnScreen> {
               hintText: "12345678901",
               textInputType: TextInputType.number,
               autoFocus: true,
+              onChanged: (val) {
+                setState(() {});
+              },
+              validator: (val) => userProvider.validateBVN(val ?? ""),
             ),
             Spacer(),
             CustomButton(
+              enabled: _bvnController.text.trim().length == 11,
               onTap: () async {
                 bool res = await userProvider.submitBvn(
                   bvn: _bvnController.text.trim(),

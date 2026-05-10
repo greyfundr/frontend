@@ -25,94 +25,97 @@ class _SigninScreenState extends State<SigninScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text("Welcome back", style: txStyle27Bold),
-        RichText(
-          text: TextSpan(
-            text: "Log in to ",
-            style: txStyle13.copyWith(color: Colors.black),
+    return SafeArea(
+      top: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Welcome back", style: txStyle27Bold),
+          RichText(
+            text: TextSpan(
+              text: "Log in to ",
+              style: txStyle13.copyWith(color: Colors.black),
+              children: [
+                TextSpan(
+                  text: "GreyFundr",
+                  style: txStyle14.copyWith(color: appPrimaryColor),
+                ),
+                TextSpan(text: " to continue", style: txStyle14),
+              ],
+            ),
+          ),
+          Gap(40),
+          CustomTextField(
+            hintText: "Enter Email or Phone",
+            labelText: "Email or Phone",
+            controller: _emailController,
+            textInputType: TextInputType.emailAddress,
+          ),
+          Gap(20),
+          CustomTextField(
+            hintText: "Enter Password",
+            labelText: "Password",
+            obscureText: true,
+            controller: _passwordController,
+            textInputType: TextInputType.visiblePassword,
+          ),
+          Gap(10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextSpan(
-                text: "GreyFundr",
-                style: txStyle14.copyWith(color: appPrimaryColor),
+              TextButton(
+                onPressed: () {
+                  authProvider.animateToNextPage(1);
+                },
+                child: Text(
+                  "Forgot password?",
+                  style: txStyle13.copyWith(color: appPrimaryColor),
+                ),
               ),
-              TextSpan(text: " to continue", style: txStyle14),
             ],
           ),
-        ),
-        Gap(40),
-        CustomTextField(
-          hintText: "Enter Email or Phone",
-          labelText: "Email or Phone",
-          controller: _emailController,
-          textInputType: TextInputType.emailAddress,
-        ),
-        Gap(20),
-        CustomTextField(
-          hintText: "Enter Password",
-          labelText: "Password",
-          obscureText: true,
-          controller: _passwordController,
-          textInputType: TextInputType.visiblePassword,
-        ),
-        Gap(10),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            TextButton(
-              onPressed: () {
-                authProvider.animateToNextPage(1);
-              },
-              child: Text(
-                "Forgot password?",
-                style: txStyle13.copyWith(color: appPrimaryColor),
-              ),
-            ),
-          ],
-        ),
-
-        Gap(20),
-
-        CustomButton(
-          onTap: () async {
-            // Get.to(CreatePinScreen());
-            bool res = await authProvider.signInApi(
-              emailOrPhone: _emailController.text,
-              password: _passwordController.text,
-            );
-            if (res) {
-              Get.offAll(BottomNav(), transition: Transition.rightToLeft);
-            }
-          },
-          label: "Log in",
-        ),
-        Gap(10),
-
-        Center(
-          child: CustomOnTap(
-            onTap: () {
-              Get.to(
-                SignupRoleSelectionScreen(),
-                transition: Transition.rightToLeft,
+      
+          Gap(20),
+      
+          CustomButton(
+            onTap: () async {
+              // Get.to(CreatePinScreen());
+              bool res = await authProvider.signInApi(
+                emailOrPhone: _emailController.text,
+                password: _passwordController.text,
               );
+              if (res) {
+                Get.offAll(BottomNav(), transition: Transition.rightToLeft);
+              }
             },
-            child: RichText(
-              text: TextSpan(
-                text: "New to GreyFundr? ",
-                style: txStyle13.copyWith(color: Colors.black),
-                children: [
-                  TextSpan(
-                    text: "Sign up",
-                    style: txStyle14.copyWith(color: appPrimaryColor),
-                  ),
-                ],
+            label: "Log in",
+          ),
+          Gap(10),
+      
+          Center(
+            child: CustomOnTap(
+              onTap: () {
+                Get.to(
+                  SignupRoleSelectionScreen(),
+                  transition: Transition.rightToLeft,
+                );
+              },
+              child: RichText(
+                text: TextSpan(
+                  text: "New to GreyFundr? ",
+                  style: txStyle13.copyWith(color: Colors.black),
+                  children: [
+                    TextSpan(
+                      text: "Sign up",
+                      style: txStyle14.copyWith(color: appPrimaryColor),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

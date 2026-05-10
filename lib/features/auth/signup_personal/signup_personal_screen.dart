@@ -3,6 +3,7 @@ import 'package:gap/gap.dart';
 import 'package:greyfundr/components/custom_button.dart';
 import 'package:greyfundr/components/custom_textfield_component.dart';
 import 'package:greyfundr/features/auth/auth_provider.dart';
+import 'package:greyfundr/features/settings/change_password_screen.dart';
 import 'package:greyfundr/shared/app_colors.dart';
 import 'package:greyfundr/shared/sizeConfig.dart';
 import 'package:greyfundr/shared/text_style.dart';
@@ -62,8 +63,17 @@ class _SignupPersonalScreenState extends State<SignupPersonalScreen> {
                     labelText: "Password",
                     textInputType: TextInputType.visiblePassword,
                     controller: authProvider.passwordController,
-                    validator: (val) => authProvider.validatePassword(val!),
+                    validator: (val) =>
+                        authProvider.validateSignupPassword(val!),
+                    onChanged: (val) {
+                      authProvider.checkPasswordStrength(val ?? "");
+                      return;
+                    },
                     obscureText: true,
+                  ),
+                  Gap(10),
+                  PasswordStrengthIndicator(
+                    strength: authProvider.passwordStrength,
                   ),
                   Gap(15),
                   CustomTextField(

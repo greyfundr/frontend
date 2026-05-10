@@ -6,12 +6,16 @@ import 'package:dio/dio.dart';
 import 'package:greyfundr/core/api/api_utils/api_route.dart';
 import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/campaign_api/campaign_api.dart';
+import 'package:greyfundr/core/models/all_campaign_response_model.dart';
+import 'package:greyfundr/core/models/campaign_comment_model.dart';
+import 'package:greyfundr/core/models/campaign_details_model.dart';
+import 'package:greyfundr/core/models/campaign_donations_response_model.dart';
 import 'package:greyfundr/core/models/campaign_model.dart';
 import 'package:greyfundr/core/models/participants_model.dart';
+import 'package:greyfundr/core/models/top_donors_response_model.dart';
 import 'package:mime/mime.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:intl/intl.dart';
-
 
 extension FilePathSafety on File {
   String get safeFileName {
@@ -21,23 +25,163 @@ extension FilePathSafety on File {
   }
 }
 
-
-
 class CampaignApiImpl implements CampaignApi {
   final ApiClient _apiClient = ApiClient();
 
   @override
-  Future<Map<String, dynamic>> donateToCampaign(String campaignId, Map<String, dynamic> payload) async {
-    final url = ApiRoute.donateToCampaignRoute.replaceAll('{id}', campaignId);
-    final response = await _apiClient.post(url, body: payload, requiresToken: true);
+  Future<Map<String, dynamic>> donateToCampaign(
+    String campaignId,
+    Map<String, dynamic> payload,
+  ) async {
+     final response = await _apiClient.post(
+      "${ApiRoute.donateToCampaignRoute}/${campaignId}/donate",
+      body: payload,
+      requiresToken: true,
+    );
     return jsonDecode(response) as Map<String, dynamic>;
-      return response as Map<String, dynamic>;
+   }
+
+  @override
+  Future<CampaignDonationsResponseModel> getCampaignDonations({
+    required String campaignId,
+    required int page,
+    int limit = 10,
+  }) async {
+    try {
+      final responseBody = await _apiClient.get(
+        ApiRoute.getCampaignDonationsRoute(campaignId),
+        queryParameters: {'page': page, 'limit': limit},
+        requiresToken: true,
+        hideLog: false,
+      );
+      return campaignDonationsResponseModelFromJson(responseBody);
+    } catch (e, stack) {
+      log(
+        'getCampaignDonations failed (campaign: $campaignId, page: $page): $e',
+        stackTrace: stack,
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<bool> likeCampaign(String campaignId) async {
+    try {
+      await _apiClient.post(
+        ApiRoute.campaignLikeRoute(campaignId),
+        body: const <String, dynamic>{},
+        requiresToken: true,
+      );
+      return true;
+    } catch (e, stack) {
+      log('likeCampaign failed ($campaignId): $e', stackTrace: stack);
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> unlikeCampaign(String campaignId) async {
+    try {
+      await _apiClient.delete(
+        ApiRoute.campaignLikeRoute(campaignId),
+        requiresToken: true,
+      );
+      return true;
+    } catch (e, stack) {
+      log('unlikeCampaign failed ($campaignId): $e', stackTrace: stack);
+      return false;
+    }
+  }
+
+  @override
+  Future<List<CampaignComment>> getCampaignComments(String campaignId) async {
+    try {
+      final response = await _apiClient.get(
+        ApiRoute.campaignCommentsRoute(campaignId),
+        requiresToken: true,
+      );
+      final decoded = jsonDecode(response);
+      List<dynamic> rawList;
+      if (decoded is List) {
+        rawList = decoded;
+      } else if (decoded is Map<String, dynamic>) {
+        rawList = decoded['data'] as List<dynamic>? ??
+            decoded['comments'] as List<dynamic>? ??
+            decoded['payload'] as List<dynamic>? ??
+            [];
+      } else {
+        rawList = [];
+      }
+      return rawList
+          .whereType<Map<String, dynamic>>()
+          .map(CampaignComment.fromJson)
+          .toList();
+    } catch (e, stack) {
+      log('getCampaignComments failed ($campaignId): $e', stackTrace: stack);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<CampaignComment?> addCampaignComment({
+    required String campaignId,
+    required String content,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiRoute.campaignCommentsRoute(campaignId),
+        body: {'content': content},
+        requiresToken: true,
+      );
+      final decoded = jsonDecode(response);
+      Map<String, dynamic>? body;
+      if (decoded is Map<String, dynamic>) {
+        final nested = decoded['data'] ?? decoded['payload'] ?? decoded;
+        body = nested is Map<String, dynamic> ? nested : decoded;
+      }
+      if (body == null) return null;
+      return CampaignComment.fromJson(body);
+    } catch (e, stack) {
+      log('addCampaignComment failed ($campaignId): $e', stackTrace: stack);
+      return null;
+    }
+  }
+
+  @override
+  Future<List<TopDonor>> getCampaignTopDonors(String campaignId) async {
+    try {
+      final responseBody = await _apiClient.get(
+        ApiRoute.getCampaignTopDonorsRoute(campaignId),
+        requiresToken: true,
+      );
+      final decoded = jsonDecode(responseBody);
+      List<dynamic> rawList;
+      if (decoded is List) {
+        rawList = decoded;
+      } else if (decoded is Map<String, dynamic>) {
+        rawList = decoded['data'] as List<dynamic>? ??
+            decoded['payload'] as List<dynamic>? ??
+            [];
+      } else {
+        rawList = [];
+      }
+      return rawList
+          .whereType<Map<String, dynamic>>()
+          .map((e) => TopDonor.fromJson(e))
+          .toList();
+    } catch (e, stack) {
+      log(
+        'getCampaignTopDonors failed (campaign: $campaignId): $e',
+        stackTrace: stack,
+      );
+      rethrow;
+    }
   }
 
   Map<String, String> get header => {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      };
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+  };
 
   @override
   Future<List<Participant>> getUsers() async {
@@ -55,26 +199,31 @@ class CampaignApiImpl implements CampaignApi {
       if (decoded is List<dynamic>) {
         rawList = decoded;
       } else if (decoded is Map<String, dynamic>) {
-        rawList = decoded['data'] as List<dynamic>? ??
-                  decoded['users'] as List<dynamic>? ??
-                  decoded['results'] as List<dynamic>? ??
-                  decoded['members'] as List<dynamic>? ??
-                  (throw Exception('No user list found in response'));
+        rawList =
+            decoded['data'] as List<dynamic>? ??
+            decoded['users'] as List<dynamic>? ??
+            decoded['results'] as List<dynamic>? ??
+            decoded['members'] as List<dynamic>? ??
+            (throw Exception('No user list found in response'));
       } else {
         throw Exception('Unexpected root type: ${decoded.runtimeType}');
       }
 
       return rawList
           .whereType<Map<String, dynamic>>()
-          .map((map) => Participant(
-                id: map['id']?.toString() ?? map['_id']?.toString() ?? '',
-                name: map['firstName'] as String? ?? map['name'] as String? ?? '',
-                username: map['username'] as String? ?? map['email'] as String? ?? '',
-                imageUrl: map['profile_pic'] as String? ??
-                          map['avatar'] as String? ??
-                          map['photo'] as String? ??
-                          '',
-              ))
+          .map(
+            (map) => Participant(
+              id: map['id']?.toString() ?? map['_id']?.toString() ?? '',
+              name: map['firstName'] as String? ?? map['name'] as String? ?? '',
+              username:
+                  map['username'] as String? ?? map['email'] as String? ?? '',
+              imageUrl:
+                  map['profile_pic'] as String? ??
+                  map['avatar'] as String? ??
+                  map['photo'] as String? ??
+                  '',
+            ),
+          )
           .toList();
     } catch (e, stack) {
       print('Error in getUsers(): $e');
@@ -83,13 +232,13 @@ class CampaignApiImpl implements CampaignApi {
     }
   }
 
-
   @override
   Future<Map<String, dynamic>> getCampaignDetails(String campaignId) async {
     try {
       final response = await _apiClient.get(
         '${ApiRoute.createCampaignRoute}/$campaignId',
         requiresToken: true,
+        hideLog: false
       );
 
       final data = jsonDecode(response);
@@ -105,11 +254,11 @@ class CampaignApiImpl implements CampaignApi {
     }
   }
 
-
-
-
   @override
-  Future<Map<String, dynamic>> updateCampaign(String campaignId, Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> updateCampaign(
+    String campaignId,
+    Map<String, dynamic> payload,
+  ) async {
     try {
       final url = ApiRoute.updateCampaignRoute.replaceAll('{id}', campaignId);
       final responseBody = await _apiClient.patch(
@@ -131,13 +280,11 @@ class CampaignApiImpl implements CampaignApi {
     }
   }
 
-
-
-   @override
+  @override
   Future<List<Map<String, dynamic>>> uploadImage(List<File> imageFiles) async {
     try {
       final List<MultipartFile> multipartFiles = [];
-      
+
       for (final imageFile in imageFiles) {
         final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
         multipartFiles.add(
@@ -149,9 +296,7 @@ class CampaignApiImpl implements CampaignApi {
         );
       }
 
-      final formData = FormData.fromMap({
-        'files': multipartFiles,
-      });
+      final formData = FormData.fromMap({'files': multipartFiles});
 
       final responseBody = await _apiClient.post(
         ApiRoute.uploadImageRoute,
@@ -162,14 +307,18 @@ class CampaignApiImpl implements CampaignApi {
 
       final decoded = jsonDecode(responseBody);
 
-      if (decoded is Map<String, dynamic> && decoded.containsKey('data') && decoded['data'] is List) {
+      if (decoded is Map<String, dynamic> &&
+          decoded.containsKey('data') &&
+          decoded['data'] is List) {
         final List<dynamic> dataList = decoded['data'] as List<dynamic>;
         return dataList
             .whereType<Map<String, dynamic>>()
-            .map((item) => {
-                  'imageUrl': item['imageUrl'] as String? ?? '',
-                  'providerId': item['providerId'] as String? ?? '',
-                })
+            .map(
+              (item) => {
+                'imageUrl': item['imageUrl'] as String? ?? '',
+                'providerId': item['providerId'] as String? ?? '',
+              },
+            )
             .where((map) => (map['imageUrl'] as String).isNotEmpty)
             .toList();
       }
@@ -182,9 +331,7 @@ class CampaignApiImpl implements CampaignApi {
     }
   }
 
-
-
-   @override
+  @override
   Future<bool> createDonation({
     required String userId,
     required String creatorId,
@@ -237,59 +384,20 @@ class CampaignApiImpl implements CampaignApi {
       }
 
       // include linkage fields so backend can attribute donation
-      payload['user_id'] = userId;
-      payload['creator_id'] = creatorId;
-      payload['campaign_id'] = campaignId;
+      // payload['user_id'] = userId;
+      // payload['creator_id'] = creatorId;
+      // payload['campaign_id'] = campaignId;
 
-      final donationsUrl = '${ApiRoute.baseUrl}/donations';
-      try {
-        final responseBody = await _apiClient.post(
-          donationsUrl,
-          headers: header,
-          body: payload,
-          requiresToken: true,
-        );
+       
 
-        final decoded = jsonDecode(responseBody);
-        if (!decoded.toString().contains('error')) {
-          return true;
-        }
-      } catch (e) {
-        // If donations endpoint is not found (404) or fails, we'll attempt
-        // to use the campaign-specific donate endpoint as a fallback.
-        log('donations endpoint failed, attempting campaign-specific donate: $e');
-      }
-
-      // Fallback to campaign-specific donate endpoint (avoid sending username)
-      try {
-        final donateUrl = ApiRoute.donateToCampaignRoute.replaceAll('{id}', campaignId);
-        // Build a conservative payload that avoids `username` to prevent
-        // server-side validation errors on the campaign donate endpoint.
-        final Map<String, dynamic> fallback = {
-          'amount': amount,
-        };
-
-        if (comments != null && comments.isNotEmpty) fallback['comment'] = comments;
-
-        if (behalfUserId != null && behalfUserId.isNotEmpty) {
-          // Same as above: indicate this is on behalf of another registered user
-          fallback['onBehalfOf'] = 'user';
-          fallback['onBehalfOfUserId'] = behalfUserId;
-        } else if (externalName != null && externalName.isNotEmpty) {
-          fallback['onBehalfOf'] = 'external';
-          fallback['onBehalfOfExternal'] = {
-            'fullName': externalName,
-            'phoneNumber': externalContact ?? '',
-          };
-        } else {
-          fallback['onBehalfOf'] = 'self';
-          fallback['onBehalfOfUserId'] = userId;
-        }
+       try { 
+//  onBehalfOfUserId, user_id, campaign_id
+       
 
         final resp = await _apiClient.post(
-          donateUrl,
+          "${ApiRoute.donateToCampaignRoute}/${campaignId}/donate",
           headers: header,
-          body: fallback,
+          body: payload,
           requiresToken: true,
         );
 
@@ -393,20 +501,22 @@ class CampaignApiImpl implements CampaignApi {
 
         List<dynamic> catList = [];
         if (decodedCat is Map<String, dynamic>) {
-          catList = decodedCat['data'] as List<dynamic>? ?? decodedCat['categories'] as List<dynamic>? ?? [];
+          catList =
+              decodedCat['data'] as List<dynamic>? ??
+              decodedCat['categories'] as List<dynamic>? ??
+              [];
         } else if (decodedCat is List) {
           catList = decodedCat;
         }
 
         if (catList.isNotEmpty && campaign.category.isNotEmpty) {
-          final match = catList.cast<Map<String, dynamic>>().firstWhere(
-            (m) {
-              final name = (m['name'] ?? m['title'] ?? m['label'] ?? '').toString();
-              final id = m['id']?.toString() ?? m['_id']?.toString() ?? '';
-              return id == campaign.category || name.toLowerCase() == campaign.category.toLowerCase();
-            },
-            orElse: () => {},
-          );
+          final match = catList.cast<Map<String, dynamic>>().firstWhere((m) {
+            final name = (m['name'] ?? m['title'] ?? m['label'] ?? '')
+                .toString();
+            final id = m['id']?.toString() ?? m['_id']?.toString() ?? '';
+            return id == campaign.category ||
+                name.toLowerCase() == campaign.category.toLowerCase();
+          }, orElse: () => {});
           if (match.isNotEmpty) {
             categoryId = (match['id'] ?? match['_id'])?.toString();
           }
@@ -415,37 +525,42 @@ class CampaignApiImpl implements CampaignApi {
         log('Could not resolve category id: $e');
       }
 
-      
       final sanitizedBudgets = <Map<String, dynamic>>[];
       for (final b in campaign.budgets) {
         try {
           final item = b.name ?? '';
-          final cost = (b.cost is num) ? b.cost : double.tryParse(b.cost.toString()) ?? 0.0;
+          final cost = (b.cost is num)
+              ? b.cost
+              : double.tryParse(b.cost.toString()) ?? 0.0;
           if (item.isEmpty || cost <= 0) continue;
           sanitizedBudgets.add({
             'item': item,
             'cost': cost,
             // Backend requires an 'image' string, even if empty.
-            'image': (b.file?.path?.startsWith('http') ?? false) ? b.file!.path! : '',
+            'image': (b.file?.path?.startsWith('http') ?? false)
+                ? b.file!.path!
+                : '',
           });
         } catch (e) {
           log('Skipping invalid budget item: $e');
         }
       }
 
-     
       final sanitizedOffers = <Map<String, dynamic>>[];
 
       // DEBUG: log offers received on Campaign model before sanitization
       try {
-        log('createCampaignApi - campaign.savedManualOffers: ${campaign.savedManualOffers}');
-        log('createCampaignApi - campaign.savedAutoOffers: ${campaign.savedAutoOffers}');
+        log(
+          'createCampaignApi - campaign.savedManualOffers: ${campaign.savedManualOffers}',
+        );
+        log(
+          'createCampaignApi - campaign.savedAutoOffers: ${campaign.savedAutoOffers}',
+        );
       } catch (_) {}
 
       // Process 'manual' offers (assuming from campaign.moffers)
       if (campaign.savedManualOffers.isNotEmpty) {
         for (final offer in campaign.savedManualOffers) {
-          
           final condition = offer['condition'] ?? offer['name'] ?? '';
           final reward = offer['reward'] ?? offer['description'] ?? '';
           if (condition.isNotEmpty) {
@@ -464,8 +579,11 @@ class CampaignApiImpl implements CampaignApi {
           final condition = offer['condition'] ?? offer['name'] ?? '';
           final reward = offer['reward'] ?? offer['description'] ?? '';
           if (condition.isNotEmpty) {
-            sanitizedOffers.add(
-                {'type': 'auto', 'condition': condition, 'reward': reward});
+            sanitizedOffers.add({
+              'type': 'auto',
+              'condition': condition,
+              'reward': reward,
+            });
           }
         }
       }
@@ -479,7 +597,9 @@ class CampaignApiImpl implements CampaignApi {
         'title': campaign.title,
         'description': campaign.description,
         // Always include category as a string; prefer resolved id, fall back to provided name
-        'category': (categoryId != null && categoryId.isNotEmpty) ? categoryId : campaign.category,
+        'category': (categoryId != null && categoryId.isNotEmpty)
+            ? categoryId
+            : campaign.category,
         'startDate': isoStart,
         'endDate': isoEnd,
         'target': campaign.amount.toInt(),
@@ -498,85 +618,45 @@ class CampaignApiImpl implements CampaignApi {
       );
 
       return jsonDecode(response);
-        } catch (e, stackTrace) {
+    } catch (e, stackTrace) {
       log('createCampaignApi failed: $e  :::::: $stackTrace');
-       rethrow;
+      rethrow;
     }
   }
 
-
-
   @override
- Future<dynamic> getCampaignApprovalApi(String campaignId) async {
-  try {
-    final response = await _apiClient.get(
-      '${ApiRoute.getCampaignApprovalRoute}/$campaignId',
-      headers: header,
-      requiresToken: true,
-    );
-
-    // If _apiClient returns raw String (JSON), decode it
-    final decoded = jsonDecode(response);
-    // Match your old code: return the "campaign" key if present
-    return decoded is Map<String, dynamic> ? decoded['campaign'] : decoded;
-  
-    // If already decoded map/list
-    return response;
-  } catch (e, stackTrace) {
-    print('getCampaignApprovalApi failed: $e');
-    print('Stack trace: $stackTrace');
-    rethrow;
-  }
-}
-
-
-
-
-// ──────────────────────────────────────────────────────────────
-  // Get All Campaigns (paginated)
-  // ──────────────────────────────────────────────────────────────
-
- @override
-  Future<Map<String, dynamic>> getAllCampaigns({required int page}) async {
+  Future<dynamic> getCampaignApprovalApi(String campaignId) async {
     try {
-      final responseBody = await _apiClient.get(
-        '${ApiRoute.createCampaignRoute}?page=$page',
+      final response = await _apiClient.get(
+        '${ApiRoute.getCampaignApprovalRoute}/$campaignId',
+        headers: header,
         requiresToken: true,
       );
 
-      // Try decode JSON; if it fails, log and return an empty data list
-      try {
-        final decoded = jsonDecode(responseBody);
+      // If _apiClient returns raw String (JSON), decode it
+      final decoded = jsonDecode(response);
+      // Match your old code: return the "campaign" key if present
+      return decoded is Map<String, dynamic> ? decoded['campaign'] : decoded;
 
-        if (decoded is Map<String, dynamic>) return decoded;
-
-        if (decoded is List) return {'data': decoded};
-
-        // unexpected root type -> wrap as data or return empty
-        return {'data': []};
-      } catch (e) {
-        print('getAllCampaigns: failed to parse response JSON: $e');
-        print('Raw response: $responseBody');
-        return {'data': []};
-      }
-    } catch (e, stack) {
-      print('getAllCampaigns failed: $e');
-      print('Stack: $stack');
-      return {'data': []};
+      // If already decoded map/list
+      return response;
+    } catch (e, stackTrace) {
+      print('getCampaignApprovalApi failed: $e');
+      print('Stack trace: $stackTrace');
+      rethrow;
     }
   }
 
   // ──────────────────────────────────────────────────────────────
-  // Get Campaigns (with optional category filter)
+  // Get All Campaigns (paginated)
   // ──────────────────────────────────────────────────────────────
 
   @override
-  Future<Map<String, dynamic>> getCampaigns({
+  Future<AllCampaignResponseModel> getAllCampaigns({
     required int page,
     String? category,
   }) async {
     try {
-      // Use queryParameters map for cleaner URL construction and safe encoding
       final Map<String, dynamic> queryParams = {'page': page};
       if (category != null && category != "All" && category.isNotEmpty) {
         queryParams['category'] = category;
@@ -586,20 +666,15 @@ class CampaignApiImpl implements CampaignApi {
         ApiRoute.createCampaignRoute,
         queryParameters: queryParams,
         requiresToken: true,
+        hideLog: false
       );
 
-      final decoded = jsonDecode(responseBody);
-
-      if (decoded is Map<String, dynamic>) {
-        return decoded;
-      } else if (decoded is List) {
-        // Wrap the list in a map with a 'data' key so the UI can consume it consistently
-        return {'data': decoded};
-      }
-
-      return {'data': []};
+      return allCampaignResponseModelFromJson(responseBody);
     } catch (e, stack) {
-      log('getCampaigns failed (page $page, category: $category): $e', stackTrace: stack);
+      log(
+        'getAllCampaigns failed (page $page, category: $category): $e',
+        stackTrace: stack,
+      );
       rethrow;
     }
   }
@@ -633,41 +708,99 @@ class CampaignApiImpl implements CampaignApi {
     }
   }
 
-
-  
-
-
-   // ──────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────
   // Get Campaigns by Category (specific method)
   // ──────────────────────────────────────────────────────────────
 
+  @override
+  Future<CampaignDetailsModel> getCampaignDetailsTyped(String campaignId) async {
+    final response = await _apiClient.get(
+      '${ApiRoute.createCampaignRoute}/$campaignId',
+      headers: header,
+      requiresToken: true,
+      hideLog: false
+    );
+    final decoded = jsonDecode(response);
+    Map<String, dynamic> payload;
+    if (decoded is Map<String, dynamic>) {
+      final nested = decoded['payload'] ?? decoded['data'] ?? decoded;
+      payload = nested is Map<String, dynamic> ? nested : decoded;
+    } else {
+      throw Exception('Invalid campaign details response');
+    }
+    return CampaignDetailsModel.fromJson(payload);
+  }
 
   @override
-Future<Map<String, dynamic>> getCampaignsByCategory(String category, int page) async {
-  try {
-    // Using query params ensures the category string is properly encoded
-    final queryParams = {'page': page, 'category': category};
-
-    final responseBody = await _apiClient.get(
-      ApiRoute.createCampaignRoute,
-      queryParameters: queryParams,
-      requiresToken: false, // change to true if needed
+  Future<List<Map<String, String>>> getCategories() async {
+    final response = await _apiClient.get(
+      ApiRoute.getCampaignCategories,
+      headers: header,
+      requiresToken: true,
     );
-
-    final decoded = jsonDecode(responseBody);
-
-    if (decoded is! Map<String, dynamic>) {
-      throw Exception('Invalid response format from getCampaignsByCategory');
+    final decoded = jsonDecode(response);
+    List<dynamic> list;
+    if (decoded is List) {
+      list = decoded;
+    } else if (decoded is Map<String, dynamic>) {
+      list =
+          decoded['data'] as List<dynamic>? ??
+          decoded['categories'] as List<dynamic>? ??
+          decoded['campaign'] as List<dynamic>? ??
+          [];
+    } else {
+      list = [];
     }
 
-    return decoded;
-  } catch (e, stack) {
-    log('getCampaignsByCategory failed (page: $page, category: $category): $e', stackTrace: stack);
-    rethrow;
+    String resolveIcon(String? icon) {
+      if (icon == null || icon.trim().isEmpty) {
+        return 'assets/icons/placeholder.png';
+      }
+      final t = icon.trim();
+      if (t.startsWith('assets/') || t.startsWith('http')) return t;
+      if (t.contains('.')) return 'assets/icons/$t';
+      return 'assets/icons/$t.png';
+    }
+
+    return list.whereType<Map<String, dynamic>>().map((m) {
+      final id = (m['id'] ?? m['_id'] ?? '').toString();
+      final name = (m['name'] ?? m['title'] ?? m['label'] ?? '').toString();
+      return {
+        'id': id,
+        'label': name,
+        'icon': resolveIcon(m['icon']?.toString()),
+      };
+    }).toList();
   }
-}
 
+  @override
+  Future<Map<String, dynamic>> getCampaignsByCategory(
+    String category,
+    int page,
+  ) async {
+    try {
+      // Using query params ensures the category string is properly encoded
+      final queryParams = {'page': page, 'category': category};
 
+      final responseBody = await _apiClient.get(
+        ApiRoute.createCampaignRoute,
+        queryParameters: queryParams,
+        requiresToken: false, // change to true if needed
+      );
 
+      final decoded = jsonDecode(responseBody);
 
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('Invalid response format from getCampaignsByCategory');
+      }
+
+      return decoded;
+    } catch (e, stack) {
+      log(
+        'getCampaignsByCategory failed (page: $page, category: $category): $e',
+        stackTrace: stack,
+      );
+      rethrow;
+    }
+  }
 }

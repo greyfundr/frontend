@@ -148,8 +148,8 @@ class ApiClient {
     }
     return Options(
       headers: optionHeaders,
-      sendTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
     );
   }
 

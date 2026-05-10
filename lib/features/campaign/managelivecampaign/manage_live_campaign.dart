@@ -1024,12 +1024,12 @@ class _ManageLiveCampaignState extends State<ManageLiveCampaign> {
         isSuccess: true,
       );
       // Navigate explicitly to the Campaign Details page after successful update
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CampaignDetails(id: widget.campaignId),
-        ),
-      );
+      // Navigator.pushReplacement(
+      //   context,
+      //   MaterialPageRoute(
+      //     builder: (_) => CampaignDetails(id: widget.campaignId),
+      //   ),
+      // );
     } catch (e) {
       CustomMessageModal.show(
         context: context,

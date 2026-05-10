@@ -1,3 +1,4 @@
+import 'package:greyfundr/core/models/notification_model.dart';
 import 'package:greyfundr/core/models/user_profile_model.dart';
 import 'package:greyfundr/core/models/user_settings_model.dart';
 
@@ -32,5 +33,13 @@ abstract class UserApi {
 
   Future<Map> getCustomDynamicLinkDetails({String shortCode});
 
+  Future<bool> checkIfUsernameExist({required String username});
+
   Future<void> updateFcmToken(String token);
+
+  Future<NotificationModel> fetchNotifications({int page = 1, int limit = 50});
+
+  Future<bool> markNotificationsAsRead({List<String>? ids});
+
+  Future<bool> deleteNotification(String id);
 }

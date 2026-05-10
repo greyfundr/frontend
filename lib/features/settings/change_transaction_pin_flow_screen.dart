@@ -224,7 +224,7 @@ class _ChangeTransactionPinConfirmScreenState
                   ),
                   const Gap(10),
                   Text(
-                    'Re-enter your new 4-digit transaction PIN to confirm.',
+                    'Re-enter your new 6-digit transaction PIN to confirm.',
                     style: txStyle14,
                     textAlign: TextAlign.center,
                   ),

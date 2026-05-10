@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -34,7 +35,7 @@ class CreateSplitBillScreen extends StatefulWidget {
 class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
   NewSplitBillProvider? provider;
   String billImageUrl = "";
-  String receiptUrl = "";
+  List<String> receiptUrls = [];
   @override
   void initState() {
     super.initState();
@@ -140,103 +141,17 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                     ],
                   ),
                 ),
-                Gap(20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Receipt (Optional)",
-                        style: txStyle13.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      const Gap(10),
-                      _ImagePickerCard(
-                        selectedFile: provider.receiptFile,
-                        onTap: () async {
-                          final ImagePicker picker = ImagePicker();
-                          final XFile? image = await picker.pickImage(
-                            source: ImageSource.gallery,
-                          );
-                          if (image != null) {
-                            provider.receiptFile = File(image.path);
-                            provider.checkIfSplitBillIsComplete();
-                          }
-                        },
-                        label: "Add Receipt",
-                        icon: Icons.image_outlined,
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
 
             const Gap(20),
-
-            const Gap(20),
-
-            // Due Date Picker
-            CustomDatePickerTextFiled(
-              labelText: "Due Date",
-              hintText: "When should this be settled?",
-              selectedDate: provider.dueDate?.toIso8601String() ?? "",
-              initialDate: DateTime.now(),
-              minimumDate: DateTime.now().subtract(const Duration(seconds: 10)),
-              maximumDate: DateTime.now().add(const Duration(days: 365)),
-              isRequired: true,
-              onDateChanged: (date) {
-                provider.dueDate = date;
-                provider.checkIfSplitBillIsComplete();
-              },
-            ),
+            _ReceiptsPicker(provider: provider),
             const Gap(20),
 
             // Participants Section
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Participants",
-                  style: txStyle13.copyWith(fontWeight: FontWeight.w600),
-                ),
-                CustomOnTap(
-                  onTap: () {
-                    if (provider.totalAmountController.text.isEmpty) {
-                      showErrorToast(
-                        "Please enter total amount before managing participant amounts",
-                      );
-                      return;
-                    }
-                    if (provider.getSelectedParticipants().isEmpty) {
-                      showErrorToast("Please add at least one participant");
-                      return;
-                    }
-                    showCustomBottomSheet(
-                      const ManageBillAmountSheet(),
-                      context,
-                      // backgroundColor: Colors.transparent,
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: appPrimaryColor.withOpacity(0.2),
-                      border: Border.all(color: appPrimaryColor),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      "Manage Amounts",
-                      style: txStyle12.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: appPrimaryColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            Text(
+              "Participants",
+              style: txStyle13.copyWith(fontWeight: FontWeight.w600),
             ),
             const Gap(10),
             GestureDetector(
@@ -270,37 +185,95 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                       Expanded(
                         child: SizedBox(
                           height: 48,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: List.generate(
-                              provider.getSelectedParticipants().length,
-                              (index) {
-                                final participant = provider
-                                    .getSelectedParticipants()[index];
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              const double avatarSize = 48;
+                              const double step = avatarSize * 0.7;
+                              final participants = provider
+                                  .getSelectedParticipants();
+                              final total = participants.length;
+
+                              final maxFit = constraints.maxWidth.isFinite
+                                  ? ((constraints.maxWidth - avatarSize) / step)
+                                            .floor() +
+                                        1
+                                  : total;
+                              final maxVisible = maxFit.clamp(1, total);
+                              final showOverflow = total > maxVisible;
+                              final visibleCount = showOverflow
+                                  ? maxVisible - 1
+                                  : maxVisible;
+                              final overflowCount = total - visibleCount;
+
+                              final tiles = <Widget>[];
+                              for (int i = 0; i < visibleCount; i++) {
+                                final participant = participants[i];
                                 final hasImage =
                                     participant.imageUrl != null &&
                                     participant.imageUrl!.isNotEmpty;
-                                return Positioned(
-                                  left: index * (48 * 0.7),
-                                  child: Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Colors.grey[300],
-                                      image: hasImage
-                                          ? DecorationImage(
-                                              image: NetworkImage(
-                                                participant.imageUrl!,
-                                              ),
-                                              fit: BoxFit.cover,
-                                            )
-                                          : null,
+                                tiles.add(
+                                  Positioned(
+                                    left: i * step,
+                                    child: Container(
+                                      width: avatarSize,
+                                      height: avatarSize,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.grey[300],
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                        image: hasImage
+                                            ? DecorationImage(
+                                                image: NetworkImage(
+                                                  participant.imageUrl!,
+                                                ),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : null,
+                                      ),
                                     ),
                                   ),
                                 );
-                              },
-                            ).reversed.toList(),
+                              }
+
+                              if (showOverflow) {
+                                tiles.add(
+                                  Positioned(
+                                    left: visibleCount * step,
+                                    child: Container(
+                                      width: avatarSize,
+                                      height: avatarSize,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: appPrimaryColor.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        '+$overflowCount',
+                                        style: const TextStyle(
+                                          color: appPrimaryColor,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              return Stack(
+                                clipBehavior: Clip.hardEdge,
+                                children: tiles.reversed.toList(),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -310,6 +283,248 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
               ),
             ),
             const Gap(20),
+
+            // Split Method Section
+            Builder(
+              builder: (context) {
+                final totalAmount =
+                    double.tryParse(
+                      provider.totalAmountController.text.replaceAll(',', ''),
+                    ) ??
+                    0.0;
+                final participants = provider.getSelectedParticipants();
+                final numParticipants = participants.length;
+                final evenSplitAmount = numParticipants > 0
+                    ? totalAmount / numParticipants
+                    : 0.0;
+                final hasAmountsSet =
+                    numParticipants > 0 &&
+                    participants.every(
+                      (p) =>
+                          (double.tryParse(
+                                p.amountController?.text.replaceAll(',', '') ??
+                                    '0',
+                              ) ??
+                              0) >
+                          0,
+                    );
+                final isEvenActive = hasAmountsSet && provider.isAmountEqual;
+                final isManualActive = hasAmountsSet && !provider.isAmountEqual;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Split Method",
+                      style: txStyle16.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    if (numParticipants > 0) ...[
+                      const Gap(4),
+                      Text(
+                        "Split the budget with ($numParticipants) participant${numParticipants == 1 ? '' : 's'}",
+                        style: txStyle13.copyWith(color: Colors.grey[600]),
+                      ),
+                    ],
+                    const Gap(16),
+
+                    // Even Split Option
+                    GestureDetector(
+                      onTap: () {
+                        if (provider.getSelectedParticipants().isNotEmpty) {
+                          provider.applyEqualSplit();
+                          provider.checkIfAmountsAreEqual();
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: isEvenActive ? appPrimaryColor : borderColor,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: isEvenActive
+                                    ? appPrimaryColor
+                                    : appPrimaryColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: isEvenActive
+                                  ? const Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: 18,
+                                    )
+                                  : null,
+                            ),
+                            const Gap(12),
+                            Expanded(
+                              child: Text(
+                                numParticipants > 0
+                                    ? "Even split ($numParticipants) = ${convertStringToCurrency(evenSplitAmount.toStringAsFixed(2))} per participant"
+                                    : "Even split",
+                                style: txStyle14.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Gap(12),
+
+                    // Split Manually Option
+                    GestureDetector(
+                      onTap: () {
+                        if (provider.totalAmountController.text.isEmpty) {
+                          showErrorToast("Please enter total amount first");
+                          return;
+                        }
+                        if (provider.getSelectedParticipants().isEmpty) {
+                          showErrorToast("Please add at least one participant");
+                          return;
+                        }
+                        showCustomBottomSheet(
+                          const ManageBillAmountSheet(),
+                          context,
+                        );
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: isManualActive
+                                ? appPrimaryColor
+                                : borderColor,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: appPrimaryColor,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                isManualActive ? Icons.check : Icons.add,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                            const Gap(12),
+                            Text(
+                              "Split Manually",
+                              style: txStyle14.copyWith(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Gap(12),
+
+                    // Due Date
+                    if (provider.dueDate == null)
+                      GestureDetector(
+                        onTap: () {
+                          showCustomBottomSheet(
+                            CupertinoDatePickerSheet(
+                              initialDate: DateTime.now(),
+                              minimumDate: DateTime.now().subtract(
+                                const Duration(seconds: 10),
+                              ),
+                              maximumDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
+                              onDateChanged: (date) {
+                                provider.dueDate = date;
+                                provider.checkIfSplitBillIsComplete();
+                              },
+                            ),
+                            context,
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: borderColor),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: appPrimaryColor,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.add,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                              const Gap(12),
+                              Text(
+                                "Set Due Date",
+                                style: txStyle14.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      CustomDatePickerTextFiled(
+                        labelText: "Due Date",
+                        hintText: "When should this be settled?",
+                        selectedDate: provider.dueDate?.toIso8601String() ?? "",
+                        initialDate: DateTime.now(),
+                        minimumDate: DateTime.now().subtract(
+                          const Duration(seconds: 10),
+                        ),
+                        maximumDate: DateTime.now().add(
+                          const Duration(days: 365),
+                        ),
+                        isRequired: true,
+                        onDateChanged: (date) {
+                          provider.dueDate = date;
+                          provider.checkIfSplitBillIsComplete();
+                        },
+                      ),
+                  ],
+                );
+              },
+            ),
+            const Gap(20),
+
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -383,26 +598,32 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
               enabled: provider.isSplitBillFormComplete,
               onTap: () async {
                 provider.checkIfAmountsAreEqual();
-                // upload images first, then create split bill with returned URLs
                 log(
-                  "uplpaded image url $billImageUrl ::::::::: $receiptUrl",
+                  "uploading bill image: $billImageUrl, "
+                  "receipts already uploaded: ${receiptUrls.length}",
                 );
 
-                if (billImageUrl.isEmpty) {
-                  if (provider.billImageFile != null) {
-                    billImageUrl =
-                        await provider.uploadImage(provider.billImageFile!) ??
-                        "";
-                    setState(() {});
-                  }
+                if (billImageUrl.isEmpty && provider.billImageFile != null) {
+                  billImageUrl =
+                      await provider.uploadImage(provider.billImageFile!) ??
+                      "";
+                  setState(() {});
                 }
 
-                if (receiptUrl.isEmpty) {
-                  if (provider.receiptFile != null) {
-                    receiptUrl =
-                        await provider.uploadImage(provider.receiptFile!) ?? "";
-                    setState(() {});
+                if (receiptUrls.length < provider.receiptFiles.length) {
+                  for (
+                    var i = receiptUrls.length;
+                    i < provider.receiptFiles.length;
+                    i++
+                  ) {
+                    final url = await provider.uploadImage(
+                      provider.receiptFiles[i],
+                    );
+                    if (url != null && url.isNotEmpty) {
+                      receiptUrls.add(url);
+                    }
                   }
+                  setState(() {});
                 }
 
                 provider.createSplitBill(
@@ -417,11 +638,11 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
                       ) ??
                       0.0,
                   imageUrl: billImageUrl.isNotEmpty ? billImageUrl : null,
-                  receiptUrl: receiptUrl.isNotEmpty ? receiptUrl : null,
+                  receiptUrls: receiptUrls.isNotEmpty ? receiptUrls : null,
                   dueDateIso8601: provider.dueDate?.toIso8601String() ?? "",
                   participants: provider.selectedParticipantsMap.values
                       .toList(),
-                  isEqualSplit: provider.isAmountEqual
+                  isEqualSplit: provider.isAmountEqual,
                 );
               },
               label: "Create Split Bill",
@@ -431,6 +652,167 @@ class _CreateSplitBillScreenState extends State<CreateSplitBillScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ReceiptsPicker extends StatelessWidget {
+  final NewSplitBillProvider provider;
+
+  const _ReceiptsPicker({required this.provider});
+
+  Future<void> _pickReceipts(BuildContext context) async {
+    final remaining =
+        NewSplitBillProvider.maxReceipts - provider.receiptFiles.length;
+    if (remaining <= 0) return;
+    final picker = ImagePicker();
+    final picked = await picker.pickMultiImage(imageQuality: 80);
+    if (picked.isEmpty) return;
+    provider.addReceiptFiles(
+      picked.take(remaining).map((x) => File(x.path)).toList(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final files = provider.receiptFiles;
+    final canAddMore = files.length < NewSplitBillProvider.maxReceipts;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Receipts (Optional)",
+              style: txStyle13.copyWith(fontWeight: FontWeight.w600),
+            ),
+            Text(
+              "${files.length}/${NewSplitBillProvider.maxReceipts}",
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        const Gap(10),
+        if (files.isEmpty)
+          GestureDetector(
+            onTap: () => _pickReceipts(context),
+            child: DottedBorder(
+              color: appPrimaryColor,
+              strokeWidth: 1.5,
+              dashPattern: const [6, 4],
+              radius: const Radius.circular(12),
+              borderPadding: const EdgeInsets.all(1),
+              padding: const EdgeInsets.symmetric(vertical: 24,horizontal: 10),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.image_outlined,
+                    size: 40,
+                    color: appPrimaryColor,
+                  ),
+                  const Gap(8),
+                  Text(
+                    "Add up to ${NewSplitBillProvider.maxReceipts} receipts",
+                    style: txStyle12.copyWith(
+                      color: appPrimaryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Gap(4),
+                  Text(
+                    "Tap to select from gallery",
+                    style: txStyle12.copyWith(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          SizedBox(
+            height: 100,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: canAddMore ? files.length + 1 : files.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                if (index == files.length) {
+                  return GestureDetector(
+                    onTap: () => _pickReceipts(context),
+                    child: Container(
+                      width: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: appPrimaryColor,
+                          style: BorderStyle.solid,
+                        ),
+                        color: appPrimaryColor.withValues(alpha: 0.06),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.add_photo_alternate_outlined,
+                            color: appPrimaryColor,
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            "Add",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: appPrimaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        files[index],
+                        width: 100,
+                        height: 100,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: GestureDetector(
+                        onTap: () => provider.removeReceiptFile(index),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withValues(alpha: 0.75),
+                            border: Border.all(
+                              color: Colors.white,
+                              width: 1.5,
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(3),
+                          child: const Icon(
+                            Icons.close,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+      ],
     );
   }
 }
@@ -508,6 +890,8 @@ class AddParticipantSheet extends StatefulWidget {
 }
 
 class _AddParticipantSheetState extends State<AddParticipantSheet> {
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -519,6 +903,12 @@ class _AddParticipantSheetState extends State<AddParticipantSheet> {
       provider.searchParticipantController.clear();
       provider.clearSearchResults();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
   }
 
   @override
@@ -751,30 +1141,27 @@ class _AddParticipantSheetState extends State<AddParticipantSheet> {
                       // Search Field
                       CustomSearchField(
                         hintText: "Search by phone number, email or username",
-                        onChange: (val) {
+                        onChange: (value) {
                           provider.temporaryGuestName = "";
                           provider.temporaryGuestPhone = "";
-                          setState(() {});
+                          _searchDebounce?.cancel();
+                          _searchDebounce = Timer(
+                            const Duration(milliseconds: 500),
+                            () => provider.searchForUser(identifier: value),
+                          );
                         },
-                        suffixIcon: CustomOnTap(
-                          onTap: () {
-                            FocusScope.of(context).unfocus();
-                            provider.searchForUser(
-                              identifier:
-                                  provider.searchParticipantController.text,
-                            );
-                          },
-                          child: Icon(Icons.search),
-                        ),
+                        // suffixIcon: CustomOnTap(
+                        //   onTap: () {
+                        //     FocusScope.of(context).unfocus();
+                        //     provider.searchForUser(
+                        //       identifier:
+                        //           provider.searchParticipantController.text,
+                        //     );
+                        //   },
+                        //   child: Icon(Icons.search),
+                        // ),
                         textEditingController:
                             provider.searchParticipantController,
-                        // textInputType: TextInputType.phone,
-                        // onChange: (value) {
-                        //   provider.searchForUser(identifier: value);
-                        // },
-                        // onSubmit: (value) {
-                        //   provider.searchForUser(identifier: value);
-                        // },
                       ),
                       const Gap(15),
                       const Divider(),
@@ -829,13 +1216,20 @@ class _AddParticipantSheetState extends State<AddParticipantSheet> {
                                                     provider
                                                         .temporaryGuestName
                                                         .isEmpty
-                                                    ? provider
-                                                          .searchParticipantController
-                                                          .text
+                                                    ? ''
                                                     : provider
                                                           .temporaryGuestName,
-                                                guestPhoneNumber: provider
-                                                    .temporaryGuestPhone,
+                                                guestPhoneNumber:
+                                                    provider
+                                                        .temporaryGuestPhone
+                                                        .isEmpty
+                                                    ? _phoneFromSearch(
+                                                        provider
+                                                            .searchParticipantController
+                                                            .text,
+                                                      )
+                                                    : provider
+                                                          .temporaryGuestPhone,
                                               ),
                                               context,
                                               backgroundColor:
@@ -1012,7 +1406,13 @@ class _AddParticipantSheetState extends State<AddParticipantSheet> {
                                       AddGuestParticipantSheet(
                                         guestName: provider.temporaryGuestName,
                                         guestPhoneNumber:
-                                            provider.temporaryGuestPhone,
+                                            provider.temporaryGuestPhone.isEmpty
+                                                ? _phoneFromSearch(
+                                                    provider
+                                                        .searchParticipantController
+                                                        .text,
+                                                  )
+                                                : provider.temporaryGuestPhone,
                                       ),
                                       context,
                                       backgroundColor: Colors.transparent,
@@ -1048,9 +1448,10 @@ class _AddParticipantSheetState extends State<AddParticipantSheet> {
     );
   }
 
-  @override
-  void dispose() {
-    super.dispose();
+  String _phoneFromSearch(String input) {
+    final digits = input.replaceAll(RegExp(r'\D'), '');
+    if (digits.length >= 10 && digits.length <= 15) return input.trim();
+    return '';
   }
 }
 
@@ -1398,37 +1799,89 @@ class _ManageBillAmountSheetState extends State<ManageBillAmountSheet> {
                         ),
                         const Gap(20),
 
-                        // Total Amount Display
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: appPrimaryColor.withOpacity(0.08),
-                            border: Border.all(
-                              color: appPrimaryColor.withOpacity(0.2),
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Total Amount',
-                                style: txStyle13.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                convertStringToCurrency(
+                        // Total Amount + Amount Left
+                        Builder(
+                          builder: (_) {
+                            final totalAmount =
+                                double.tryParse(
                                   provider.totalAmountController.text
-                                      .replaceAll(",", ""),
+                                      .replaceAll(',', ''),
+                                ) ??
+                                0;
+                            final entered = _calculateTotalEntered();
+                            final rawLeft = totalAmount - entered;
+                            final amountLeft = rawLeft < 0 ? 0.0 : rawLeft;
+                            final isBalanced =
+                                totalAmount > 0 &&
+                                (entered - totalAmount).abs() <= 0.01;
+                            final leftColor = isBalanced
+                                ? const Color(0xFF0B7A4B)
+                                : appSecondaryColor;
+
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: appPrimaryColor.withOpacity(0.08),
+                                border: Border.all(
+                                  color: appPrimaryColor.withOpacity(0.2),
                                 ),
-                                style: txStyle13.copyWith(
-                                  color: appPrimaryColor,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                            ],
-                          ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Total Amount',
+                                        style: txStyle13.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        convertStringToCurrency(
+                                          totalAmount.toStringAsFixed(2),
+                                        ),
+                                        style: txStyle13.copyWith(
+                                          color: appPrimaryColor,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const Gap(8),
+                                  Divider(
+                                    height: 1,
+                                    color: appPrimaryColor.withOpacity(0.15),
+                                  ),
+                                  const Gap(8),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Amount left',
+                                        style: txStyle13.copyWith(
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        convertStringToCurrency(
+                                          amountLeft.toStringAsFixed(2),
+                                        ),
+                                        style: txStyle13.copyWith(
+                                          color: leftColor,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                         const Gap(16),
 
@@ -1749,6 +2202,8 @@ class _ManageBillAmountSheetState extends State<ManageBillAmountSheet> {
                                                 calculatedAmount
                                                     .toStringAsFixed(2);
                                           }
+                                          provider.checkIfAmountsAreEqual();
+                                          provider.checkIfSplitBillIsComplete();
                                           // trigger provider repaint or local setstate
                                           provider.notifyListeners();
                                         },

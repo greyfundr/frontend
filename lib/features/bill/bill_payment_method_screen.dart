@@ -15,16 +15,16 @@ class BillPaymentMethodScreen extends StatefulWidget {
   final String participantId;
   final String billID;
   final double amount;
-  final double minPaymentAmount;
-  final bool payingRemainingAmount;
+  final String? comment;
+  final String? onBehalfOfParticipantId;
 
   const BillPaymentMethodScreen({
     super.key,
     required this.participantId,
     required this.billID,
     required this.amount,
-    this.minPaymentAmount = 0,
-    this.payingRemainingAmount = false,
+    this.comment,
+    this.onBehalfOfParticipantId,
   });
 
   @override
@@ -34,16 +34,10 @@ class BillPaymentMethodScreen extends StatefulWidget {
 
 class _BillPaymentMethodScreenState extends State<BillPaymentMethodScreen> {
   String _selectedPaymentMethod = 'wallet';
-  late TextEditingController _amountController;
-  late double _amountToPay;
 
   @override
   void initState() {
     super.initState();
-    _amountToPay = widget.amount;
-    _amountController = TextEditingController(
-      text: widget.amount.toStringAsFixed(2),
-    );
     Future.delayed(Duration.zero, () {
       final walletProvider = Provider.of<WalletProvider>(
         context,
@@ -51,12 +45,6 @@ class _BillPaymentMethodScreenState extends State<BillPaymentMethodScreen> {
       );
       walletProvider.fetchUserWallet();
     });
-  }
-
-  @override
-  void dispose() {
-    _amountController.dispose();
-    super.dispose();
   }
 
   double _toDouble(dynamic value) {
@@ -114,9 +102,7 @@ class _BillPaymentMethodScreenState extends State<BillPaymentMethodScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        (widget.minPaymentAmount > 0 || widget.payingRemainingAmount)
-                            ? 'Amount to Pay (Partial allowed)'
-                            : 'Total Amount',
+                        'Amount to Pay',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[700],
@@ -124,57 +110,39 @@ class _BillPaymentMethodScreenState extends State<BillPaymentMethodScreen> {
                         ),
                       ),
                       const Gap(6),
-                      (widget.minPaymentAmount > 0 || widget.payingRemainingAmount)
-                          ? TextFormField(
-                              controller: _amountController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              inputFormatters: [NumberTextInputFormatter()],
-                              style: txStyle24SemiBold,
-                              autofocus: true,
-                              decoration: InputDecoration(
-                                prefixText: '₦',
-                                prefixStyle: txStyle24SemiBold,
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
-                                isDense: true,
-                              ),
-                              onChanged: (val) {
-                                final text = val.replaceAll(',', '');
-                                setState(() {
-                                  _amountToPay = double.tryParse(text) ?? 0.0;
-                                });
-                              },
-                            )
-                          : Text(
-                              convertStringToCurrency(widget.amount.toString()),
-                              style: txStyle24SemiBold,
-                            ),
-                      if (widget.minPaymentAmount > 0 && !widget.payingRemainingAmount) ...[
-                        const Gap(4),
-                        Text(
-                          'Min: ${convertStringToCurrency(widget.minPaymentAmount.toString())} • Max: ${convertStringToCurrency(widget.amount.toString())}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color:
-                                _amountToPay < widget.minPaymentAmount ||
-                                    _amountToPay > widget.amount
-                                ? Colors.red
-                                : Colors.grey[600],
+                      Text(
+                        convertStringToCurrency(widget.amount.toString()),
+                        style: txStyle24SemiBold,
+                      ),
+                      if (widget.comment != null &&
+                          widget.comment!.isNotEmpty) ...[
+                        const Gap(10),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xffF7F8FA),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ),
-                      ],
-                      if (widget.payingRemainingAmount) ...[
-                        const Gap(4),
-                        Text(
-                          'Max: ${convertStringToCurrency(widget.amount.toString())}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: _amountToPay > widget.amount
-                                ? Colors.red
-                                : Colors.grey[600],
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.chat_bubble_outline,
+                                size: 14,
+                                color: Colors.grey[700],
+                              ),
+                              const Gap(8),
+                              Expanded(
+                                child: Text(
+                                  widget.comment!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[800],
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -219,34 +187,26 @@ class _BillPaymentMethodScreenState extends State<BillPaymentMethodScreen> {
                   height: 52,
                   child: ElevatedButton(
                     onPressed: () async {
-                      if (widget.minPaymentAmount > 0 && !widget.payingRemainingAmount) {
-                        if (_amountToPay < widget.minPaymentAmount) {
-                          showErrorToast(
-                            'Amount cannot be less than minimum allowed',
-                          );
-                          return;
-                        }
-                      }
-                      if (widget.minPaymentAmount > 0 || widget.payingRemainingAmount) {
-                        if (_amountToPay > widget.amount) {
-                          showErrorToast(
-                            'Amount cannot be greater than total owed',
-                          );
-                          return;
-                        }
+                      final amountToPay = widget.amount;
+                      if (amountToPay <= 0) {
+                        showErrorToast('Enter a valid amount');
+                        return;
                       }
 
                       if (_selectedPaymentMethod == 'wallet') {
-                        if (walletBalance < _amountToPay) {
+                        if (walletBalance < amountToPay) {
                           showErrorToast('Insufficient wallet balance');
                           return;
                         }
 
                         showCustomBottomSheet(
                           EnterPinSheet(
-                            amountToPay: _amountToPay,
+                            amountToPay: amountToPay,
                             participantId: widget.participantId,
                             billID: widget.billID,
+                            comment: widget.comment,
+                            onBehalfOfParticipantId:
+                                widget.onBehalfOfParticipantId,
                           ),
                           context,
                         );
@@ -258,11 +218,13 @@ class _BillPaymentMethodScreenState extends State<BillPaymentMethodScreen> {
                             .payForSPlitBillWithPaystack(
                               participantId: widget.participantId,
                               billId: widget.billID,
-                              amount: _amountToPay.toString(),
+                              amount: amountToPay.toString(),
+                              onBehalfOfParticipantId:
+                                  widget.onBehalfOfParticipantId,
                             );
 
                         if (authUrl.isEmpty) {
-                          showErrorToast('Unable to open Paystack checkout');
+                          // showErrorToast('Unable to open Paystack checkout');
                           return;
                         }
 
@@ -275,6 +237,14 @@ class _BillPaymentMethodScreenState extends State<BillPaymentMethodScreen> {
                               Get.close(1);
                               newSplitBillProvider.getMySplitBills();
                               newSplitBillProvider.getSplitBillInvites();
+                              if (widget.comment != null &&
+                                  widget.comment!.isNotEmpty) {
+                                newSplitBillProvider.addParticipantComment(
+                                  billId: widget.billID,
+                                  participantId: widget.participantId,
+                                  content: widget.comment!,
+                                );
+                              }
                             },
                             onError: () {
                               showErrorToast('Paystack payment was canceled');
@@ -317,11 +287,15 @@ class EnterPinSheet extends StatelessWidget {
   final String participantId;
   final String billID;
   final double amountToPay;
+  final String? comment;
+  final String? onBehalfOfParticipantId;
   const EnterPinSheet({
     super.key,
     required this.participantId,
     required this.billID,
     required this.amountToPay,
+    this.comment,
+    this.onBehalfOfParticipantId,
   });
 
   @override
@@ -364,12 +338,20 @@ class EnterPinSheet extends StatelessWidget {
                       billId: billID,
                       amount: amountToPay.toString(),
                       transactionPin: pin,
+                      onBehalfOfParticipantId: onBehalfOfParticipantId,
                     );
 
                 if (success) {
                   Get.close(1);
                   newSplitBillProvider.getMySplitBills();
                   newSplitBillProvider.getSplitBillInvites();
+                  if (comment != null && comment!.isNotEmpty) {
+                    newSplitBillProvider.addParticipantComment(
+                      billId: billID,
+                      participantId: participantId,
+                      content: comment!,
+                    );
+                  }
                 }
               },
             ),

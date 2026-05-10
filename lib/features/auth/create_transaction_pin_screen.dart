@@ -23,6 +23,14 @@ class CreateTransactionPinScreen extends StatefulWidget {
 class _CreateTransactionPinScreenState
     extends State<CreateTransactionPinScreen> {
   @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration.zero, () {
+      Provider.of<AuthProvider>(context, listen: false).disposePin();
+    });
+  }
+
+  @override
   void dispose() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -70,7 +78,7 @@ class _CreateTransactionPinScreenState
                           ),
                         ),
                         const Gap(64),
-                        PinCodeText(pin: authProvider.newPin, pinLength: 4, ),
+                        PinCodeText(pin: authProvider.newPin, pinLength: 4),
                         const Spacer(),
                         NumPad(
                           onValue: (value) {
@@ -167,7 +175,10 @@ class _ConfirmTransactionPinScreenState
                           ),
                         ),
                         const Gap(64),
-                        PinCodeText(pin: authProvider.confirmNewPin, pinLength: 4,),
+                        PinCodeText(
+                          pin: authProvider.confirmNewPin,
+                          pinLength: 4,
+                        ),
                         const Spacer(),
                         NumPad(
                           onValue: (value) {

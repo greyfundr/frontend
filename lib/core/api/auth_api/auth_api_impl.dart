@@ -6,6 +6,7 @@ import 'package:greyfundr/core/api/api_utils/app_client.dart';
 import 'package:greyfundr/core/api/auth_api/auth_api.dart';
 import 'package:greyfundr/core/models/login_response_model.dart' as loginModels;
 import 'package:greyfundr/services/local_storage.dart';
+import 'package:greyfundr/shared/utils.dart';
 
 class AuthApiImpl implements AuthApi {
   final ApiClient _apiClient = ApiClient();
@@ -112,7 +113,7 @@ class AuthApiImpl implements AuthApi {
     // Map<String, dynamic> data = {"password": password};
     // final response = await _apiClient.post(
     Map<String, dynamic> data = {
-      "resetToken": await localStorage.getString("temp_access_token"),
+      "resetToken": await localStorage.getString("reset_token"),
       "newPassword": password,
       "confirmNewPassword": password,
     };
@@ -166,12 +167,14 @@ class AuthApiImpl implements AuthApi {
     required String lastName,
     required String username,
     required bool agreeToTerms,
+    required String dob,
   }) async {
     Map<String, dynamic> data = {
       "firstName": firstName,
       "lastName": lastName,
       "username": username,
       "agreeToTerms": true,
+      "dateOfBirth": formatDateForApi(DateTime.parse(dob)),
     };
     final response = await _apiClient.post(
       ApiRoute.submitBasicInfoRoute,
@@ -258,6 +261,26 @@ class AuthApiImpl implements AuthApi {
     var decodedResponse = jsonDecode(response);
     localStorage.setString("access_token", decodedResponse["accessToken"]);
     localStorage.setString("refresh_token", decodedResponse["refreshToken"]);
+    return response;
+  }
+
+  @override
+  Future verifyResetPasswordOtp({
+    String? emailOrPhone,
+    required String otp,
+  }) async {
+    Map<String, dynamic> data = {"emailOrPhone": emailOrPhone, "otp": otp};
+    final response = await _apiClient.post(
+      ApiRoute.verifyResetPasswordOtpRoute,
+      headers: header,
+      body: data,
+      hideLog: false
+    );
+    var decodedResponse = jsonDecode(response);
+    localStorage.setString(
+      "reset_token",
+      decodedResponse["data"]["resetToken"],
+    );
     return response;
   }
 
